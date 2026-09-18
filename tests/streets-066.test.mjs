@@ -113,11 +113,17 @@ test('the Gleishof sign is contained on its wall, and bridge signs have real bac
  assert.ok(bounds.min.x>-193&&bounds.max.x<-165);assert.ok(bounds.min.z>39.08&&bounds.max.z<39.3);
  const bridge=world.scene.getObjectByName('BAHNHOFSVIERTEL');assert.ok(bridge);assert.ok(Math.abs(bridge.position.x-(VIADUCT.x+VIADUCT.w/2))<.2);
 }));
-test('the full station quarter has textured cobblestone ground instead of a raw grey base',()=>withCanvas(()=>{
- const world={scene:new THREE.Scene(),staticGroups:[],colliders:[],tree(){},atmosphere:{addPuddle(){}}};buildStationDistrict(world,kit());const yard=world.scene.getObjectByName('Bahnhofsviertel · Pflastergrund');
+test('the full station quarter has continuous flush cobblestone ground without the old plaza trench',()=>withCanvas(()=>{
+ const trees=[],world={scene:new THREE.Scene(),staticGroups:[],colliders:[],tree(x,z,r){trees.push({x,z,r})},atmosphere:{addPuddle(){}}};buildStationDistrict(world,kit());const yard=world.scene.getObjectByName('Bahnhofsviertel · Pflastergrund');
  assert.ok(yard);assert.ok(yard.material?.map,'station yard must have a repeating surface texture');assert.equal(yard.scale.x,STATION_YARD.maxX-STATION_YARD.minX);assert.equal(yard.scale.z,STATION_YARD.maxZ-STATION_YARD.minZ);
  const bounds=new THREE.Box3().setFromObject(yard);near(bounds.max.x,STATION_YARD.maxX);near(bounds.max.y,STATION_YARD.height);assert.ok(yard.material.roughness>=.95);assert.ok(yard.material.bumpScale>.02);
  near(groundHeight(-124.2,18),STATION_YARD.height);
- const edges=[];world.scene.traverse(o=>{if(o.name==='Bahnhofsviertel · Granitrand')edges.push(o)});assert.equal(edges.length,4);for(const edge of edges){const b=new THREE.Box3().setFromObject(edge);assert.ok(b.max.x<=STATION_YARD.maxX+.01);for(const z of ROAD_Z)assert.ok(b.max.z<=z-7.24||b.min.z>=z+7.24,'granite edge must leave road openings clear');}
+ // Points immediately on either side of the former raised-plaza borders are now exactly level.
+ for(const [a,b] of [[[-174,-56.9],[-174,-57.1]],[[-152.9,-32],[-153.1,-32]],[[-174,6.9],[-174,7.1]]])near(groundHeight(...a),groundHeight(...b));
+ const overlays=[];world.scene.traverse(o=>{if(o.name==='Bahnhofsviertel · Platzbelag')overlays.push(o)});assert.equal(overlays.length,2);assert.ok(overlays.every(o=>Math.abs(o.position.y-(STATION_YARD.height+.003))<1e-8));
+ const edges=[];world.scene.traverse(o=>{if(o.name==='Bahnhofsviertel · Granitrand')edges.push(o)});assert.equal(edges.length,4);
+ assert.deepEqual(trees.slice(0,2).map(({x,z})=>({x,z})),[{x:-188,z:-56.3},{x:-159,z:-56.3}]);
+ // The red station building ends at z=-51, so these trunks now have >5 m façade clearance.
+ assert.ok(trees.slice(0,2).every(t=>Math.abs(t.z-(-51))>5));
 }));
 

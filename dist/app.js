@@ -19,12 +19,12 @@ import {GameModel,newGame,validateSave,SAVE_KEY} from './model.js?v=0.7.2-stabil
 import {inventoryWeight,itemCount} from './inventory.js?v=0.7.2';
 import {readSavedGame,writeSavedGame,BACKUP_KEY} from './persistence.js?v=0.7.2-stability1';
 import {itemIcon} from './icons.js?v=0.7.2';
-import {ROOMS} from './spatial.js?v=0.7.2-stationedge1';
+import {ROOMS} from './spatial.js?v=0.7.2-stationedge2';
 import {CAFE_MENU,guestLabel,guestPlace,STAFF_TRAINING_COST,waitingCafeOrders,cafeCosts} from './cafe.js?v=0.7.2';
 import {Soundscape} from './soundscape.js?v=0.7.2';
 import {guestSeat} from './cafe-layout.js?v=0.7.2';
 import {guestServiceView} from './cafe-service-view.js?v=0.7.2';
-import {World} from './world.js?v=0.7.2-stationedge1';
+import {World} from './world.js?v=0.7.2-stationedge2';
 const $=id=>document.getElementById(id),esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const htmlCache=new WeakMap();function setHTML(id,value){const el=$(id);if(htmlCache.get(el)!==value){el.innerHTML=value;htmlCache.set(el,value)}}
 const button=(text,action,arg='',cls='primary',disabled=false)=>`<button class="${cls==='active'?'secondary active':cls}" ${(['courierMode','courierFilter'].includes(action)||action==='workday'&&['today','all'].includes(arg))?'aria-pressed="'+cls.split(' ').includes('active')+'"':''} data-action="${action}" data-arg="${esc(arg)}" ${disabled?'disabled':''}>${text}</button>`;

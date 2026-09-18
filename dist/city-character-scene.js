@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import {CITY_CHARACTER_FIXTURES,CITY_CHARACTER_OVERHEAD,LITTER_ZONES,HORIZON_ROADS} from './city-character-layout.js?v=0.7.2';
-import {groundHeight} from './spatial.js?v=0.7.2-stationedge1';
+import {groundHeight} from './spatial.js?v=0.7.2-stationedge2';
 import {createCitizen} from './art.js?v=0.7.2';
 import {seatedStreetPose} from './pedestrian-scene.js?v=0.7.2';
 

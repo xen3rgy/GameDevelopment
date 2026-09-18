@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 import {DISTRICT_FIXTURES,STATION_PLAZAS,STATION_YARD,ROAD_Z,VIADUCT} from './city-layout.js?v=0.7.2-stationedge1';
 import {surfaceMaterial} from './atmosphere.js?v=0.7.2';
-import {groundHeight} from './spatial.js?v=0.7.2-stationedge1';
+import {groundHeight} from './spatial.js?v=0.7.2-stationedge2';
 
 export function buildStationDistrict(world,kit){
  const {box,cylinder,sign,sphere}=kit,s=world.scene,g=new THREE.Group();s.add(g);world.staticGroups.push(g);
@@ -17,7 +17,10 @@ export function buildStationDistrict(world,kit){
  const roadClear=7.25,edgeX=STATION_YARD.maxX-7.19;let edgeFrom=STATION_YARD.minZ;
  const edgeSegment=(a,b)=>{if(b-a<.25)return;const m=box(g,edgeX,STATION_YARD.height+.010,(a+b)/2,.38,.020,b-a,0,edgeMaterial);m.name='Bahnhofsviertel · Granitrand';m.castShadow=false;m.receiveShadow=true;};
  for(const roadZ of ROAD_Z){edgeSegment(edgeFrom,roadZ-roadClear);edgeFrom=roadZ+roadClear;}edgeSegment(edgeFrom,STATION_YARD.maxZ);
- for(const p of STATION_PLAZAS){const material=surfaceMaterial('cobble',p.w,p.d);material.color.set(0xc1b198);box(g,p.x,.065,p.z,p.w,.23,p.d,0,material);}
+ for(const p of STATION_PLAZAS){
+  const material=surfaceMaterial('cobble',p.w,p.d);material.color.set(0xc1b198);material.polygonOffset=true;material.polygonOffsetFactor=-1;material.polygonOffsetUnits=-1;
+  const plaza=new THREE.Mesh(new THREE.PlaneGeometry(p.w,p.d),material);plaza.name='Bahnhofsviertel · Platzbelag';plaza.rotation.x=-Math.PI/2;plaza.position.set(p.x,STATION_YARD.height+.003,p.z);plaza.receiveShadow=true;g.add(plaza);
+ }
  // The bridge is above the streets: pillars stop feet, the deck only stops the camera.
  const v=VIADUCT;
  box(g,v.x,(v.bottom+v.top)/2,v.z,v.w,v.top-v.bottom,v.d,0x65594c);
@@ -85,6 +88,6 @@ export function buildStationDistrict(world,kit){
  }
  const plaque=new THREE.Group();plaque.position.set(-179,2.2,39.18);g.add(plaque);box(plaque,0,0,0,3.8,.75,.10,0x354f4b);sign(plaque,'GLEISHOF',0,.13,.058,3.35,.27,'#ead9ba','#354f4b');sign(plaque,'WOHNEN & HANDWERK',0,-.18,.058,3.35,.18,'#c7d3c3','#354f4b');
 
- for(const [x,z] of [[-188,-52],[-159,-52],[-193,49]])world.tree(x,z,1.8);
+ for(const [x,z] of [[-188,-56.3],[-159,-56.3],[-193,49]])world.tree(x,z,1.8);
  for(const z of [-47,45])world.atmosphere.addPuddle(-206,z,2,.7);
 }

@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 import {createCitizen} from './art.js?v=0.7.2';
 import {animateCitizen} from './animation.js?v=0.7.2';
-import {groundHeight} from './spatial.js?v=0.7.2-stationedge1';
+import {groundHeight} from './spatial.js?v=0.7.2-stationedge2';
 import {DELIVERY_PEOPLE,DELIVERY_SECONDS,deliveryLocation,stationFacing} from './delivery-routes.js?v=0.7.2';
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t)};
 export function parcelAsset(kit,index=0,label=''){

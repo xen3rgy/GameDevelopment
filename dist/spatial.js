@@ -10,7 +10,6 @@ export function groundHeight(x,z,interior=null){
  if(onGardenPath(x,z))return .02;
  const inStationYard=x>=STATION_YARD.minX&&x<=STATION_YARD.maxX&&z>=STATION_YARD.minZ&&z<=STATION_YARD.maxZ;
  let y=inStationYard?STATION_YARD.height:-.05;
- if(STATION_PLAZAS.some(p=>Math.abs(x-p.x)<=p.w/2&&Math.abs(z-p.z)<=p.d/2))y=Math.max(y,.18);
  if(Math.abs(x-76)<=19.5&&Math.abs(z-93)<=18){y=Math.max(y,.18);if(Math.abs(x-76)<=2.5||Math.abs(z-93)<=2)y=Math.max(y,.275)}
  return y;
 }
