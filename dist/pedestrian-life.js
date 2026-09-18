@@ -1,10 +1,10 @@
 import {routeLength} from './navigation.js?v=0.7.2';
 import {PedestrianNavigation,PEDESTRIAN_RADIUS,pedestrianSegmentClear as segmentClear} from './pedestrian-navigation.js?v=0.7.2';
 import {approach} from './movement.js?v=0.7.2';
-import {PAVEMENTS,onRoad,CROSSINGS} from './street-layout.js?v=0.7.2';
+import {PAVEMENTS,onRoad,CROSSINGS} from './street-layout.js?v=0.7.2-cornerfix1';
 import {STATION_PLAZAS} from './city-layout.js?v=0.7.2';
-import {pedestrianBlocks,routePose} from './traffic.js?v=0.7.2';
-import {CITIZEN_PORTALS,CITIZEN_DESTINATIONS,GARDEN_PATHS,citizenAwake,daytime} from './pedestrian-layout.js?v=0.7.2-bollardfix1';
+import {pedestrianBlocks,routePose} from './traffic.js?v=0.7.2-cornerfix2';
+import {CITIZEN_PORTALS,CITIZEN_DESTINATIONS,GARDEN_PATHS,citizenAwake,daytime} from './pedestrian-layout.js?v=0.7.2-cornerfix1';
 
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const rect=(p,x,z)=>Math.abs(x-p.x)<=p.w/2&&Math.abs(z-p.z)<=p.d/2;
@@ -149,6 +149,20 @@ export class PedestrianLife{
   if(p.progress.age>3.5){
    const obstacles=[...nearby,...cars.filter(c=>c.speed<.3&&dist(p,c)<20).map(c=>({x:c.x,z:c.z,radius:Math.hypot(c.length,c.width)/2}))];
    p.retries=(p.retries||0)+1;p.progress.age=0;p.replans=(p.replans||0)+1;
+   // A persistent local blocker (bus shelters, benches or a crowd pocket) can make a valid
+   // A* route repeatedly select the same first segment. Before abandoning the activity,
+   // deliberately route through a nearby clear pocket and continue from there.
+   if(p.retries>=2){
+    const heading=Math.atan2(target.x-p.x,target.z-p.z),angles=[Math.PI/2,-Math.PI/2,Math.PI*.35,-Math.PI*.35,Math.PI*.7,-Math.PI*.7];
+    escape:for(const radius of [1.05,1.45,1.85])for(const offset of angles){
+     const point={x:p.x+Math.sin(heading+offset)*radius,z:p.z+Math.cos(heading+offset)*radius};
+     if(onRoad(point.x,point.z)||!this.canWalk(point.x,point.z,PEDESTRIAN_RADIUS)||obstacles.some(q=>Math.hypot(point.x-q.x,point.z-q.z)<(q.radius??.34)+PEDESTRIAN_RADIUS+.08))continue;
+     if(!segmentClear(p,point,this.canWalk,PEDESTRIAN_RADIUS))continue;
+     const tail=this.nav.find(point,p.goal,obstacles);if(tail.length<2)continue;
+     p.path=[{x:p.x,z:p.z},point,...tail.slice(1)];p.index=1;p.progress=null;p.passing=null;p.retries=0;break escape;
+    }
+    if(!p.progress)return;
+   }
    if(p.retries>=3&&this.plan(p,others,obstacles)){p.retries=0;return;}
    const path=this.nav.find(p,p.goal,obstacles);
    if(path.length>1){p.path=path;p.index=1;p.progress=null;return;}
