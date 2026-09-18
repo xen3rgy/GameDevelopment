@@ -8,7 +8,7 @@ import {STREET_SEATS,streetSpawn,PROMENADE_BOLLARDS} from './pedestrian-layout.j
 import {cityBackdrop} from './district-architecture.js?v=0.7.2-treeasset1';
 import {buildStreets} from './street-scene.js?v=0.7.2-cornerfix2';
 import {stepJump} from './jump-motion.js?v=0.7.2';
-import {buildStationDistrict} from './station-district.js?v=0.7.2';
+import {buildStationDistrict} from './station-district.js?v=0.7.2-groundfix1';
 import {WORLD_BOUNDS,exteriorContains} from './city-layout.js?v=0.7.2';
 import {HomeScene} from './home-scene.js?v=0.7.2';
 import {walkingProfile} from './player-movement.js?v=0.7.2';

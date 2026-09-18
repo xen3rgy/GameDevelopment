@@ -5,7 +5,11 @@ import {groundHeight} from './spatial.js?v=0.7.2';
 
 export function buildStationDistrict(world,kit){
  const {box,cylinder,sign,sphere}=kit,s=world.scene,g=new THREE.Group();s.add(g);world.staticGroups.push(g);
- box(g,-175,-.3,0,100,.5,160,0x777364);
+ // The western quarter used to expose a single flat grey box here. Give the entire
+ // station yard a continuous, weathered cobblestone surface so gaps between plazas,
+ // buildings and the viaduct still read as finished public ground.
+ const yardMaterial=surfaceMaterial('cobble',100,160);yardMaterial.color.set(0xa89a82);yardMaterial.roughness=.98;yardMaterial.bumpScale=.034;
+ const yard=box(g,-175,-.3,0,100,.5,160,0,yardMaterial);yard.name='Bahnhofsviertel · Pflastergrund';yard.castShadow=false;yard.receiveShadow=true;
  for(const p of STATION_PLAZAS){const material=surfaceMaterial('cobble',p.w,p.d);material.color.set(0xc1b198);box(g,p.x,.065,p.z,p.w,.23,p.d,0,material);}
  // The bridge is above the streets: pillars stop feet, the deck only stops the camera.
  const v=VIADUCT;
