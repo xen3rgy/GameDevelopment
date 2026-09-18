@@ -25,7 +25,7 @@ test('pedestrian clearance distinguishes beside, in front, and walking into the 
  assert.equal(pedestrianBlocks(car,{x:2,z:2,vz:2},1),false);
 });
 test('cars pass stationary people beside the lane even at a marked crossing',()=>{
- for(const z of [-4.3,-.8,2.8]){const traffic=new Traffic(1),car=traffic.cars[0];car.route=makeRoute([{x:-100,z:0},{x:100,z:0},{x:100,z:65},{x:-100,z:65}]);let best=Infinity;
+ for(const z of [-4.3,-.8,5.8]){const traffic=new Traffic(1),car=traffic.cars[0];car.route=makeRoute([{x:-100,z:0},{x:100,z:0},{x:100,z:65},{x:-100,z:65}]);let best=Infinity;
   for(let d=0;d<car.route.length;d+=.1){const p=routePose(car.route,d),error=Math.hypot(p.x+28,p.z-2.8);if(error<best){best=error;car.progress=d}}
   Object.assign(car,routePose(car.route,car.progress));car.speed=5;
   for(let i=0;i<360;i++)traffic.update(1/60,[{x:-8,z,vx:0,vz:0}]);

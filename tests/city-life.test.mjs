@@ -24,8 +24,8 @@ test('traffic circulates through junctions without collisions or permanent deadl
 });
 test('a car brakes before an occupied crossing, waits, and resumes after the pedestrian leaves',()=>{
  for(const fps of [20,60]){const traffic=new Traffic(1),car=traffic.cars[0];car.route=makeRoute([{x:-100,z:0},{x:100,z:0},{x:100,z:65},{x:-100,z:65}]);
- let best=Infinity;for(let d=0;d<car.route.length;d+=.1){const p=routePose(car.route,d),distance=Math.hypot(p.x+28,p.z+2.8);if(distance<best){best=distance;car.progress=d}}Object.assign(car,routePose(car.route,car.progress));car.speed=6;
- const pedestrian={x:-10,z:-7.5,vz:1};for(let i=0;i<fps*6;i++)traffic.update(1/fps,[pedestrian]);assert.ok(car.x<-12.5);assert.ok(car.speed<.1);const stopped=car.x;for(let i=0;i<fps*3;i++)traffic.update(1/fps);assert.ok(car.x>stopped+4);
+ let best=Infinity;for(let d=0;d<car.route.length;d+=.1){const p=routePose(car.route,d),distance=Math.hypot(p.x+28,p.z-2.8);if(distance<best){best=distance;car.progress=d}}Object.assign(car,routePose(car.route,car.progress));car.speed=6;
+ const pedestrian={x:-10,z:7.5,vz:-1};for(let i=0;i<fps*6;i++)traffic.update(1/fps,[pedestrian]);assert.ok(car.x<-12.5);assert.ok(car.speed<.1);const stopped=car.x;for(let i=0;i<fps*3;i++)traffic.update(1/fps);assert.ok(car.x>stopped+4);
  }
 });
 test('footsteps identify actual ground surfaces and stereo follows the camera',()=>{

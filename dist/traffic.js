@@ -51,7 +51,14 @@ export function parkedVehicleBlocks(vehicle,x,z,r=.35,from=null){
  return true;
 }
 export class Traffic {
- constructor(count=9){this.time=0;this.junctions=[];for(const x of ROAD_X)for(const z of [-65,0,65])this.junctions.push({x,z,owner:null});this.cars=Array.from({length:count},(_,i)=>{const route=TRAFFIC_ROUTES[i%TRAFFIC_ROUTES.length],progress=route.length*(.12+i*.137)%route.length;return {id:i,route,progress,...routePose(route,progress),speed:0,maxSpeed:5.2+(i%4)*.5,length:i===4?4.8:3.8,width:1.85,braking:false}})}
+ constructor(count=9){
+  this.time=0;this.junctions=[];for(const x of ROAD_X)for(const z of [-65,0,65])this.junctions.push({x,z,owner:null});this.cars=[];
+  for(let i=0;i<count;i++){
+   const route=TRAFFIC_ROUTES[i%TRAFFIC_ROUTES.length],length=i===4?4.8:3.8,width=1.85;let progress=route.length*(.12+i*.137)%route.length,body={...routePose(route,progress),length,width};
+   for(let attempt=0;attempt<64&&this.cars.some(c=>overlaps(body,c,.8));attempt++){progress=(progress+7)%route.length;body={...routePose(route,progress),length,width}}
+   this.cars.push({id:i,route,progress,...body,speed:0,maxSpeed:5.2+(i%4)*.5,length,width,braking:false});
+  }
+ }
  update(dt,pedestrians=[],owned=null){
   let remaining=clamp(dt,0,.2);while(remaining>1e-8){const step=Math.min(remaining,1/30);this.tick(step,pedestrians,owned);remaining-=step}
  }

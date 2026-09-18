@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import {ROAD_X,ROAD_Z} from './city-layout.js?v=0.7.2';
-import {ROAD_HEIGHT,PAVEMENT_HEIGHT,HALF_ROAD,CORNER_RADIUS,CORNERS,RAMP_CORE,CROSSINGS,CROSSWALK_OFFSETS,CROSSWALK_STRIPE_WIDTH,streetPatches,rampHeight,onRoad} from './street-layout.js?v=0.7.2-cornerfix1';
+import {ROAD_HEIGHT,PAVEMENT_HEIGHT,HALF_ROAD,CORNER_RADIUS,CORNERS,RAMP_WIDTH,RAMP_CORE,CROSSINGS,CROSSWALK_OFFSETS,CROSSWALK_STRIPE_WIDTH,streetPatches,rampHeight,onRoad} from './street-layout.js?v=0.7.2-cornerfix1';
 import {surfaceMaterial} from './atmosphere.js?v=0.7.2';
 
 export function buildStreets(world,kit){
@@ -24,7 +24,7 @@ export function buildStreets(world,kit){
   if(p.kind==='ramp'){
    const r=p.ramp,lateralCenter=r.axis==='z'?(x+X)/2-r.x:(z+Z)/2-r.z;
    if(Math.abs(lateralCenter)>RAMP_CORE){
-    const side=Math.sign(lateralCenter),difference=v=>((r.axis==='z'?v[2]-r.crossing.z:v[0]-r.crossing.x)*r.side-6.5)/2-((r.axis==='z'?v[0]-r.x:v[2]-r.z)*side-RAMP_CORE);
+    const side=Math.sign(lateralCenter),wingSpan=RAMP_WIDTH/2-RAMP_CORE,difference=v=>((r.axis==='z'?v[2]-r.crossing.z:v[0]-r.crossing.x)*r.side-6.5)/2-(((r.axis==='z'?v[0]-r.x:v[2]-r.z)*side-RAMP_CORE)/wingSpan);
     // Split at the actual crease, even when another street subdivides a flare.
     for(const sign of [-1,1]){
      const polygon=[a,b,c,d],clipped=[];
