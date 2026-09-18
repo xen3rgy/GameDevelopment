@@ -308,3 +308,7 @@ Validation covers actual settlement integration, duplicate payment prevention, c
 ### 0.7.2 stability maintenance
 
 New games start at 08:00 while existing saves resume at their saved time. Runtime assets are committed directly, save/import validation is stricter for discrete fields, businesses and dropped items, world-drop rendering no longer serializes the full drop list every frame, repeated owned vehicle models are bounded by a four-model cache, HUD DOM writes/minimap redraws are cached, and the workshop ambient day now follows the documented 08:00–19:00 window. GitHub Actions validates tests, JavaScript syntax, relative imports and critical static-server files on every push to this branch.
+
+### Tree asset
+
+All full-size city and horizon trees use the optimized `dist/assets/lindenstadt-tree.glb` model. The original embedded texture was reduced to 512×512 for browser performance while preserving the uploaded mesh geometry. Instances share one geometry/material and receive deterministic scale and rotation variation.

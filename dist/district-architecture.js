@@ -128,11 +128,7 @@ export function cityBackdrop(world,kit){
  }
  // A layered tree belt connects the edge to a landscape instead of a line of boxes.
  const onCorridor=(x,z,margin)=>HORIZON_ROADS.some(r=>Math.abs(x-r.x)<r.w/2+margin&&Math.abs(z-r.z)<r.d/2+margin);
- const tree=(x,z,i)=>{
-  if(onCorridor(x,z,3))return;
-  const h=4.2+(i%4)*.6;cylinder(g,x,h/2-.08,z,.17,h,0x65533e);
-  for(let n=0;n<3;n++){const crown=sphere(g,x+Math.sin(n*2.4)*.8,h-.5+n*.55,z+Math.cos(n*2.4)*.7,1.7,[0x52664a,0x627550,0x70805b][(i+n)%3]);crown.scale.y*=1.18;}
- };
+ const tree=(x,z,i)=>{if(onCorridor(x,z,3))return;world.tree(x,z,2.05,{grate:false,distant:true,seed:i})};
  for(const side of [-1,1])for(let i=0;i<27;i++)tree(-244+i*16,side*(180+(i%3)*5),i);
  for(let i=0;i<20;i++)tree(-266, -161+i*17,i);
  // Low boundary planting masks the seam at eye level, while preserving skyline views.

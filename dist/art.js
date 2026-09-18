@@ -82,14 +82,7 @@ export class CityArt{
   if(index===0){const mural=new THREE.Mesh(new THREE.PlaneGeometry(10.8,7.2),new THREE.MeshStandardMaterial({map:this.texture,roughness:1}));mural.position.set(x-w/2-.23,8.4,z+1);mural.rotation.y=-Math.PI/2;g.add(mural)}
   return g;
  }
- tree(x,z,r){const {box,cylinder,sphere}=this.k,g=new THREE.Group();this.w.scene.add(g);this.w.staticGroups.push(g);const rand=seeded(Math.abs(Math.round(x*931+z*117))+7);
-  cylinder(g,x,1.85,z,.16,3.7,0x65513b);
-  for(let i=0;i<6;i++){const angle=i*2.4,branch=cylinder(g,x+Math.sin(angle)*.45,3.12+i*.10,z+Math.cos(angle)*.45,.065,1.8,0x6f5b40);branch.rotation.z=Math.cos(angle)*.65;branch.rotation.x=Math.sin(angle)*.65}
-  // Small overlapping crowns with real gaps replace the solid geometric ball.
-  for(let i=0;i<34;i++){const angle=rand()*Math.PI*2,rad=Math.sqrt(rand())*r*.86,y=3.7+rand()*1.9,leaf=sphere(g,x+Math.sin(angle)*rad,y,z+Math.cos(angle)*rad,.48+rand()*.42,[0x355a39,0x496b3f,0x668249,0x779353][i%4]);leaf.scale.y*=.8+rand()*.6}
-  for(const dx of [-.9,.9])box(g,x+dx,groundHeight(x,z)+.018,z,.08,.035,1.9,0x4a534d);for(const dz of [-.9,.9])box(g,x,groundHeight(x,z)+.018,z+dz,1.9,.035,.08,0x4a534d);
-  for(let i=0;i<6;i++)box(g,x-.72+i*.29,groundHeight(x,z)+.018,z,.035,.035,1.7,0x4a534d);
- }
+ tree(x,z,r,options={}){const {box}=this.k;if(options.grate!==false){const g=new THREE.Group();this.w.scene.add(g);this.w.staticGroups.push(g);for(const dx of [-.9,.9])box(g,x+dx,groundHeight(x,z)+.018,z,.08,.035,1.9,0x4a534d);for(const dz of [-.9,.9])box(g,x,groundHeight(x,z)+.018,z+dz,1.9,.035,.08,0x4a534d);for(let i=0;i<6;i++)box(g,x-.72+i*.29,groundHeight(x,z)+.018,z,.035,.035,1.7,0x4a534d)}return this.w.treeSystem.add(x,z,r,options)}
  homeFinish(){
   const {box,cylinder,sign}=this.k,g=this.w.homeDecor,texture=wallTexture('wood').clone();texture.needsUpdate=true;texture.repeat.set(3,2);
   const floor=new THREE.MeshStandardMaterial({map:texture,color:0xbda57a,roughness:.68,bumpMap:texture,bumpScale:.018});box(g,300,.069,0,13.7,.002,11.7,0,floor);

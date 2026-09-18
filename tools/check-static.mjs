@@ -30,8 +30,11 @@ for(const rel of [
  'dist/vendor/three.module.js',
  'dist/assets/civic-limestone-069.png',
  'dist/assets/lindenstadt-mural.png',
- 'dist/assets/station-brick-069.png'
+ 'dist/assets/station-brick-069.png',
+ 'dist/assets/lindenstadt-tree.glb'
 ])if(!existsSync(join(root,rel)))missing.push(rel);
+const treeAsset=join(root,'dist/assets/lindenstadt-tree.glb');
+if(existsSync(treeAsset)){const b=readFileSync(treeAsset);if(b.length<2_000_000||b.length>2_600_000||b.readUInt32LE(0)!==0x46546c67||b.readUInt32LE(4)!==2)missing.push('dist/assets/lindenstadt-tree.glb is not the expected optimized GLB asset')}
 if(existsSync(join(root,'.zero-rise-parts')))missing.push('.zero-rise-parts should not exist after runtime assets are committed directly');
 
 if(missing.length){console.error('Static validation failed:\n'+missing.map(v=>' - '+v).join('\n'));process.exit(1)}
