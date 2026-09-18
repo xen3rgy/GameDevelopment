@@ -2,13 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../dist/vendor/three.module.js';
 import {createCitizen,createCar} from '../dist/art.js';
-import {animateCitizen,playGesture} from '../dist/animation.js';
+import {animateCitizen,playGesture,VehicleTransition,vehicleDriverDoorPoint,vehicleDriverSeatPoint} from '../dist/animation.js';
 import {VehicleLights} from '../dist/vehicle-lights.js';
 import {newGame,validateSave} from '../dist/model.js';
 const materials=new Map();const mat=(color=0xffffff)=>{if(!materials.has(color))materials.set(color,new THREE.MeshStandardMaterial({color}));return materials.get(color)};
 const kit={mat,box(parent,x,y,z,w,h,d,color,material){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material||mat(color));m.position.set(x,y,z);parent.add(m);return m},cylinder(parent,x,y,z,r,h,color){const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,8),mat(color));m.position.set(x,y,z);parent.add(m);return m},sign(){return new THREE.Group()}};
 test('new character batching retains animated joints and the established foot origin',()=>{const actor=createCitizen(kit);const bounds=new THREE.Box3().setFromObject(actor);assert.ok(Math.abs(bounds.min.y-.05)<.001);assert.ok(bounds.max.y<1.95);assert.equal(actor.userData.legs.length,2);assert.equal(actor.userData.arms.length,2);for(const joint of [...actor.userData.legs,...actor.userData.arms]){assert.ok(joint.parent===(actor.userData.arms.includes(joint)?actor.userData.upper:actor));assert.ok(joint.children.length>0)}let count=0;actor.traverse(m=>{if(m.isMesh){count++;assert.ok(Array.from(m.geometry.attributes.position.array).every(Number.isFinite));assert.equal(m.geometry.attributes.normal.count,m.geometry.attributes.position.count)}});assert.ok(count<30,'merged character stays below 30 draw calls');actor.userData.legs[0].rotation.x=.4;assert.doesNotThrow(()=>actor.updateMatrixWorld(true))});
 test('all new car bodies keep existing wheel contact and finite render geometry',()=>{for(const id of ['car','sport','van']){const car=createCar(kit,id);const bounds=new THREE.Box3().setFromObject(car);assert.ok(Math.abs(bounds.min.y-.03)<.001,id);assert.ok(bounds.max.x<1.15&&bounds.min.x>-1.15,id);car.traverse(m=>{if(m.isMesh)assert.ok(Array.from(m.geometry.attributes.position.array).every(Number.isFinite))})}});
+test('every owned and NPC car factory model has mirrored passenger and left driver doors',()=>{
+ for(const id of ['car','sport','van']){const car=createCar(kit,id),{driverDoor,passengerDoor}=car.userData;assert.ok(driverDoor&&passengerDoor,id);assert.equal(car.userData.door,driverDoor);assert.ok(driverDoor.position.x>0,id);assert.ok(passengerDoor.position.x<0,id);assert.equal(driverDoor.position.x,-passengerDoor.position.x);assert.equal(driverDoor.position.z,passengerDoor.position.z);assert.equal(driverDoor.children.length,passengerDoor.children.length);driverDoor.rotation.y=-1;assert.equal(passengerDoor.rotation.y,0);}
+});
+test('driver entry geometry stays on the left side and transitions through the door',()=>{
+ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]){const v={x:12,z:-8,angle},door=vehicleDriverDoorPoint(v),seat=vehicleDriverSeatPoint(v),right=vehicleDriverDoorPoint(v,-1.46,.16);assert.ok(Math.hypot(door.x-v.x,door.z-v.z)>Math.hypot(seat.x-v.x,seat.z-v.z));assert.ok(Math.hypot(door.x-right.x,door.z-right.z)>2.8);
+  const t=new VehicleTransition({x:door.x+.5,z:door.z+.2},seat,true,angle,door);let closest=Infinity,last;for(let i=0;i<80;i++){last=t.update(1/60);closest=Math.min(closest,Math.hypot(last.x-door.x,last.z-door.z));}assert.ok(closest<.08);assert.equal(last.done,true);assert.ok(last.door<1e-6);
+ }
+});
 test('0.3 saves receive view defaults while progress and inventories remain intact',()=>{const old=newGame(true);delete old.settings.fov;delete old.settings.brightness;delete old.settings.sensitivity;old.inventory=[{id:'water',count:3}];old.money=12345;const loaded=validateSave(old);assert.equal(loaded.version,3);assert.equal(loaded.money,12345);assert.deepEqual(loaded.inventory,old.inventory);assert.equal(loaded.settings.fov,55);assert.equal(loaded.settings.brightness,1);assert.equal(loaded.settings.sensitivity,1);loaded.settings.fov=120;loaded.settings.sensitivity=NaN;loaded.settings.brightness=-1;const safe=validateSave(loaded);assert.equal(safe.settings.fov,75);assert.equal(safe.settings.sensitivity,1);assert.equal(safe.settings.brightness,.7)});
 
 test('headlight beams face forward and dip onto the road in both traffic directions',()=>{

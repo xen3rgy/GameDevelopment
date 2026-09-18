@@ -35,9 +35,19 @@ export function animateCitizen(actor,dt,distance,{running=false,carrying=false,b
  if(cafeGesture&&!carrying&&!riding)applyCafeWorkerPose(actor,cafeGesture.kind,cafeGesture.weight,cafeGesture.phase);
  if(riding){data.legs.forEach((leg,i)=>{leg.rotation.x=-.7+(distance?Math.sin(a.phase+i*Math.PI)*.45:0);leg.position.y=.9;if(data.knees)data.knees[i].rotation.x=1.15})}
 }
+export function vehicleLocalPoint(vehicle,lateral=0,forward=0){
+ const angle=vehicle?.angle??Math.PI,c=Math.cos(angle),s=Math.sin(angle);
+ return {x:(vehicle?.x??0)+c*lateral+s*forward,z:(vehicle?.z??0)-s*lateral+c*forward};
+}
+export const vehicleDriverDoorPoint=(vehicle,clearance=1.46,forward=.16)=>vehicleLocalPoint(vehicle,clearance,forward);
+export const vehicleDriverSeatPoint=vehicle=>vehicleLocalPoint(vehicle,.42,.18);
 export class VehicleTransition {
- constructor(from,to,entering,angle){this.from={...from};this.to={...to};this.entering=entering;this.angle=angle;this.age=0;this.duration=.85}
- update(dt){this.age=Math.min(this.duration,this.age+dt);const t=this.age/this.duration,u=Math.max(0,Math.min(1,(t-.12)/.76)),ease=u*u*(3-2*u);
-  return {x:blend(this.from.x,this.to.x,ease),z:blend(this.from.z,this.to.z,ease),angle:this.angle,door:Math.sin(Math.PI*t)*1.05,visible:this.entering?t<.82:t>.12,done:t>=1};
+ constructor(from,to,entering,angle,via=null){this.from={...from};this.to={...to};this.via=via?{...via}:null;this.entering=entering;this.angle=angle;this.age=0;this.duration=1.05}
+ update(dt){
+  this.age=Math.min(this.duration,this.age+dt);const t=this.age/this.duration,u=Math.max(0,Math.min(1,(t-.08)/.84)),ease=u*u*(3-2*u);
+  let x=blend(this.from.x,this.to.x,ease),z=blend(this.from.z,this.to.z,ease);
+  if(this.via){const split=this.entering?.42:.58;if(ease<split){const q=ease/split,k=q*q*(3-2*q);x=blend(this.from.x,this.via.x,k);z=blend(this.from.z,this.via.z,k)}else{const q=(ease-split)/(1-split),k=q*q*(3-2*q);x=blend(this.via.x,this.to.x,k);z=blend(this.via.z,this.to.z,k)}}
+  const doorT=Math.max(0,Math.min(1,(t-.03)/.94));
+  return {x,z,angle:this.angle,door:Math.sin(Math.PI*doorT)*1.02,visible:this.entering?t<.86:t>.10,done:t>=1};
  }
 }

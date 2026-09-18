@@ -149,7 +149,8 @@ export function createCar(kit,id='car',color=0x506d78){
  for(const x of [-.8,.8]){box(g,x,1.23,-.16,.065,.52,.09,0,paint);box(g,x*1.09,.88,-.3,.025,.045,.20,0xb8c0b9);box(g,x*1.15,1.04,.64,.19,.1,.18,0,paint);box(g,x,.52,0,.055,.07,length-.4,0x354247)}
  g.userData.wheels=[];
  for(const x of [-.91,.91])for(const z of [-1.19,1.19]){const tire=new THREE.Mesh(new THREE.CylinderGeometry(.37,.37,.19,20),mat(0x22282a,.96));tire.rotation.z=Math.PI/2;tire.position.set(x,.4,z);tire.castShadow=true;g.add(tire);g.userData.wheels.push(tire);const rim=cylinder(g,x+Math.sign(x)*.11,.4,z,.22,.026,0xa6b1b0);rim.rotation.z=Math.PI/2;const hub=cylinder(g,x+Math.sign(x)*.129,.4,z,.078,.025,0x3e5158);hub.rotation.z=Math.PI/2;}
- const door=new THREE.Group();door.position.set(-.94,0,.64);box(door,0,.85,-.47,.045,.39,.94,0,paint);box(door,0,1.21,-.47,.035,.32,.87,0x314750);box(door,-.035,.9,-.69,.04,.04,.18,0xb8c0b9);g.add(door);g.userData.door=door;
+ const makeFrontDoor=side=>{const door=new THREE.Group();door.position.set(side*.94,0,.64);door.userData.side=side;box(door,0,.85,-.47,.045,.39,.94,0,paint);box(door,0,1.21,-.47,.035,.32,.87,0x314750);box(door,side*.035,.9,-.69,.04,.04,.18,0xb8c0b9);g.add(door);return door};
+ const passengerDoor=makeFrontDoor(-1),driverDoor=makeFrontDoor(1);g.userData.passengerDoor=passengerDoor;g.userData.driverDoor=driverDoor;g.userData.door=driverDoor;
  const headlights=new THREE.MeshStandardMaterial({color:0xf7edda,emissive:0xffedcc,emissiveIntensity:.15}),taillights=new THREE.MeshStandardMaterial({color:0xa63325,emissive:0xff2812,emissiveIntensity:.1});
  g.userData.vehicleLights={headlights,taillights,front:length/2+.16};
  for(const x of [-.6,.6]){const head=box(g,x,.8,length/2+.055,.39,.13,.025,0,headlights),tail=box(g,x,.83,-length/2-.055,.29,.13,.025,0,taillights);head.castShadow=tail.castShadow=false;}
