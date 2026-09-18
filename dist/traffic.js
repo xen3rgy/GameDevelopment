@@ -8,7 +8,7 @@ export function makeRoute(corners,lane=2.8){
  for(let i=0;i<corners.length;i++){
   const p=corners[(i+corners.length-1)%corners.length],v=corners[i],n=corners[(i+1)%corners.length];
   const a=distance(p,v),b=distance(v,n),incoming={x:(v.x-p.x)/a,z:(v.z-p.z)/a},outgoing={x:(n.x-v.x)/b,z:(n.z-v.z)/b};
-  const corner={x:v.x+lane*(incoming.z+outgoing.z),z:v.z-lane*(incoming.x+outgoing.x)},radius=6;
+  const corner={x:v.x-lane*(incoming.z+outgoing.z),z:v.z+lane*(incoming.x+outgoing.x)},radius=6;
   const start={x:corner.x-incoming.x*radius,z:corner.z-incoming.z*radius},end={x:corner.x+outgoing.x*radius,z:corner.z+outgoing.z*radius};
   for(let j=0;j<=16;j++){const t=j/16,u=1-t;points.push({x:u*u*start.x+2*u*t*corner.x+t*t*end.x,z:u*u*start.z+2*u*t*corner.z+t*t*end.z,angle:Math.atan2(u*incoming.x+t*outgoing.x,u*incoming.z+t*outgoing.z)})}
  }

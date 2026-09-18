@@ -10,6 +10,15 @@ import {newGame} from '../dist/model.js';
 test('all traffic routes close continuously and stay on the road network',()=>{
  for(const route of TRAFFIC_ROUTES){const a=routePose(route,0),b=routePose(route,route.length-.001);assert.ok(Math.hypot(a.x-b.x,a.z-b.z)<.002);for(let d=0;d<route.length;d+=.5){const p=routePose(route,d);assert.ok(Number.isFinite(p.angle));assert.ok(Math.min(...ROAD_X.map(x=>Math.abs(x-p.x)))<6.5||Math.min(...[-65,0,65].map(z=>Math.abs(z-p.z)))<6.5)}}
 });
+test('traffic lanes follow right-hand driving on every cardinal direction',()=>{
+ const route=makeRoute([{x:-80,z:-50},{x:80,z:-50},{x:80,z:50},{x:-80,z:50}]),samples=[];
+ for(let d=0;d<route.length;d+=.25){const p=routePose(route,d),sx=Math.sin(p.angle),sz=Math.cos(p.angle);if(Math.abs(sx)>.999||Math.abs(sz)>.999)samples.push(p)}
+ assert.ok(samples.some(p=>Math.sin(p.angle)>.999&&p.z>-50),'eastbound lane must be south/right of centre');
+ assert.ok(samples.some(p=>Math.sin(p.angle)<-.999&&p.z<50),'westbound lane must be north/right of centre');
+ assert.ok(samples.some(p=>Math.cos(p.angle)<-.999&&p.x> -80),'northbound lane must be east/right of centre');
+ assert.ok(samples.some(p=>Math.cos(p.angle)>.999&&p.x<80),'southbound lane must be west/right of centre');
+});
+
 test('traffic circulates through junctions without collisions or permanent deadlocks',()=>{
  const traffic=new Traffic(),travel=traffic.cars.map(()=>0);for(let i=0;i<6000;i++){const before=traffic.cars.map(c=>c.progress);traffic.update(1/30);traffic.cars.forEach((c,j)=>travel[j]+=(c.progress-before[j]+c.route.length)%c.route.length);for(let a=0;a<traffic.cars.length;a++)for(let b=a+1;b<traffic.cars.length;b++)assert.equal(overlaps(traffic.cars[a],traffic.cars[b],-.05),false)}assert.ok(travel.every(d=>d>650));
 });

@@ -17,7 +17,7 @@ import {CourierScene} from './courier-scene.js?v=0.7.2';
 import {addStreetSigns} from './city-addresses.js?v=0.7.2';
 import * as THREE from './vendor/three.module.js';
 import {LOCATIONS,PEOPLE,VEHICLES,HOME_POINTS,SHOP_POINTS,WORK,BUILDINGS} from './data.js?v=0.7.2';
-import {Traffic,parkedVehicleBlocks,vehicleBody} from './traffic.js?v=0.7.2-collisionfix1';
+import {Traffic,parkedVehicleBlocks,vehicleBody} from './traffic.js?v=0.7.2-righthand1';
 import {animateCitizen,playGesture,VehicleTransition,vehicleDriverDoorPoint,vehicleDriverSeatPoint} from './animation.js?v=0.7.2-driverdoor1';
 import {STREET_LAMPS,streetLampHead} from './lighting.js?v=0.7.2';
 import {VehicleLights} from './vehicle-lights.js?v=0.7.2';
