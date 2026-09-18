@@ -1,7 +1,7 @@
 import {reachCafeHand} from './cafe-food.js?v=0.7.2';
 import {orderBike,BIKE_STYLES} from './workshop-orders.js?v=0.7.2';
 import {applyWorkshopPose} from './workshop-gestures.js?v=0.7.2';
-import {CUSTOMER_NAMES} from './workshop-life.js?v=0.7.2';
+import {CUSTOMER_NAMES} from './workshop-life.js?v=0.7.2-stability1';
 import {parcelHands} from './courier-scene.js?v=0.7.2';
 import {surfaceMaterial} from './atmosphere.js?v=0.7.2';
 import * as THREE from './vendor/three.module.js';

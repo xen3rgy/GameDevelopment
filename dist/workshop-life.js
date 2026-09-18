@@ -11,7 +11,7 @@ function walk(p,path,dt){
 }
 export function tickWorkshopLife(s,seconds){
  if(!Number.isFinite(seconds)||seconds<=0)return;
- const w=s.workshop,l=w.life??=newWorkshopLife(),time=now(s),open=s.minute>=480&&s.minute<1130;
+ const w=s.workshop,l=w.life??=newWorkshopLife(),time=now(s),open=s.minute>=480&&s.minute<1140;
  for(const p of l.people){
   if(p.phase==='entering'&&walk(p,CUSTOMER_ROUTE,seconds)){p.phase='waiting';p.wait=12;p.node=0;}
   if(p.phase==='waiting'){

@@ -10,7 +10,7 @@ Serve `dist/` using an HTTP static server. For example, from this checkout:
 python -m http.server 8000 --directory dist
 ```
 
-Open http://localhost:8000. No API keys, external services or package installation are required. Three.js r170 is vendored under its MIT license. A browser with WebGL2 and hardware acceleration is required.
+Open http://localhost:8000. No API keys, external services or package installation are required. Three.js r170 and the generated runtime assets are committed directly in `dist/`; no restore step is required. A browser with WebGL2 and hardware acceleration is required.
 
 ## Controls
 
@@ -38,7 +38,7 @@ The mural in `dist/assets/lindenstadt-mural.png` was generated specifically for 
 
 - Structured asphalt and paving, specular puddles, gradient day/night sky, nearby working streetlights, facade details, outdoor seating and smoother articulated characters.
 - Procedural 3D town with four districts, collision, follow camera, walking pedestrians, traffic, a daylight cycle and rain.
-- Story start without money; separate sandbox start with €3,000.
+- Story start without money; separate sandbox start with €20,000.
 - Eleven connected progression objectives, experience, reputation, and four skill tracks.
 - Capacity- and weight-limited stack inventory, consumables, split and drop/pickup.
 - Bottle collection, daily respawns, return machine and survival needs.
@@ -303,3 +303,8 @@ Open **Tab → Arbeitsbuch**, or use the button on the assignments screen. The j
 Validation covers actual settlement integration, duplicate payment prevention, cancellation/expiry, bounded receipt history and persistent daily totals, old-save migration, read-only task navigation, physical approach speed, arrival-before-work, pause/resume and legacy active-operation timing. The static project has no compatible managed browser preview here, so no visual browser playthrough was performed.
 
 0.7.2 verification: all 240 automated tests passed, including the long coupled pedestrian/traffic simulation. The nine workday tests passed again after refining the base/experience-bonus breakdown. Syntax, relative imports and uniform cache tags passed for all 67 local modules.
+
+
+### 0.7.2 stability maintenance
+
+New games start at 08:00 while existing saves resume at their saved time. Runtime assets are committed directly, save/import validation is stricter for discrete fields, businesses and dropped items, world-drop rendering no longer serializes the full drop list every frame, repeated owned vehicle models are bounded by a four-model cache, HUD DOM writes/minimap redraws are cached, and the workshop ambient day now follows the documented 08:00–19:00 window. GitHub Actions validates tests, JavaScript syntax, relative imports and critical static-server files on every push to this branch.

@@ -1,1 +1,11 @@
-{"name":"zero-rise","version":"0.7.2","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.mjs"}}
+{
+  "name": "zero-rise",
+  "version": "0.7.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "check": "node tools/check-static.mjs",
+    "ci": "npm run check && npm test"
+  }
+}

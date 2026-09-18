@@ -1,4 +1,4 @@
-import {validateSave,SAVE_KEY} from './model.js?v=0.7.2-start0800-fix1';
+import {validateSave,SAVE_KEY} from './model.js?v=0.7.2-stability1';
 export const BACKUP_KEY=SAVE_KEY+'.backup';
 export function readSavedGame(storage){
  let primaryError=null;

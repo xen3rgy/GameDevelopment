@@ -49,7 +49,7 @@ test('walking out closes a shift and midnight books its result exactly once',()=
 test('impatient individual guests leave and a shift auto-closes',()=>{
  const m=ownedCafe();move(m,CAFE_POINTS.cafeOffice);m.cafeAction('start');tick(m,18);const g=m.s.cafe.guests[0];
  g.wait=g.patience-.1;tick(m,.2);assert.equal(m.s.cafe.lost,1);assert.equal(g.stage,'leaving');
- tick(m,220);assert.equal(m.s.cafe.phase,'closed');assert.equal(m.s.cafe.lastReport.reason,'Schicht abgeschlossen');
+ tick(m,m.s.cafe.duration+1);assert.equal(m.s.cafe.phase,'closed');assert.equal(m.s.cafe.lastReport.reason,'Schicht abgeschlossen');
 });
 
 test('0.4.6 saves receive cafe defaults and malformed cafe state is rejected',()=>{
