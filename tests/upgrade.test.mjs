@@ -41,6 +41,10 @@ test('collision substeps stop tunnelling, while walkers slide along walls',()=>{
 test('vehicles accelerate, steer only while moving, brake and stop without fuel',()=>{
  const free=()=>true;let car={id:'car',x:0,z:0,angle:Math.PI,speed:0,fuel:100,condition:100};let r=stepVehicle(car,{left:true},.1,free,17);assert.equal(r.angle,Math.PI);r=stepVehicle(car,{forward:true},.1,free,17);assert.equal(r.speed,.5);assert.ok(r.z<0);car={...car,...r};r=stepVehicle(car,{left:true,forward:true},.1,free,17);assert.ok(r.angle>Math.PI);car={...car,...r};r=stepVehicle(car,{brake:true},.2,free,17);assert.equal(r.speed,0);car={...car,speed:0,fuel:0};r=stepVehicle(car,{forward:true},.1,free,17);assert.equal(r.speed,0)
 });
+test('vehicle steering cannot rotate the body into a blocked neighbour while stopped at its edge',()=>{
+ const car={id:'car',x:0,z:0,angle:0,speed:2,fuel:100,condition:100},can=(x,z,r,angle)=>Math.abs(angle)<1e-10;
+ const r=stepVehicle(car,{left:true,forward:true},.1,can,17);assert.equal(r.angle,0);assert.ok(r.z>0);
+});
 test('pedestrian navigation reaches every game location without crossing buildings',()=>{
  const colliders=BUILDINGS.map(([x,z,w,d])=>({x,z,w:w/2+.35,d:d/2+.35})).concat(DISTRICT_FIXTURES);const free=(x,z,r=.35)=>exteriorContains(x,z,r)&&!colliders.some(c=>Math.abs(x-c.x)<c.w+r&&Math.abs(z-c.z)<c.d+r);const nav=new CityNavigation(free,4,WORLD_BOUNDS);
  for(const target of LOCATIONS){const route=nav.find({x:-27,z:-4},target);assert.ok(route.length>1,target.id+' has no route');for(let i=1;i<route.length;i++)assert.ok(segmentClear(route[i-1],route[i],free,.4),target.id+' crosses a building')}

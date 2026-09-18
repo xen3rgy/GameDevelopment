@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {npcGaitPose,NPC_STRIDE} from '../dist/animation.js';
-import {Traffic,makeRoute,routePose,pedestrianBlocks} from '../dist/traffic.js';
+import {Traffic,makeRoute,routePose,pedestrianBlocks,vehicleBody,overlapDepth} from '../dist/traffic.js';
 
 test('NPC support foot stays planted in world space throughout its stance',()=>{
  for(const speed of [1.08,1.44])for(const fps of [20,60,144]){
@@ -31,4 +31,20 @@ test('cars pass stationary people beside the lane even at a marked crossing',()=
   for(let i=0;i<360;i++)traffic.update(1/60,[{x:-8,z,vx:0,vz:0}]);
   assert.ok(car.x>0,`stopped beside pedestrian at ${z}: ${car.x}`);
  }
+});
+
+
+test('owned-car collision uses rotated body corners instead of an oversized axis-aligned square',()=>{
+ const traffic=new Traffic(0),npc={x:0,z:0,angle:0,length:3.8,width:1.85};traffic.cars=[npc];
+ const clear=vehicleBody({id:'car',x:-2.2,z:2.2,angle:Math.PI/4});
+ assert.equal(traffic.blocksVehicle(clear),false);
+ const contact=vehicleBody({id:'car',x:-1.5,z:1.5,angle:Math.PI/4});
+ assert.equal(traffic.blocksVehicle(contact),true);
+});
+test('a shallow vehicle overlap can reverse toward lower penetration instead of getting trapped',()=>{
+ const traffic=new Traffic(0),npc={x:0,z:0,angle:0,length:3.8,width:1.85};traffic.cars=[npc];
+ const current=vehicleBody({id:'car',x:-1.8,z:1.8,angle:Math.PI/4}),away=vehicleBody({id:'car',x:-1.9,z:1.9,angle:Math.PI/4}),deeper=vehicleBody({id:'car',x:-1.7,z:1.7,angle:Math.PI/4});
+ assert.ok(overlapDepth(current,npc) > overlapDepth(away,npc));
+ assert.equal(traffic.blocksVehicle(away,current),false);
+ assert.equal(traffic.blocksVehicle(deeper,current),true);
 });

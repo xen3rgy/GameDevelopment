@@ -22,12 +22,17 @@ export function routePose(route,progress){
 }
 const rect=(x1,x2,z1,z2)=>[{x:x1,z:z1},{x:x2,z:z1},{x:x2,z:z2},{x:x1,z:z2}];
 export const TRAFFIC_ROUTES=[rect(-110,110,-65,65),rect(-110,0,-65,0),rect(0,110,0,65),rect(-110,110,0,65).reverse(),rect(0,110,-65,0).reverse(),rect(-110,0,0,65),rect(-110,110,-65,0).reverse(),rect(-202,-110,-65,0),rect(-202,-110,0,65).reverse()].map(p=>makeRoute(p));
-export function overlaps(a,b,padding=0){
- const axes=p=>[{x:Math.sin(p.angle||0),z:Math.cos(p.angle||0)},{x:Math.cos(p.angle||0),z:-Math.sin(p.angle||0)}],aa=axes(a),bb=axes(b),dx=b.x-a.x,dz=b.z-a.z;
- for(const axis of [...aa,...bb]){
-  const radius=(p,ax)=>Math.abs(axis.x*ax[0].x+axis.z*ax[0].z)*(p.length||1)/2+Math.abs(axis.x*ax[1].x+axis.z*ax[1].z)*(p.width||1)/2;
-  if(Math.abs(dx*axis.x+dz*axis.z)>radius(a,aa)+radius(b,bb)+padding)return false;
- }return true;
+const bodyAxes=p=>[{x:Math.sin(p.angle||0),z:Math.cos(p.angle||0)},{x:Math.cos(p.angle||0),z:-Math.sin(p.angle||0)}];
+const projectedRadius=(p,ownAxes,axis)=>Math.abs(axis.x*ownAxes[0].x+axis.z*ownAxes[0].z)*(p.length||1)/2+Math.abs(axis.x*ownAxes[1].x+axis.z*ownAxes[1].z)*(p.width||1)/2;
+export function overlapDepth(a,b,padding=0){
+ const aa=bodyAxes(a),bb=bodyAxes(b),dx=b.x-a.x,dz=b.z-a.z;let depth=Infinity;
+ for(const axis of [...aa,...bb]){const penetration=projectedRadius(a,aa,axis)+projectedRadius(b,bb,axis)+padding-Math.abs(dx*axis.x+dz*axis.z);if(penetration<0)return null;depth=Math.min(depth,penetration)}
+ return depth;
+}
+export function overlaps(a,b,padding=0){return overlapDepth(a,b,padding)!==null}
+export function vehicleBody(vehicle,x=vehicle?.x??0,z=vehicle?.z??0,angle=vehicle?.angle??Math.PI){
+ const id=vehicle?.id,length=id==='van'?4.8:id==='sport'?4.1:id==='bike'?1.8:3.8,width=id==='bike'?.65:1.85;
+ return {x,z,angle,length,width};
 }
 // Pedestrians use their body radius, not an oversized square around the car.
 export function pedestrianBlocks(car,p,time=0){
@@ -77,4 +82,12 @@ export class Traffic {
   }
  }
  blocks(x,z,r=.35){return this.cars.some(c=>overlaps({x,z,angle:0,length:r*2,width:r*2},c,.05))}
+ blocksVehicle(body,from=null,padding=.015){
+  return this.cars.some(c=>{
+   const next=overlapDepth(body,c,padding);if(next===null)return false;
+   const current=from&&overlapDepth(from,c,padding);
+   if(current!==null&&next<current-1e-5)return false;
+   return true;
+  });
+ }
 }

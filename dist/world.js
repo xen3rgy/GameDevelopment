@@ -17,12 +17,12 @@ import {CourierScene} from './courier-scene.js?v=0.7.2';
 import {addStreetSigns} from './city-addresses.js?v=0.7.2';
 import * as THREE from './vendor/three.module.js';
 import {LOCATIONS,PEOPLE,VEHICLES,HOME_POINTS,SHOP_POINTS,WORK,BUILDINGS} from './data.js?v=0.7.2';
-import {Traffic,parkedVehicleBlocks} from './traffic.js?v=0.7.2';
+import {Traffic,parkedVehicleBlocks,vehicleBody} from './traffic.js?v=0.7.2-collisionfix1';
 import {animateCitizen,playGesture,VehicleTransition,vehicleDriverDoorPoint,vehicleDriverSeatPoint} from './animation.js?v=0.7.2-driverdoor1';
 import {STREET_LAMPS,streetLampHead} from './lighting.js?v=0.7.2';
 import {VehicleLights} from './vehicle-lights.js?v=0.7.2';
 import {Atmosphere,surfaceMaterial} from './atmosphere.js?v=0.7.2';
-import {approach,moveWithCollision,stepVehicle,segmentClear} from './movement.js?v=0.7.2';
+import {approach,moveWithCollision,stepVehicle,segmentClear} from './movement.js?v=0.7.2-collisionfix1';
 import {CityNavigation,routeLength} from './navigation.js?v=0.7.2';
 import {buildMarket} from './shop-interior.js?v=0.7.2';
 import {buildCafe,attachCafeTray,updateCafe} from './cafe-interior.js?v=0.7.2';
@@ -132,13 +132,14 @@ export class World{
  buildRain(){let pos=new Float32Array(1200*3);for(let i=0;i<pos.length;i+=3){pos[i]=Math.random()*100-50;pos[i+1]=Math.random()*40;pos[i+2]=Math.random()*100-50}let geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));this.rain=new THREE.Points(geo,new THREE.PointsMaterial({color:0xccdeea,size:.065,transparent:true,opacity:.6}));this.scene.add(this.rain)}
  canWalkExterior(x,z,radius=.35){if(!exteriorContains(x,z,radius))return false;return !this.colliders.some(c=>Math.abs(x-c.x)<c.w+radius&&Math.abs(z-c.z)<c.d+radius)}
  canMove(x,z,radius=.35){if(!this.model.s.inside&&!this.model.s.riding&&this.flight?.airborne&&groundHeight(x,z)>this.flight.y+.025)return false;if(this.model.s.inside)return canWalkRoom(this.model.s.interior,x,z,radius,this.model.s.home);const v=this.model.s.vehicle;return this.canWalkExterior(x,z,radius)&&!this.traffic.blocks(x,z,radius)&&!(v&&!this.model.s.riding&&parkedVehicleBlocks(v,x,z,radius,this.model.s.position))}
+ canDrive(vehicle,x,z,angle,radius=1.3){const candidate=vehicleBody(vehicle,x,z,angle),current=vehicleBody(vehicle);return this.canWalkExterior(x,z,radius)&&!this.traffic.blocksVehicle(candidate,current)}
  update(dt,keys,active){let s=this.model.s;if(this.stationClock){this.stationClock.hour.rotation.z=-(s.minute%720)/720*Math.PI*2;this.stationClock.minute.rotation.z=-(s.minute%60)/60*Math.PI*2;}if(active)this.elapsed+=dt;let p=this.player;const delta=s.position;if(this.lastInterior!==s.interior||Math.hypot(p.position.x-delta.x,p.position.z-delta.z)>15){this.cameraRig.reset();this.flight=null;this.jump=0;this.velocityY=0;this.lastInterior=s.interior}if(Math.hypot(p.position.x-delta.x,p.position.z-delta.z)>.0001){p.position.x=delta.x;p.position.z=delta.z}
  let moving=false,running=false;const vehicle=s.vehicle;this.player.visible=!s.riding||vehicle?.id==='bike';if(vehicle){if(this.vehicleId!==vehicle.id)this.makeOwnedVehicle(vehicle.id);this.vehicleMesh.visible=true;this.vehicleMesh.position.set(vehicle.x,groundHeight(vehicle.x,vehicle.z)-(vehicle.id==='bike'?.015:.03),vehicle.z);this.vehicleMesh.rotation.y=vehicle.angle??Math.PI}else if(this.vehicleMesh)this.vehicleMesh.visible=false;
  let movedDistance=0;
  if(active&&!this.transition&&!s.job?.interaction&&!s.dailyLife?.action&&!s.workshop?.active?.action){
   const input={forward:keys.w||keys.ArrowUp,backward:keys.s||keys.ArrowDown,left:keys.a||keys.ArrowLeft,right:keys.d||keys.ArrowRight,brake:keys[' ']};
   if(s.riding&&vehicle){
-   const result=stepVehicle(vehicle,input,dt,(x,z,r)=>this.canMove(x,z,r),VEHICLES[vehicle.id].speed);vehicle.angle=result.angle;vehicle.speed=result.speed;for(const wheel of this.vehicleMesh.userData.wheels||[])wheel.rotation.x+=result.distance*Math.sign(result.speed)/.37;this.vehicleMesh.userData.braking=!!input.brake;p.position.set(result.x,p.position.y,result.z);p.rotation.y=result.angle;movedDistance=result.distance;moving=movedDistance>.0001;
+   const result=stepVehicle(vehicle,input,dt,(x,z,r,angle)=>this.canDrive(vehicle,x,z,angle,r),VEHICLES[vehicle.id].speed);vehicle.angle=result.angle;vehicle.speed=result.speed;for(const wheel of this.vehicleMesh.userData.wheels||[])wheel.rotation.x+=result.distance*Math.sign(result.speed)/.37;this.vehicleMesh.userData.braking=!!input.brake;p.position.set(result.x,p.position.y,result.z);p.rotation.y=result.angle;movedDistance=result.distance;moving=movedDistance>.0001;
    if(moving){this.model.recordCourierTravel(movedDistance,vehicle);if(vehicle.id==='van'&&s.job?.type==='courier')s.job.vehicleUsed=true;vehicle.condition=Math.max(0,vehicle.condition-movedDistance*.0016);if(vehicle.id!=='bike')vehicle.fuel=Math.max(0,vehicle.fuel-movedDistance*.012);else s.needs.energy=Math.max(0,s.needs.energy-movedDistance*.008)}
   }else{
    let x=Number(!!input.right)-Number(!!input.left),z=Number(!!input.backward)-Number(!!input.forward),len=Math.hypot(x,z);const gait=walkingProfile(s,!!keys.Shift);running=gait.running;
@@ -163,7 +164,7 @@ export class World{
  this.pedestrians.update(s,active?dt:0,p.position);
  if(active){
   const previous=this.previousPedestrian||s.position;const pedestrians=s.inside||s.riding?[]:[{...s.position,vx:(s.position.x-previous.x)/Math.max(dt,.001),vz:(s.position.z-previous.z)/Math.max(dt,.001)}];this.previousPedestrian={...s.position};pedestrians.push(...this.pedestrians.life.trafficPeople());
-  this.traffic.update(dt,pedestrians,vehicle?{x:vehicle.x,z:vehicle.z,angle:vehicle.angle,length:vehicle.id==='van'?4.8:vehicle.id==='bike'?1.8:3.8,width:vehicle.id==='bike'?.65:1.85}:null);
+  this.traffic.update(dt,pedestrians,vehicle?vehicleBody(vehicle):null);
   for(const c of this.cars){c.mesh.position.set(c.x,groundHeight(c.x,c.z)-.03,c.z);c.mesh.rotation.y=c.angle;c.mesh.userData.braking=c.braking;for(const wheel of c.mesh.userData.wheels||[])wheel.rotation.x+=c.speed*dt/.37}
  }
  this.exterior.visible=!s.inside;this.homeShell.visible=s.interior==='home';

@@ -21,8 +21,10 @@ export function stepVehicle(vehicle, input, dt, canWalk, maximumSpeed){
   if(input.brake)speed=approach(speed,0,dt*15);
   else if(!powered||!throttle)speed=approach(speed,0,dt*(vehicle.id==='bike'?2:1.2));
   else speed=approach(speed,throttle>0?top:-top*.3,dt*(throttle*Math.sign(speed)<0?13:5));
-  const angle=(vehicle.angle??Math.PI)+steer*Math.min(1,Math.abs(speed)/2.5)*Math.sign(speed)*dt*(vehicle.id==='bike'?2.1:1.5)/(1+Math.abs(speed)*.045);
-  const result=moveWithCollision(vehicle,Math.sin(angle)*speed*dt,Math.cos(angle)*speed*dt,canWalk,vehicle.id==='bike'?.48:1.3,false);
+  const radius=vehicle.id==='bike'?.48:1.3,currentAngle=vehicle.angle??Math.PI;
+  let angle=currentAngle+steer*Math.min(1,Math.abs(speed)/2.5)*Math.sign(speed)*dt*(vehicle.id==='bike'?2.1:1.5)/(1+Math.abs(speed)*.045);
+  if(!canWalk(vehicle.x,vehicle.z,radius,angle))angle=currentAngle;
+  const result=moveWithCollision(vehicle,Math.sin(angle)*speed*dt,Math.cos(angle)*speed*dt,(x,z,r)=>canWalk(x,z,r,angle),radius,false);
   return {...result,angle,speed:result.blocked?0:speed};
 }
 export function segmentClear(a,b,canWalk,radius=.35){
