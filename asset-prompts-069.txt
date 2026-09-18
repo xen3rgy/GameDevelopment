@@ -1,0 +1,17 @@
+Generation mode: built-in image_gen, two independent calls in one parallel batch, no retries or variants.
+
+Texture 1
+Use case: stylized-concept
+Asset type: Seamless repeating 1024 x 1024 square game diffuse/albedo texture for a Three.js architecture material.
+Primary request: Weathered Central European railway brick wall, horizontal running bond, approximately 8 bricks across and 14 rows. Muted red-brown bricks with pale gray mortar, aged uneven brick faces and restrained grime. Reusable believable stylized-realistic material, subtle variation, not ruined.
+Composition/framing: Entirely flat orthographic surface, edge-to-edge material only. Seamless tile with perfectly matching opposite edges, continuous bond at tile boundaries.
+Lighting/mood: Uniformly overcast unlit albedo, no directional light or baked strong shadows, no ambient occlusion gradients.
+Constraints: Exactly one square texture image. No perspective, windows, objects, graffiti, text, labels, borders, watermark, scene, or dramatic damaged areas.
+
+Texture 2
+Use case: stylized-concept
+Asset type: Seamless repeating 1024 x 1024 square game diffuse/albedo texture for a Three.js architecture material.
+Primary request: Contemporary honed light cool-gray limestone facade, large rectangular panels in regular staggered bond, approximately 4 panels across and 6 rows. Thin clean seams and fine natural grain, understated cool pearl and gray color. Reusable believable stylized-realistic material with subtle natural panel variation.
+Composition/framing: Entirely flat orthographic surface, edge-to-edge material only. Seamless tile with perfectly matching opposite edges, continuous staggered bond at tile boundaries.
+Lighting/mood: Uniformly lit unlit albedo, no directional light or baked strong shadows, no ambient occlusion gradients.
+Constraints: Exactly one square texture image. No perspective, scene, objects, text, labels, borders, watermark, windows, strong veining, or damage.
