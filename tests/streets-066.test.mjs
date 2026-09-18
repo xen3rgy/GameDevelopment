@@ -114,7 +114,7 @@ test('the Gleishof sign is contained on its wall, and bridge signs have real bac
  const bridge=world.scene.getObjectByName('BAHNHOFSVIERTEL');assert.ok(bridge);assert.ok(Math.abs(bridge.position.x-(VIADUCT.x+VIADUCT.w/2))<.2);
 }));
 test('the full station quarter has textured cobblestone ground instead of a raw grey base',()=>withCanvas(()=>{
- const world={scene:new THREE.Scene(),staticGroups:[],colliders:[],tree(){},atmosphere:{addPuddle(){}}},g=buildStationDistrict(world,kit()),yard=g.getObjectByName('Bahnhofsviertel · Pflastergrund');
+ const world={scene:new THREE.Scene(),staticGroups:[],colliders:[],tree(){},atmosphere:{addPuddle(){}}};buildStationDistrict(world,kit());const yard=world.scene.getObjectByName('Bahnhofsviertel · Pflastergrund');
  assert.ok(yard);assert.ok(yard.material?.map,'station yard must have a repeating surface texture');assert.equal(yard.scale.x,100);assert.equal(yard.scale.z,160);
  const bounds=new THREE.Box3().setFromObject(yard);near(bounds.max.y,-.05);assert.ok(yard.material.roughness>=.95);assert.ok(yard.material.bumpScale>.02);
 }));
