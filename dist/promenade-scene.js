@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import {PROMENADE_FIXTURES,CITIZEN_PORTALS,gardenPatches} from './pedestrian-layout.js?v=0.7.2-bollardfix1';
-import {groundHeight} from './spatial.js?v=0.7.2';
+import {groundHeight} from './spatial.js?v=0.7.2-stationedge1';
 import {surfaceMaterial} from './atmosphere.js?v=0.7.2';
 import {CAFE_OPEN,CAFE_CLOSE,clockLabel} from './game-time.js?v=0.7.2';
 

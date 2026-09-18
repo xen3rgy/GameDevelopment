@@ -8,8 +8,8 @@ import {STREET_SEATS,streetSpawn,PROMENADE_BOLLARDS} from './pedestrian-layout.j
 import {cityBackdrop} from './district-architecture.js?v=0.7.2-treeasset1';
 import {buildStreets} from './street-scene.js?v=0.7.2-cornerfix2';
 import {stepJump} from './jump-motion.js?v=0.7.2';
-import {buildStationDistrict} from './station-district.js?v=0.7.2-groundfix1';
-import {WORLD_BOUNDS,exteriorContains} from './city-layout.js?v=0.7.2';
+import {buildStationDistrict} from './station-district.js?v=0.7.2-stationedge1';
+import {WORLD_BOUNDS,exteriorContains} from './city-layout.js?v=0.7.2-stationedge1';
 import {HomeScene} from './home-scene.js?v=0.7.2';
 import {walkingProfile} from './player-movement.js?v=0.7.2';
 import {deliveryTarget} from './delivery-routes.js?v=0.7.2';
@@ -29,7 +29,7 @@ import {buildCafe,attachCafeTray,updateCafe} from './cafe-interior.js?v=0.7.2';
 import {CAFE_POINTS,CAFE_FIXTURES,guestLabel,cafeGuestIntent} from './cafe.js?v=0.7.2';
 import {CityArt,createCitizen,createCar} from './art.js?v=0.7.2-treepit1';
 import {TreeSystem} from './tree-system.js?v=0.7.2-treepit1';
-import {groundHeight,ROOMS,SHOP_FIXTURES,HOME_FIXTURES,homeFixtures,canWalkRoom,CameraRig} from './spatial.js?v=0.7.2-cornerfix1';
+import {groundHeight,ROOMS,SHOP_FIXTURES,HOME_FIXTURES,homeFixtures,canWalkRoom,CameraRig} from './spatial.js?v=0.7.2-stationedge1';
 const mats=new Map();
 function mat(color,roughness=.8,metalness=0){const key=color+'_'+roughness+'_'+metalness;if(!mats.has(key))mats.set(key,new THREE.MeshStandardMaterial({color,roughness,metalness}));return mats.get(key)}
 const boxGeo=new THREE.BoxGeometry(1,1,1),sphereGeo=new THREE.IcosahedronGeometry(1,1),cylinderGeo=new THREE.CylinderGeometry(1,1,1,8);

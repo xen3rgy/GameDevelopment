@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../dist/vendor/three.module.js';
-import {ROADS,ROAD_X,ROAD_Z,VIADUCT} from '../dist/city-layout.js';
+import {ROADS,ROAD_X,ROAD_Z,STATION_YARD,VIADUCT} from '../dist/city-layout.js';
 import {ROAD_HEIGHT,PAVEMENT_HEIGHT,HALF_ROAD,CORNER_RADIUS,RAMP_WIDTH,CROSSINGS,RAMPS,streetPatches,streetSurface,crossingObstacles} from '../dist/street-layout.js';
 import {PROMENADE_BOLLARDS,PROMENADE_FIXTURES} from '../dist/pedestrian-layout.js';
 import {buildStreets} from '../dist/street-scene.js';
@@ -115,7 +115,9 @@ test('the Gleishof sign is contained on its wall, and bridge signs have real bac
 }));
 test('the full station quarter has textured cobblestone ground instead of a raw grey base',()=>withCanvas(()=>{
  const world={scene:new THREE.Scene(),staticGroups:[],colliders:[],tree(){},atmosphere:{addPuddle(){}}};buildStationDistrict(world,kit());const yard=world.scene.getObjectByName('Bahnhofsviertel · Pflastergrund');
- assert.ok(yard);assert.ok(yard.material?.map,'station yard must have a repeating surface texture');assert.equal(yard.scale.x,100);assert.equal(yard.scale.z,160);
- const bounds=new THREE.Box3().setFromObject(yard);near(bounds.max.y,-.05);assert.ok(yard.material.roughness>=.95);assert.ok(yard.material.bumpScale>.02);
+ assert.ok(yard);assert.ok(yard.material?.map,'station yard must have a repeating surface texture');assert.equal(yard.scale.x,STATION_YARD.maxX-STATION_YARD.minX);assert.equal(yard.scale.z,STATION_YARD.maxZ-STATION_YARD.minZ);
+ const bounds=new THREE.Box3().setFromObject(yard);near(bounds.max.x,STATION_YARD.maxX);near(bounds.max.y,STATION_YARD.height);assert.ok(yard.material.roughness>=.95);assert.ok(yard.material.bumpScale>.02);
+ near(groundHeight(-120,18),STATION_YARD.height);
+ const edges=[];world.scene.traverse(o=>{if(o.name==='Bahnhofsviertel · Granitrand')edges.push(o)});assert.equal(edges.length,4);for(const edge of edges){const b=new THREE.Box3().setFromObject(edge);assert.ok(b.max.x<=STATION_YARD.maxX+.01);for(const z of ROAD_Z)assert.ok(b.max.z<=z-7.24||b.min.z>=z+7.24,'granite edge must leave road openings clear');}
 }));
 

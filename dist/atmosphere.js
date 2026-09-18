@@ -1,7 +1,7 @@
 import {districtLampStyle} from './district-materials.js?v=0.7.2';
 import * as THREE from './vendor/three.module.js';
 import {lightingAt,selectLamps} from './lighting.js?v=0.7.2';
-import {groundHeight} from './spatial.js?v=0.7.2';
+import {groundHeight} from './spatial.js?v=0.7.2-stationedge1';
 function random(seed){let n=seed;return()=>{n=(n*1664525+1013904223)>>>0;return n/4294967296}}
 export function surfaceTexture(kind){
   const c=document.createElement('canvas');c.width=c.height=512;const a=c.getContext('2d'),rand=random(kind==='asphalt'?18:72);

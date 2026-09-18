@@ -1,15 +1,22 @@
 import * as THREE from './vendor/three.module.js';
-import {DISTRICT_FIXTURES,STATION_PLAZAS,VIADUCT} from './city-layout.js?v=0.7.2';
+import {DISTRICT_FIXTURES,STATION_PLAZAS,STATION_YARD,ROAD_Z,VIADUCT} from './city-layout.js?v=0.7.2-stationedge1';
 import {surfaceMaterial} from './atmosphere.js?v=0.7.2';
-import {groundHeight} from './spatial.js?v=0.7.2';
+import {groundHeight} from './spatial.js?v=0.7.2-stationedge1';
 
 export function buildStationDistrict(world,kit){
  const {box,cylinder,sign,sphere}=kit,s=world.scene,g=new THREE.Group();s.add(g);world.staticGroups.push(g);
  // The western quarter used to expose a single flat grey box here. Give the entire
  // station yard a continuous, weathered cobblestone surface so gaps between plazas,
  // buildings and the viaduct still read as finished public ground.
- const yardMaterial=surfaceMaterial('cobble',100,160);yardMaterial.color.set(0xa89a82);yardMaterial.roughness=.98;yardMaterial.bumpScale=.034;
- const yard=box(g,-175,-.3,0,100,.5,160,0,yardMaterial);yard.name='Bahnhofsviertel · Pflastergrund';yard.castShadow=false;yard.receiveShadow=true;
+ const yardW=STATION_YARD.maxX-STATION_YARD.minX,yardD=STATION_YARD.maxZ-STATION_YARD.minZ,yardX=(STATION_YARD.minX+STATION_YARD.maxX)/2,yardZ=(STATION_YARD.minZ+STATION_YARD.maxZ)/2,yardThickness=.30;
+ const yardMaterial=surfaceMaterial('cobble',yardW,yardD);yardMaterial.color.set(0xa89a82);yardMaterial.roughness=.98;yardMaterial.bumpScale=.034;
+ const yard=box(g,yardX,STATION_YARD.height-yardThickness/2,yardZ,yardW,yardThickness,yardD,0,yardMaterial);yard.name='Bahnhofsviertel · Pflastergrund';yard.castShadow=false;yard.receiveShadow=true;
+ // A narrow granite/drainage band makes the transition to the eastern carriageway intentional
+ // instead of leaving the green base plane visible. It stops at each crossing/road opening.
+ const edgeMaterial=surfaceMaterial('paving',.38,yardD);edgeMaterial.color.set(0x77756d);edgeMaterial.roughness=.99;edgeMaterial.bumpScale=.018;
+ const roadClear=7.25,edgeX=STATION_YARD.maxX-.19;let edgeFrom=STATION_YARD.minZ;
+ const edgeSegment=(a,b)=>{if(b-a<.25)return;const m=box(g,edgeX,STATION_YARD.height+.010,(a+b)/2,.38,.020,b-a,0,edgeMaterial);m.name='Bahnhofsviertel · Granitrand';m.castShadow=false;m.receiveShadow=true;};
+ for(const roadZ of ROAD_Z){edgeSegment(edgeFrom,roadZ-roadClear);edgeFrom=roadZ+roadClear;}edgeSegment(edgeFrom,STATION_YARD.maxZ);
  for(const p of STATION_PLAZAS){const material=surfaceMaterial('cobble',p.w,p.d);material.color.set(0xc1b198);box(g,p.x,.065,p.z,p.w,.23,p.d,0,material);}
  // The bridge is above the streets: pillars stop feet, the deck only stops the camera.
  const v=VIADUCT;

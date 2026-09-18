@@ -1,7 +1,7 @@
 import {buildingStyle,modernBuilding} from './district-architecture.js?v=0.7.2';
 import {entranceForBuilding,decorateAddress} from './city-addresses.js?v=0.7.2';
 import * as THREE from './vendor/three.module.js';
-import {groundHeight} from './spatial.js?v=0.7.2';
+import {groundHeight} from './spatial.js?v=0.7.2-stationedge1';
 import {districtMaterial} from './district-materials.js?v=0.7.2';
 
 const palette=[

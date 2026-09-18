@@ -2,7 +2,7 @@ import {attachStreetProps,resetStreetArms,animateStreetIdle} from './street-idle
 import * as THREE from './vendor/three.module.js';
 import {createCitizen} from './art.js?v=0.7.2';
 import {animateCitizen} from './animation.js?v=0.7.2';
-import {groundHeight} from './spatial.js?v=0.7.2-cornerfix1';
+import {groundHeight} from './spatial.js?v=0.7.2-stationedge1';
 import {PedestrianLife} from './pedestrian-life.js?v=0.7.2-cornerfix2';
 import {PEOPLE} from './data.js?v=0.7.2';
 
