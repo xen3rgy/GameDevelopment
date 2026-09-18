@@ -261,7 +261,7 @@ Validation for 0.6.9: the full 202-test suite passed; after the final boundary-r
 
 ## 0.7.0 — Die erste richtige Arbeit
 
-Werkstatt West at Gleishof 8 is now an enterable workplace. Follow **Smartphone → Aufträge → Weitere Arbeit im Viertel → Werkstatt markieren** or use the map. Entry is available 08:00–19:00; Tessa accepts new work until 17:00. Existing courier deliveries still take precedence at the exterior recipient, so delivery tours are preserved. New games still begin at 17:30: start workshop work the following morning.
+Werkstatt West at Gleishof 8 is now an enterable workplace. Follow **Smartphone → Aufträge → Weitere Arbeit im Viertel → Werkstatt markieren** or use the map. Entry is available 08:00–19:00; Tessa accepts new work until 17:00. Existing courier deliveries still take precedence at the exterior recipient, so delivery tours are preserved. New games begin at 08:00; saved games resume at their saved time.
 
 - Three complete physical workflows: receiving stock (count, record discrepancy, select correct bin, reconcile actual quantity); bicycle brake check (diagnose, fetch the 5 mm hex key, adjust, test); tube replacement (identify wheel and size, select part, inspect casing, fit, safety check). Task cards expose the evidence needed for every decision; wrong choices never silently advance the job.
 - Separate workshop progress lives inside the existing v3 save, with migration defaults for older saves. Work resumes after saving mid-animation. Courier/warehouse jobs and workshop jobs cannot overlap. Existing staffed café operation can continue on the same game clock.
