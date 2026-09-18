@@ -82,7 +82,28 @@ export class CityArt{
   if(index===0){const mural=new THREE.Mesh(new THREE.PlaneGeometry(10.8,7.2),new THREE.MeshStandardMaterial({map:this.texture,roughness:1}));mural.position.set(x-w/2-.23,8.4,z+1);mural.rotation.y=-Math.PI/2;g.add(mural)}
   return g;
  }
- tree(x,z,r,options={}){const {box}=this.k;if(options.grate!==false){const g=new THREE.Group();this.w.scene.add(g);this.w.staticGroups.push(g);for(const dx of [-.9,.9])box(g,x+dx,groundHeight(x,z)+.018,z,.08,.035,1.9,0x4a534d);for(const dz of [-.9,.9])box(g,x,groundHeight(x,z)+.018,z+dz,1.9,.035,.08,0x4a534d);for(let i=0;i<6;i++)box(g,x-.72+i*.29,groundHeight(x,z)+.018,z,.035,.035,1.7,0x4a534d)}return this.w.treeSystem.add(x,z,r,options)}
+ treePit(x,z){
+  const {box}=this.k,g=new THREE.Group(),y=groundHeight(x,z);this.w.scene.add(g);this.w.staticGroups.push(g);
+  const outer=1.92,opening=1.20,frame=0x343d3d,edge=0x283031,soil=0x5a4430,mulch=[0x4a3526,0x6b5038,0x75583d,0x3f3025];
+  // Dark outer plate hides the continuous pavement below and reads as a recessed street-tree opening.
+  box(g,x,y+.006,z,outer,.018,outer,edge);
+  // The visible soil/mulch sits just above the pavement mesh; the raised frame makes it read as recessed.
+  box(g,x,y+.017,z,opening,.016,opening,soil);
+  const rim=(outer-opening)/2;
+  for(const sx of [-1,1])box(g,x+sx*(opening/2+rim/2),y+.032,z,rim,.045,outer,frame);
+  for(const sz of [-1,1])box(g,x,y+.032,z+sz*(opening/2+rim/2),opening,.045,rim,frame);
+  // Parallel grille bars around the open soil square, similar to common urban cast-iron tree grates.
+  const bar=.055,step=.17,span=rim-.10;
+  for(let o=-opening/2+.08;o<=opening/2-.08;o+=step){
+   for(const sz of [-1,1])box(g,x+o,y+.058,z+sz*(opening/2+rim/2),bar,.035,span,0x465151);
+   for(const sx of [-1,1])box(g,x+sx*(opening/2+rim/2),y+.058,z+o,span,.035,bar,0x465151);
+  }
+  // Small deterministic mulch chips break up the flat brown centre without introducing textures.
+  const rand=seeded(Math.abs(Math.round(x*719+z*131))+29);
+  for(let i=0;i<22;i++){const a=rand()*Math.PI*2,rad=.18+rand()*.32,px=x+Math.sin(a)*rad,pz=z+Math.cos(a)*rad,w=.035+rand()*.055,d=.07+rand()*.10,chip=box(g,px,y+.033,pz,w,.018,d,mulch[i%mulch.length]);chip.rotation.y=rand()*Math.PI}
+  return g;
+ }
+ tree(x,z,r,options={}){if(options.grate!==false)this.treePit(x,z);return this.w.treeSystem.add(x,z,r,options)}
  homeFinish(){
   const {box,cylinder,sign}=this.k,g=this.w.homeDecor,texture=wallTexture('wood').clone();texture.needsUpdate=true;texture.repeat.set(3,2);
   const floor=new THREE.MeshStandardMaterial({map:texture,color:0xbda57a,roughness:.68,bumpMap:texture,bumpScale:.018});box(g,300,.069,0,13.7,.002,11.7,0,floor);

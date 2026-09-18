@@ -17,8 +17,8 @@ function hash(x,z,seed=0){
 export function treeTransformSpec(x,z,r=2.4,{distant=false,seed=0,ground=groundHeight(x,z)}={}){
  const a=hash(x,z,seed),b=hash(x,z,seed+17);
  const base=distant?5.35:5.85+(Math.max(1.6,Math.min(3,r))-1.8)*.72;
- const height=base+(a-.5)*(distant?1.05:.52),scale=height/TREE_HEIGHT;
- return {x,y:ground-TREE_ASSET_BOUNDS.minY*scale,z,scale,yaw:b*Math.PI*2,height};
+ const height=base+(a-.5)*(distant?1.05:.52),scale=height/TREE_HEIGHT,sink=distant?0:.055;
+ return {x,y:ground-sink-TREE_ASSET_BOUNDS.minY*scale,z,scale,yaw:b*Math.PI*2,height,sink};
 }
 function parseGLB(buffer){
  const view=new DataView(buffer);if(view.getUint32(0,true)!==0x46546c67||view.getUint32(4,true)!==2)throw Error('Ungültiges GLB-Baumasset.');
