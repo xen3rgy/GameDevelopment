@@ -29,7 +29,7 @@ test('camera orbit takes the short path around angle wrap and smooths zoom withi
  for(let i=0;i<100;i++){const view=rig.update(p,-Math.PI+.01,.8,14,1/60,[],ROOMS.shop);assert.ok(view.position.y<ROOMS.shop.ceiling);assert.ok(view.position.z<ROOMS.shop.maxZ);assert.ok(view.position.z>ROOMS.shop.minZ)}
 });
 test('vehicle transition is continuous, completes once and closes the door',()=>{
- for(const entering of [true,false]){const transition=new VehicleTransition({x:0,z:0},{x:2,z:1},entering,.5);let previous=0,view;for(let i=0;i<60;i++){view=transition.update(1/60);assert.ok(view.x>=previous);assert.ok(view.x-previous<.1);assert.ok(view.door>=0);previous=view.x}assert.equal(view.done,true);assert.equal(view.x,2);assert.ok(Math.abs(view.door)<1e-8);assert.equal(view.visible,!entering)}
+ for(const entering of [true,false]){const transition=new VehicleTransition({x:0,z:0},{x:2,z:1},entering,.5);let previous=0,view;for(let i=0;i<Math.ceil(transition.duration*60)+2;i++){view=transition.update(1/60);assert.ok(view.x>=previous);assert.ok(view.x-previous<.1);assert.ok(view.door>=0);previous=view.x}assert.equal(view.done,true);assert.equal(view.x,2);assert.ok(Math.abs(view.door)<1e-8);assert.equal(view.visible,!entering)}
  for(let p=0;p<Math.PI*2;p+=.1)for(const leg of gaitPose(p,1,true)){const foot=leg.y-.38*Math.cos(leg.hip)-.405*Math.cos(leg.hip+leg.knee)-.065;assert.ok(foot>=.0499&&foot<.16)}
 });
 
