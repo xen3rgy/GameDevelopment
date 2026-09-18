@@ -1,22 +1,30 @@
 import * as THREE from './vendor/three.module.js';
 import {ROAD_X,ROAD_Z} from './city-layout.js?v=0.7.2';
-import {ROAD_HEIGHT,PAVEMENT_HEIGHT,CROSSINGS,CROSSWALK_OFFSETS,CROSSWALK_STRIPE_WIDTH,streetPatches,rampHeight,onRoad} from './street-layout.js?v=0.7.2';
+import {ROAD_HEIGHT,PAVEMENT_HEIGHT,HALF_ROAD,CORNER_RADIUS,CORNERS,RAMP_CORE,CROSSINGS,CROSSWALK_OFFSETS,CROSSWALK_STRIPE_WIDTH,streetPatches,rampHeight,onRoad} from './street-layout.js?v=0.7.2-cornerfix1';
 import {surfaceMaterial} from './atmosphere.js?v=0.7.2';
 
 export function buildStreets(world,kit){
  const g=new THREE.Group();g.name='Connected streets';world.scene.add(g);world.staticGroups.push(g);
  const batches=new Map();
  const quad=(key,a,b,c,d)=>{if(!batches.has(key))batches.set(key,[]);batches.get(key).push(...a,...b,...c,...a,...c,...d);};
+ const tri=(key,a,b,c)=>{let bb=b,cc=c;const area=(bb[0]-a[0])*(cc[2]-a[2])-(bb[2]-a[2])*(cc[0]-a[0]);if(area>0)[bb,cc]=[cc,bb];if(!batches.has(key))batches.set(key,[]);batches.get(key).push(...a,...bb,...cc);};
+ const cornerForPatch=p=>CORNERS.find(c=>{const xa=c.ix+c.sx*HALF_ROAD,xb=c.ix+c.sx*(HALF_ROAD+CORNER_RADIUS),za=c.iz+c.sz*HALF_ROAD,zb=c.iz+c.sz*(HALF_ROAD+CORNER_RADIUS);return Math.abs(p.minX-Math.min(xa,xb))<1e-7&&Math.abs(p.maxX-Math.max(xa,xb))<1e-7&&Math.abs(p.minZ-Math.min(za,zb))<1e-7&&Math.abs(p.maxZ-Math.max(za,zb))<1e-7;});
  for(const p of streetPatches()){
-  const h=(x,z)=>p.kind==='ramp'?rampHeight(p.ramp,x,z):p.height;
-  const {minX:x,maxX:X,minZ:z,maxZ:Z}=p;
+  const {minX:x,maxX:X,minZ:z,maxZ:Z}=p,key=p.kind==='road'?'asphalt':(x+X)/2<-120?'oldPaving':'paving',corner=cornerForPatch(p);
+  if(corner){
+   const topKey=(x+X)/2<-120?'oldPaving':'paving',segments=8,{ix,iz,sx,sz}=corner;
+   const inner=[ix+sx*HALF_ROAD,ROAD_HEIGHT,iz+sz*HALF_ROAD],outer=[ix+sx*(HALF_ROAD+CORNER_RADIUS),PAVEMENT_HEIGHT,iz+sz*(HALF_ROAD+CORNER_RADIUS)],arcTop=[],arcRoad=[];
+   for(let i=0;i<=segments;i++){const theta=Math.PI+i/segments*Math.PI/2,u=CORNER_RADIUS+Math.cos(theta)*CORNER_RADIUS,v=CORNER_RADIUS+Math.sin(theta)*CORNER_RADIUS,px=ix+sx*(HALF_ROAD+u),pz=iz+sz*(HALF_ROAD+v);arcTop.push([px,PAVEMENT_HEIGHT,pz]);arcRoad.push([px,ROAD_HEIGHT,pz]);}
+   for(let i=0;i<segments;i++){tri(topKey,outer,arcTop[i],arcTop[i+1]);tri('asphalt',inner,arcRoad[i],arcRoad[i+1]);quad('kerb',arcTop[i],arcRoad[i],arcRoad[i+1],arcTop[i+1]);}
+   continue;
+  }
+  const h=(px,pz)=>p.kind==='ramp'?rampHeight(p.ramp,px,pz):p.height;
   const a=[x,h(x,z),z],b=[x,h(x,Z),Z],c=[X,h(X,Z),Z],d=[X,h(X,z),z];
   // A ramp's side flare has a diagonal crease; match the analytic support surface.
-  const key=p.kind==='road'?'asphalt':(x+X)/2<-120?'oldPaving':'paving';
   if(p.kind==='ramp'){
    const r=p.ramp,lateralCenter=r.axis==='z'?(x+X)/2-r.x:(z+Z)/2-r.z;
-   if(Math.abs(lateralCenter)>1.6){
-    const side=Math.sign(lateralCenter),difference=v=>((r.axis==='z'?v[2]-r.crossing.z:v[0]-r.crossing.x)*r.side-6.5)/2-((r.axis==='z'?v[0]-r.x:v[2]-r.z)*side-1.6);
+   if(Math.abs(lateralCenter)>RAMP_CORE){
+    const side=Math.sign(lateralCenter),difference=v=>((r.axis==='z'?v[2]-r.crossing.z:v[0]-r.crossing.x)*r.side-6.5)/2-((r.axis==='z'?v[0]-r.x:v[2]-r.z)*side-RAMP_CORE);
     // Split at the actual crease, even when another street subdivides a flare.
     for(const sign of [-1,1]){
      const polygon=[a,b,c,d],clipped=[];

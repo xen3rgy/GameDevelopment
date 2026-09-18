@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../dist/vendor/three.module.js';
 import {ROADS,ROAD_X,ROAD_Z,VIADUCT} from '../dist/city-layout.js';
-import {ROAD_HEIGHT,PAVEMENT_HEIGHT,CROSSINGS,RAMPS,streetPatches,streetSurface,crossingObstacles} from '../dist/street-layout.js';
+import {ROAD_HEIGHT,PAVEMENT_HEIGHT,HALF_ROAD,CORNER_RADIUS,RAMP_WIDTH,CROSSINGS,RAMPS,streetPatches,streetSurface,crossingObstacles} from '../dist/street-layout.js';
 import {PROMENADE_BOLLARDS,PROMENADE_FIXTURES} from '../dist/pedestrian-layout.js';
 import {buildStreets} from '../dist/street-scene.js';
 import {stepJump} from '../dist/jump-motion.js';
@@ -30,6 +30,19 @@ test('every lane and intersection stays level; pavement patches never occupy roa
  }
  near(PAVEMENT_HEIGHT-ROAD_HEIGHT,.16);
 });
+test('intersection corners are rounded, fully surfaced and curb ramps no longer overlap',()=>withCanvas(()=>{
+ for(const ix of ROAD_X)for(const iz of ROAD_Z)for(const sx of [-1,1])for(const sz of [-1,1]){
+  const point=(u,v)=>({x:ix+sx*(HALF_ROAD+u),z:iz+sz*(HALF_ROAD+v)});
+  const inner=point(.2,.2),outer=point(CORNER_RADIUS-.2,CORNER_RADIUS-.2);
+  assert.equal(streetSurface(inner.x,inner.z).kind,'road');near(groundHeight(inner.x,inner.z),ROAD_HEIGHT);
+  assert.notEqual(streetSurface(outer.x,outer.z).kind,'road');near(groundHeight(outer.x,outer.z),PAVEMENT_HEIGHT);
+ }
+ for(let i=0;i<RAMPS.length;i++)for(let j=i+1;j<RAMPS.length;j++){const a=RAMPS[i],b=RAMPS[j];if(a.axis===b.axis)continue;const ox=Math.min(a.x+a.w/2,b.x+b.w/2)-Math.max(a.x-a.w/2,b.x-b.w/2),oz=Math.min(a.z+a.d/2,b.z+b.d/2)-Math.max(a.z-a.d/2,b.z-b.d/2);assert.ok(ox<=1e-8||oz<=1e-8,'perpendicular curb ramps overlap');}
+ assert.equal(RAMP_WIDTH,3);
+ const world={scene:new THREE.Scene(),staticGroups:[],atmosphere:{materials:[]}},g=buildStreets(world,kit()),surfaces=g.children.filter(m=>m.name.startsWith('Street · ')&&!m.name.endsWith('kerb')),ray=new THREE.Raycaster(),down=new THREE.Vector3(0,-1,0);
+ for(const [u,v,y] of [[.2,.2,ROAD_HEIGHT],[CORNER_RADIUS-.2,CORNER_RADIUS-.2,PAVEMENT_HEIGHT]]){const x=ROAD_X[1]+HALF_ROAD+u,z=ROAD_Z[1]+HALF_ROAD+v;ray.set(new THREE.Vector3(x,2,z),down);const hits=ray.intersectObjects(surfaces,false);assert.equal(hits.length,1,`corner gap/overlap at ${x},${z}`);near(hits[0].point.y,y,2e-5);}
+}));
+
 
 test('bollards stay on pavement edges and never occupy vehicle lanes or junctions',()=>{
  assert.ok(PROMENADE_BOLLARDS.length>0);
@@ -53,7 +66,7 @@ test('road meshes and every ramp flare match the actual support height without d
  const world={scene:new THREE.Scene(),staticGroups:[],atmosphere:{materials:[]}},g=buildStreets(world,kit());g.updateMatrixWorld(true);
  const surfaces=g.children.filter(m=>m.name.startsWith('Street · ')&&!m.name.endsWith('kerb'));
  const ray=new THREE.Raycaster(),down=new THREE.Vector3(0,-1,0);
- for(const r of RAMPS){for(const lateral of [-2.3,-1.9,0,1.9,2.3])for(const normal of [.17,.66,1.33,1.77]){
+ for(const r of RAMPS){for(const lateral of [-1.4,-1.1,0,1.1,1.4])for(const normal of [.17,.66,1.33,1.77]){
   const x=r.crossing.x+(r.axis==='z'?lateral:(6.5+normal)*r.side),z=r.crossing.z+(r.axis==='z'?(6.5+normal)*r.side:lateral);
   ray.set(new THREE.Vector3(x,2,z),down);const hits=ray.intersectObjects(surfaces,false);assert.ok(hits.length>0,`missing ${x},${z}`);
   near(hits[0].point.y,groundHeight(x,z),2e-5);assert.equal(hits.length,1,`overlap ${x},${z}`);

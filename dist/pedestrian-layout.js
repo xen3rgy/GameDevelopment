@@ -1,6 +1,6 @@
 import {NEIGHBORHOOD_FIXTURES} from './neighborhood-layout.js?v=0.7.2';
 import {STREET_LAMPS} from './lighting.js?v=0.7.2';
-import {PAVEMENTS,streetSurface} from './street-layout.js?v=0.7.2';
+import {PAVEMENTS,streetSurface} from './street-layout.js?v=0.7.2-cornerfix1';
 import {ROADS} from './city-layout.js?v=0.7.2';
 import {CITY_CHARACTER_FIXTURES,CITY_COURTYARD_PATH} from './city-character-layout.js?v=0.7.2';
 

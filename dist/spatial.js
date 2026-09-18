@@ -1,5 +1,5 @@
 import {WORKSHOP_ROOM,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.7.2';
-import {streetSurface} from './street-layout.js?v=0.7.2';
+import {streetSurface} from './street-layout.js?v=0.7.2-cornerfix1';
 import {onGardenPath} from './pedestrian-layout.js?v=0.7.2';
 import {STATION_PLAZAS} from './city-layout.js?v=0.7.2';
 import {CAFE_FIXTURES} from './cafe.js?v=0.7.2';
