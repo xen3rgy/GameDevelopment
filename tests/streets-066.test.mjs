@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from '../dist/vendor/three.module.js';
 import {ROADS,ROAD_X,ROAD_Z,VIADUCT} from '../dist/city-layout.js';
 import {ROAD_HEIGHT,PAVEMENT_HEIGHT,CROSSINGS,RAMPS,streetPatches,streetSurface,crossingObstacles} from '../dist/street-layout.js';
+import {PROMENADE_BOLLARDS,PROMENADE_FIXTURES} from '../dist/pedestrian-layout.js';
 import {buildStreets} from '../dist/street-scene.js';
 import {stepJump} from '../dist/jump-motion.js';
 import {groundHeight} from '../dist/spatial.js';
@@ -28,6 +29,13 @@ test('every lane and intersection stays level; pavement patches never occupy roa
   if(p.kind!=='road')assert.ok(!ROADS.some(r=>Math.abs(x-r.x)<r.w/2&&Math.abs(z-r.z)<r.d/2));
  }
  near(PAVEMENT_HEIGHT-ROAD_HEIGHT,.16);
+});
+
+test('bollards stay on pavement edges and never occupy vehicle lanes or junctions',()=>{
+ assert.ok(PROMENADE_BOLLARDS.length>0);
+ const fixtures=PROMENADE_FIXTURES.filter(p=>p.kind==='bollard');assert.deepEqual(fixtures.map(({x,z})=>({x,z})),PROMENADE_BOLLARDS);
+ for(const p of PROMENADE_BOLLARDS)assert.notEqual(streetSurface(p.x,p.z)?.kind,'road',`bollard on road at ${p.x},${p.z}`);
+ for(const x of [-2,6])for(const z of [-7,7])assert.equal(PROMENADE_BOLLARDS.some(p=>p.x===x&&p.z===z),false,`central junction bollard at ${x},${z}`);
 });
 
 test('marked crossings have continuous dropped kerbs on both sides and shared traffic priority',()=>{

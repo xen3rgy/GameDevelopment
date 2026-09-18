@@ -15,11 +15,12 @@ export function streetSpawn(position,canWalk){
  }
  return position;
 }
+export const PROMENADE_BOLLARDS=Array.from({length:25},(_,i)=>-98+i*8).flatMap(x=>[-7,7].map(z=>({x,z}))).filter(p=>streetSurface(p.x,p.z)?.kind!=='road');
 export const PROMENADE_FIXTURES=[
  ...STREET_SEATS.map(x=>({kind:'oldBench',x,z:10,w:1.1,d:.36,h:1.4})),
  ...[-94,-53,-15,15,47,90].flatMap(x=>[-10,10,-55,55].map(z=>({kind:'trunk',x,z,w:.19,d:.19,h:3.7}))),
  ...STREET_LAMPS.map(p=>({...p,kind:'lamp',w:.08,d:.08,h:5.25})),
- ...Array.from({length:25},(_,i)=>-98+i*8).flatMap(x=>[-7,7].map(z=>({kind:'bollard',x,z,w:.10,d:.10,h:1.03}))),
+ ...PROMENADE_BOLLARDS.map(p=>({...p,kind:'bollard',w:.10,d:.10,h:1.03})),
  {kind:'shelterBack',x:-59,z:10.7,w:2.65,d:.07,h:2.9},
  ...[-61.5,-56.5].map(x=>({kind:'post',x,z:10,w:.05,d:.05,h:2.9})),
  {kind:'shelterSeat',x:-59,z:9.9,w:1.1,d:.36,h:1.4},

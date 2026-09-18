@@ -4,7 +4,7 @@ import {approach} from './movement.js?v=0.7.2';
 import {PAVEMENTS,onRoad,CROSSINGS} from './street-layout.js?v=0.7.2';
 import {STATION_PLAZAS} from './city-layout.js?v=0.7.2';
 import {pedestrianBlocks,routePose} from './traffic.js?v=0.7.2';
-import {CITIZEN_PORTALS,CITIZEN_DESTINATIONS,GARDEN_PATHS,citizenAwake,daytime} from './pedestrian-layout.js?v=0.7.2';
+import {CITIZEN_PORTALS,CITIZEN_DESTINATIONS,GARDEN_PATHS,citizenAwake,daytime} from './pedestrian-layout.js?v=0.7.2-bollardfix1';
 
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const rect=(p,x,z)=>Math.abs(x-p.x)<=p.w/2&&Math.abs(z-p.z)<=p.d/2;

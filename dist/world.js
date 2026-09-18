@@ -2,9 +2,9 @@ import {WorkshopScene} from './workshop-scene.js?v=0.7.2-stability1';
 import {WORKSHOP_POINTS,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.7.2';
 import {CityCharacter,buildHorizonLinks} from './city-character-scene.js?v=0.7.2';
 import {buildNeighborhoodDetails} from './neighborhood-scene.js?v=0.7.2';
-import {buildPromenade} from './promenade-scene.js?v=0.7.2';
-import {PedestrianScene} from './pedestrian-scene.js?v=0.7.2';
-import {STREET_SEATS,streetSpawn} from './pedestrian-layout.js?v=0.7.2';
+import {buildPromenade} from './promenade-scene.js?v=0.7.2-bollardfix1';
+import {PedestrianScene} from './pedestrian-scene.js?v=0.7.2-bollardfix1';
+import {STREET_SEATS,streetSpawn,PROMENADE_BOLLARDS} from './pedestrian-layout.js?v=0.7.2-bollardfix1';
 import {cityBackdrop} from './district-architecture.js?v=0.7.2';
 import {buildStreets} from './street-scene.js?v=0.7.2';
 import {stepJump} from './jump-motion.js?v=0.7.2';
@@ -54,7 +54,7 @@ export class World{
  for(let x of [54,66,82,95])for(let z of [83,99,111])this.tree(x,z,2.8);
  box(s,76,.08,93,39,.2,36,0x708061);box(s,76,.2,93,5,.15,36,0xb9ab93);box(s,76,.2,93,39,.15,4,0xb9ab93);
  buildStationDistrict(this,artKit);for(const {x,z} of STREET_LAMPS)this.lamp(x,z);for(const x of STREET_SEATS)this.bench(x,10);this.bench(65,77);this.bench(87,88);this.streetDetails();this.art.streetLife();addStreetSigns(this,artKit);buildNeighborhoodDetails(this,artKit);buildPromenade(this,artKit);this.cityCharacter=new CityCharacter(this,artKit);buildHorizonLinks(this,artKit);
- for(let x=-98;x<=98;x+=8){cylinder(s,x,.6,-7,.09,.85,0x434c4e);cylinder(s,x,.6,7,.09,.85,0x434c4e)}
+ for(const {x,z} of PROMENADE_BOLLARDS)cylinder(s,x,.6,z,.09,.85,0x434c4e);
  // Return machine is a physical interaction target.
  box(s,-23,1.2,-12,1.15,2.2,.65,0xc7cbc3);box(s,-23,1.25,-11.65,.85,1.65,.04,0x263d39);let opening=new THREE.Mesh(new THREE.TorusGeometry(.24,.055,8,20),new THREE.MeshStandardMaterial({color:0x82e2a8,emissive:0x42bf88,emissiveIntensity:1}));opening.position.set(-23,1.65,-11.59);s.add(opening);sign(s,'PFAND',-23,2.15,-11.58,.9,.25);box(s,-23,.9,-11.58,.6,.15,.07,0x86a797);
  for(const l of LOCATIONS){let ring=new THREE.Mesh(new THREE.RingGeometry(.65,.82,32),new THREE.MeshBasicMaterial({color:l.color,transparent:true,opacity:.55,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.set(l.x,groundHeight(l.x,l.z)+.03,l.z);s.add(ring);l.ring=ring}
