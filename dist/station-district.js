@@ -14,7 +14,7 @@ export function buildStationDistrict(world,kit){
  // A narrow granite/drainage band makes the transition to the eastern carriageway intentional
  // instead of leaving the green base plane visible. It stops at each crossing/road opening.
  const edgeMaterial=surfaceMaterial('paving',.38,yardD);edgeMaterial.color.set(0x77756d);edgeMaterial.roughness=.99;edgeMaterial.bumpScale=.018;
- const roadClear=7.25,edgeX=STATION_YARD.maxX-.19;let edgeFrom=STATION_YARD.minZ;
+ const roadClear=7.25,edgeX=STATION_YARD.maxX-7.19;let edgeFrom=STATION_YARD.minZ;
  const edgeSegment=(a,b)=>{if(b-a<.25)return;const m=box(g,edgeX,STATION_YARD.height+.010,(a+b)/2,.38,.020,b-a,0,edgeMaterial);m.name='Bahnhofsviertel · Granitrand';m.castShadow=false;m.receiveShadow=true;};
  for(const roadZ of ROAD_Z){edgeSegment(edgeFrom,roadZ-roadClear);edgeFrom=roadZ+roadClear;}edgeSegment(edgeFrom,STATION_YARD.maxZ);
  for(const p of STATION_PLAZAS){const material=surfaceMaterial('cobble',p.w,p.d);material.color.set(0xc1b198);box(g,p.x,.065,p.z,p.w,.23,p.d,0,material);}
