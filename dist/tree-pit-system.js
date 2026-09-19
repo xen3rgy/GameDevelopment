@@ -7,6 +7,9 @@ export const TREE_PIT_BOUNDS={
  minZ:-0.9506480097770691,maxZ:0.9471060037612915
 };
 export const TREE_PIT_TARGET_SIZE=1.92;
+// The soil/leaves in the source asset sit around local Y=0. Lifting the origin 2.5 cm keeps
+// that surface visibly above the pavement while the stone base remains naturally recessed.
+export const TREE_PIT_SURFACE_LIFT=.025;
 const PIT_SIZE=Math.max(TREE_PIT_BOUNDS.maxX-TREE_PIT_BOUNDS.minX,TREE_PIT_BOUNDS.maxZ-TREE_PIT_BOUNDS.minZ);
 const PIT_SCALE=TREE_PIT_TARGET_SIZE/PIT_SIZE;
 const componentInfo={
@@ -22,7 +25,7 @@ function hash(x,z){
  return ((n^(n>>>16))>>>0)/4294967295;
 }
 export function treePitTransformSpec(x,z,{ground=groundHeight(x,z)}={}){
- return {x,y:ground,z,scale:PIT_SCALE,yaw:Math.floor(hash(x,z)*4)*Math.PI/2};
+ return {x,y:ground+TREE_PIT_SURFACE_LIFT,z,scale:PIT_SCALE,yaw:Math.floor(hash(x,z)*4)*Math.PI/2};
 }
 
 function parseGLB(buffer){

@@ -29,7 +29,7 @@ import {buildCafe,attachCafeTray,updateCafe} from './cafe-interior.js?v=0.7.2';
 import {CAFE_POINTS,CAFE_FIXTURES,guestLabel,cafeGuestIntent} from './cafe.js?v=0.7.2';
 import {CityArt,createCitizen,createCar} from './art.js?v=0.7.2-treepitglb1';
 import {TreeSystem} from './tree-system.js?v=0.7.2-treepit1';
-import {TreePitSystem} from './tree-pit-system.js?v=0.7.2-treepitglb1';
+import {TreePitSystem} from './tree-pit-system.js?v=0.7.2-treepitglb2';
 import {groundHeight,ROOMS,SHOP_FIXTURES,HOME_FIXTURES,homeFixtures,canWalkRoom,CameraRig} from './spatial.js?v=0.7.2-stationstep1';
 const mats=new Map();
 function mat(color,roughness=.8,metalness=0){const key=color+'_'+roughness+'_'+metalness;if(!mats.has(key))mats.set(key,new THREE.MeshStandardMaterial({color,roughness,metalness}));return mats.get(key)}

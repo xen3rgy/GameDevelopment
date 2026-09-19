@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {treeTransformSpec,TREE_ASSET_BOUNDS} from '../dist/tree-system.js';
-import {treePitTransformSpec,TREE_PIT_BOUNDS,TREE_PIT_TARGET_SIZE} from '../dist/tree-pit-system.js';
+import {treePitTransformSpec,TREE_PIT_BOUNDS,TREE_PIT_TARGET_SIZE,TREE_PIT_SURFACE_LIFT} from '../dist/tree-pit-system.js';
 
 test('optimized Lindenstadt tree asset is a valid committed GLB',()=>{
  const b=readFileSync(new URL('../dist/assets/lindenstadt-tree.glb',import.meta.url));assert.equal(b.readUInt32LE(0),0x46546c67);assert.equal(b.readUInt32LE(4),2);assert.ok(b.length>2_000_000&&b.length<2_600_000);
@@ -22,7 +22,7 @@ test('optimized stone-bordered tree pit GLB is committed and browser-sized',()=>
 });
 test('new GLB tree pits match the old 1.92m footprint and sit directly in the pavement',()=>{
  const width=TREE_PIT_BOUNDS.maxX-TREE_PIT_BOUNDS.minX,depth=TREE_PIT_BOUNDS.maxZ-TREE_PIT_BOUNDS.minZ,t=treePitTransformSpec(15,10,{ground:.30});
- assert.ok(Math.abs(Math.max(width,depth)*t.scale-TREE_PIT_TARGET_SIZE)<1e-9);assert.equal(t.y,.30);assert.ok([0,.5,1,1.5].some(q=>Math.abs(t.yaw-q*Math.PI)<1e-9));
+ assert.ok(Math.abs(Math.max(width,depth)*t.scale-TREE_PIT_TARGET_SIZE)<1e-9);assert.equal(t.y,.30+TREE_PIT_SURFACE_LIFT);assert.ok(t.y+TREE_PIT_BOUNDS.minY*t.scale<.30,'stone base should remain recessed into pavement');assert.ok([0,.5,1,1.5].some(q=>Math.abs(t.yaw-q*Math.PI)<1e-9));
 });
 test('procedural metal-and-mulch tree pit was fully replaced by the GLB system',()=>{
  const source=readFileSync(new URL('../dist/art.js',import.meta.url),'utf8');assert.ok(!source.includes('treePit(x,z){'));assert.match(source,/treePitSystem\.add\(x,z\)/);
