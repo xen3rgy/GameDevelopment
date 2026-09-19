@@ -312,3 +312,7 @@ New games start at 08:00 while existing saves resume at their saved time. Runtim
 ### Tree asset
 
 All full-size city and horizon trees use the optimized `dist/assets/lindenstadt-tree.glb` model. The original embedded texture was reduced to 512×512 for browser performance while preserving the uploaded mesh geometry. Instances share one geometry/material and receive deterministic scale and rotation variation.
+
+### Tree pit asset
+
+Urban trees use the optimized `dist/assets/lindenstadt-tree-pit.glb` stone-bordered garden asset instead of the former procedurally generated metal grate / soil blocks. The uploaded model was reduced from roughly 153k to roughly 30.6k triangles and its three embedded textures were resized to 1024×1024. One shared geometry/material is rendered through instancing at every normal city tree; distant horizon trees intentionally remain without tree pits.
