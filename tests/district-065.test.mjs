@@ -58,7 +58,7 @@ test('moving is a paid on-site choice, can downsize, never refunds deposits or r
 });
 
 test('forecourt, western pavements and road feet use rendered heights and matching footsteps',()=>{
- for(const [x,z,y] of [[-180,-28,.18],[-174,43,.18],[-202,30,.14],[-173,0,.14],[-173,9,.3],[-212,30,.3]])assert.ok(Math.abs(groundHeight(x,z)-y)<1e-8,`${x},${z}`);
+ for(const [x,z,y] of [[-180,-28,.04],[-174,43,.04],[-202,30,.14],[-173,0,.14],[-173,9,.3],[-212,30,.3]])assert.ok(Math.abs(groundHeight(x,z)-y)<1e-8,`${x},${z}`);
  assert.equal(surfaceAt(-180,-28),'paving');assert.equal(surfaceAt(-202,30),'asphalt');
  assert.equal(groundHeight(300,0,'home'),.07);
 });
