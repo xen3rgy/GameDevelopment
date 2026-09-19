@@ -1,7 +1,7 @@
 import {WORKSHOP_ROOM,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.7.2';
 import {streetSurface} from './street-layout.js?v=0.7.2-cornerfix1';
 import {onGardenPath} from './pedestrian-layout.js?v=0.7.2';
-import {STATION_PLAZAS,STATION_YARD} from './city-layout.js?v=0.7.2-stationedge1';
+import {STATION_PLAZAS,STATION_YARD,STATION_STEPS,stationStepOpen} from './city-layout.js?v=0.7.2-stationstep1';
 import {CAFE_FIXTURES} from './cafe.js?v=0.7.2';
 // World-space surface heights match the top faces of the rendered geometry.
 export function groundHeight(x,z,interior=null){
@@ -10,6 +10,7 @@ export function groundHeight(x,z,interior=null){
  if(onGardenPath(x,z))return .02;
  const inStationYard=x>=STATION_YARD.minX&&x<=STATION_YARD.maxX&&z>=STATION_YARD.minZ&&z<=STATION_YARD.maxZ;
  let y=inStationYard?STATION_YARD.height:-.05;
+ if(inStationYard&&stationStepOpen(z)&&x>=STATION_STEPS.minX&&x<STATION_STEPS.maxX)y=STATION_STEPS.mid;
  if(Math.abs(x-76)<=19.5&&Math.abs(z-93)<=18){y=Math.max(y,.18);if(Math.abs(x-76)<=2.5||Math.abs(z-93)<=2)y=Math.max(y,.275)}
  return y;
 }

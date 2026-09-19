@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from '../dist/vendor/three.module.js';
-import {ROADS,ROAD_X,ROAD_Z,STATION_YARD,VIADUCT} from '../dist/city-layout.js';
+import {ROADS,ROAD_X,ROAD_Z,STATION_YARD,STATION_STEPS,VIADUCT} from '../dist/city-layout.js';
 import {ROAD_HEIGHT,PAVEMENT_HEIGHT,HALF_ROAD,CORNER_RADIUS,RAMP_WIDTH,CROSSINGS,RAMPS,streetPatches,streetSurface,crossingObstacles} from '../dist/street-layout.js';
 import {PROMENADE_BOLLARDS,PROMENADE_FIXTURES} from '../dist/pedestrian-layout.js';
 import {buildStreets} from '../dist/street-scene.js';
@@ -121,7 +121,13 @@ test('the full station quarter has continuous flush cobblestone ground without t
  // Points immediately on either side of the former raised-plaza borders are now exactly level.
  for(const [a,b] of [[[-174,-56.9],[-174,-57.1]],[[-152.9,-32],[-153.1,-32]],[[-174,6.9],[-174,7.1]]])near(groundHeight(...a),groundHeight(...b));
  const overlays=[];world.scene.traverse(o=>{if(o.name==='Bahnhofsviertel · Platzbelag')overlays.push(o)});assert.equal(overlays.length,2);assert.ok(overlays.every(o=>Math.abs(o.position.y-(STATION_YARD.height+.003))<1e-8));
- const edges=[];world.scene.traverse(o=>{if(o.name==='Bahnhofsviertel · Granitrand')edges.push(o)});assert.equal(edges.length,4);
+ near(groundHeight(STATION_STEPS.minX-.05,18),STATION_STEPS.low);
+ near(groundHeight((STATION_STEPS.minX+STATION_STEPS.maxX)/2,18),STATION_STEPS.mid);
+ near(groundHeight(STATION_STEPS.maxX,18),STATION_STEPS.high);
+ const lowerSteps=[],upperSteps=[];world.scene.traverse(o=>{if(o.name==='Bahnhofsviertel · Granitstufe unten')lowerSteps.push(o);if(o.name==='Bahnhofsviertel · Granitstufe oben')upperSteps.push(o)});
+ assert.equal(lowerSteps.length,4);assert.equal(upperSteps.length,4);
+ for(const step of lowerSteps){const b=new THREE.Box3().setFromObject(step);near(b.min.y,STATION_STEPS.low);near(b.max.y,STATION_STEPS.mid);}
+ for(const step of upperSteps){const b=new THREE.Box3().setFromObject(step);near(b.min.y,STATION_STEPS.mid);near(b.max.y,STATION_STEPS.high);}
  assert.deepEqual(trees.slice(0,2).map(({x,z})=>({x,z})),[{x:-188,z:-56.3},{x:-159,z:-56.3}]);
  // The red station building ends at z=-51, so these trunks now have >5 m façade clearance.
  assert.ok(trees.slice(0,2).every(t=>Math.abs(t.z-(-51))>5));

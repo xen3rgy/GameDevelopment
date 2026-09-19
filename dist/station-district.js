@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import {DISTRICT_FIXTURES,STATION_PLAZAS,STATION_YARD,ROAD_Z,VIADUCT} from './city-layout.js?v=0.7.2-stationedge1';
+import {DISTRICT_FIXTURES,STATION_PLAZAS,STATION_YARD,STATION_STEPS,ROAD_Z,VIADUCT} from './city-layout.js?v=0.7.2-stationstep1';
 import {surfaceMaterial} from './atmosphere.js?v=0.7.2';
-import {groundHeight} from './spatial.js?v=0.7.2-stationedge2';
+import {groundHeight} from './spatial.js?v=0.7.2-stationstep1';
 
 export function buildStationDistrict(world,kit){
  const {box,cylinder,sign,sphere}=kit,s=world.scene,g=new THREE.Group();s.add(g);world.staticGroups.push(g);
@@ -11,12 +11,23 @@ export function buildStationDistrict(world,kit){
  const yardW=STATION_YARD.maxX-STATION_YARD.minX,yardD=STATION_YARD.maxZ-STATION_YARD.minZ,yardX=(STATION_YARD.minX+STATION_YARD.maxX)/2,yardZ=(STATION_YARD.minZ+STATION_YARD.maxZ)/2,yardThickness=.30;
  const yardMaterial=surfaceMaterial('cobble',yardW,yardD);yardMaterial.color.set(0xa89a82);yardMaterial.roughness=.98;yardMaterial.bumpScale=.034;
  const yard=box(g,yardX,STATION_YARD.height-yardThickness/2,yardZ,yardW,yardThickness,yardD,0,yardMaterial);yard.name='Bahnhofsviertel · Pflastergrund';yard.castShadow=false;yard.receiveShadow=true;
- // A narrow granite/drainage band makes the transition to the eastern carriageway intentional
- // instead of leaving the green base plane visible. It stops at each crossing/road opening.
- const edgeMaterial=surfaceMaterial('paving',.38,yardD);edgeMaterial.color.set(0x77756d);edgeMaterial.roughness=.99;edgeMaterial.bumpScale=.018;
- const roadClear=7.25,edgeX=STATION_YARD.maxX-7.19;let edgeFrom=STATION_YARD.minZ;
- const edgeSegment=(a,b)=>{if(b-a<.25)return;const m=box(g,edgeX,STATION_YARD.height+.010,(a+b)/2,.38,.020,b-a,0,edgeMaterial);m.name='Bahnhofsviertel · Granitrand';m.castShadow=false;m.receiveShadow=true;};
- for(const roadZ of ROAD_Z){edgeSegment(edgeFrom,roadZ-roadClear);edgeFrom=roadZ+roadClear;}edgeSegment(edgeFrom,STATION_YARD.maxZ);
+ // The yard is 26 cm below the normal pavement. Previously this transition was only a
+ // flat dark strip, so the player appeared to climb through an empty gap. Build two real
+ // 13 cm granite steps whose visible risers exactly match groundHeight().
+ const stepMaterial=surfaceMaterial('paving',.6,yardD);stepMaterial.color.set(0x89877f);stepMaterial.roughness=.98;stepMaterial.bumpScale=.014;
+ const riserMaterial=stepMaterial.clone();riserMaterial.color.set(0x666760);
+ const roadClear=STATION_STEPS.roadClear,stepDepth=STATION_STEPS.maxX-STATION_STEPS.minX,upperLip=.12;let stepFrom=STATION_YARD.minZ;
+ const stepSegment=(a,b)=>{
+  if(b-a<.25)return;
+  const z=(a+b)/2,d=b-a;
+  // First tread: yard 4 cm -> 17 cm.
+  const lower=box(g,(STATION_STEPS.minX+STATION_STEPS.maxX)/2,(STATION_STEPS.low+STATION_STEPS.mid)/2,z,stepDepth,STATION_STEPS.mid-STATION_STEPS.low,d,0,stepMaterial);
+  lower.name='Bahnhofsviertel · Granitstufe unten';lower.castShadow=false;lower.receiveShadow=true;
+  // Second riser closes the remaining 13 cm below the existing 30 cm pavement.
+  const upper=box(g,STATION_STEPS.maxX-upperLip/2,(STATION_STEPS.mid+STATION_STEPS.high)/2,z,upperLip,STATION_STEPS.high-STATION_STEPS.mid,d,0,riserMaterial);
+  upper.name='Bahnhofsviertel · Granitstufe oben';upper.castShadow=false;upper.receiveShadow=true;
+ };
+ for(const roadZ of ROAD_Z){stepSegment(stepFrom,roadZ-roadClear);stepFrom=roadZ+roadClear;}stepSegment(stepFrom,STATION_YARD.maxZ);
  for(const p of STATION_PLAZAS){
   const material=surfaceMaterial('cobble',p.w,p.d);material.color.set(0xc1b198);material.polygonOffset=true;material.polygonOffsetFactor=-1;material.polygonOffsetUnits=-1;
   const plaza=new THREE.Mesh(new THREE.PlaneGeometry(p.w,p.d),material);plaza.name='Bahnhofsviertel · Platzbelag';plaza.rotation.x=-Math.PI/2;plaza.position.set(p.x,STATION_YARD.height+.003,p.z);plaza.receiveShadow=true;g.add(plaza);

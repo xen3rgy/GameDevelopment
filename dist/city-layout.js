@@ -9,6 +9,8 @@ export function exteriorContains(x,z,r=0){
 export const districtOf=p=>p.x<-120?'BAHNHOFSVIERTEL':p.z<-48?'WESTHAFEN':p.z>48?'KANALVIERTEL':p.x>15?'INNENSTADT':'LINDENHÖFE';
 export const STATION_PLAZAS=[{x:-174,z:-32,w:42,d:50},{x:-174,z:32.5,w:42,d:51}];
 export const STATION_YARD={minX:-225,maxX:-116.5,minZ:-80,maxZ:80,height:.04};
+export const STATION_STEPS={minX:-124.10,maxX:-123.50,midX:-123.50,low:.04,mid:.17,high:.30,roadClear:7.25};
+export const stationStepOpen=z=>!ROAD_Z.some(roadZ=>Math.abs(z-roadZ)<STATION_STEPS.roadClear);
 export const VIADUCT={x:-145,z:0,w:12,d:158,bottom:5.8,top:6.6};
 export const DISTRICT_FIXTURES=[
  ...[-188,-162].map(x=>({x,z:-32.1,w:.09,d:.09,h:4.4,kind:'canopyPost'})),
