@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {GameModel,newGame,validateSave} from '../dist/model.js';
 import {BUILDINGS} from '../dist/data.js';
-import {allVehicles,usedOffers,trunkLimits,repairPrice,nearestParkingSpot,parkingSpotOccupied,ensureMobility} from '../dist/mobility.js';
+import {allVehicles,usedOffers,trunkLimits,repairPrice,nearestParkingSpot,parkingSpotOccupied,ensureMobility,PARKING_SPOTS} from '../dist/mobility.js';
 import {TRANSIT_STOPS,transitOffer,displayMinutes,clockText,resolveTransitArrival} from '../dist/transit.js';
 import {transitPanel} from '../dist/mobility-ui.js';
 import {exteriorContains,DISTRICT_FIXTURES} from '../dist/city-layout.js';
@@ -53,6 +53,13 @@ test('0.7.5 cannot park two owned vehicles on the same marked space',()=>{
  assert.doesNotThrow(()=>validateSave(JSON.parse(JSON.stringify(s))));
 });
 
+
+test('0.7.5 marked parking never places the walking player inside static geometry',()=>{
+ for(const spot of PARKING_SPOTS){
+  const exit={x:spot.x+Math.cos(spot.angle)*2,z:spot.z-Math.sin(spot.angle)*2};
+  assert.ok(clear(exit.x,exit.z,.35),spot.id+' player exit blocked at '+exit.x+','+exit.z);
+ }
+});
 
 test('0.7.5 mobility migration repairs duplicate garage bays and stale active reservations',()=>{
  const s=newGame(true),m=new GameModel(s);s.position={x:76,z:12};m.buyVehicle('bike');m.buyVehicle('car');m.buyVehicle('van');
