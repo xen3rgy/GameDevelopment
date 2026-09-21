@@ -1,13 +1,15 @@
-import {WORKSHOP_ROOM,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.7.2';
-import {streetSurface} from './street-layout.js?v=0.7.2-cornerfix1';
-import {onGardenPath} from './pedestrian-layout.js?v=0.7.2';
-import {STATION_PLAZAS,STATION_YARD,STATION_STEPS,stationStepOpen} from './city-layout.js?v=0.7.2-stationstep1';
-import {CAFE_FIXTURES} from './cafe.js?v=0.7.2';
+import {WORKSHOP_ROOM,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.7.3-map1';
+import {frontageSurface} from './frontage-layout.js?v=0.7.3-map1';
+import {streetSurface} from './street-layout.js?v=0.7.3-map1';
+import {onGardenPath} from './pedestrian-layout.js?v=0.7.3-map1';
+import {STATION_PLAZAS,STATION_YARD,STATION_STEPS,stationStepOpen} from './city-layout.js?v=0.7.3-map1';
+import {CAFE_FIXTURES} from './cafe.js?v=0.7.3-map1';
 // World-space surface heights match the top faces of the rendered geometry.
 export function groundHeight(x,z,interior=null){
  if(interior||x>290)return .07;
  const street=streetSurface(x,z);if(street)return street.height;
  if(onGardenPath(x,z))return .02;
+ const frontage=frontageSurface(x,z);if(frontage)return frontage.height;
  const inStationYard=x>=STATION_YARD.minX&&x<=STATION_YARD.maxX&&z>=STATION_YARD.minZ&&z<=STATION_YARD.maxZ;
  let y=inStationYard?STATION_YARD.height:-.05;
  if(inStationYard&&stationStepOpen(z)&&x>=STATION_STEPS.minX&&x<STATION_STEPS.maxX)y=STATION_STEPS.mid;

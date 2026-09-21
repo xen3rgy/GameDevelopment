@@ -1,4 +1,4 @@
-import {segmentClear} from './movement.js?v=0.7.2';
+import {segmentClear} from './movement.js?v=0.7.3-map1';
 // A* on a fixed grid. The graph is cached; each route is smoothed only through free space.
 export class CityNavigation {
   constructor(canWalk,step=4,bound=116){

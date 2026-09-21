@@ -1,11 +1,11 @@
-import {ROAD_X} from './city-layout.js?v=0.7.2';
+import {ROAD_X} from './city-layout.js?v=0.7.3-map1';
 const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
 export function lightingAt(minute,inside=false){
  const time=((minute%1440)+1440)%1440;
  const daylight=smooth(330,450,time)*(1-smooth(1080,1200,time));
  const night=1-daylight,altitude=Math.max(0,Math.sin((time-360)/840*Math.PI));
  const dusk=Math.exp(-Math.pow((time-1110)/65,2)),dawn=Math.exp(-Math.pow((time-390)/60,2));
- return {day:daylight,night,dusk,dawn,altitude,hemisphere:inside?1.1:.42+daylight*.925,moon:inside?0:night*.38,sun:inside?0:3.1*altitude*daylight,environment:inside?.32:.12+daylight*.20,lamp:inside?0:smooth(.06,.8,night)};
+ return {day:daylight,night,dusk,dawn,altitude,hemisphere:inside?1.1:.42+daylight*1.25,moon:inside?0:night*.38,sun:inside?0:3.1*altitude*daylight,environment:inside?.32:.12+daylight*.27,lamp:inside?0:smooth(.06,.8,night)};
 }
 // Preserve assignments until a nearby lamp leaves the pool: no per-frame light teleporting.
 export function selectLamps(lamps,position,current=[],count=8){

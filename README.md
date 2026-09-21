@@ -4,6 +4,8 @@ A self-contained, browser-based 3D singleplayer life and business game in German
 
 ## Run locally
 
+On Windows, double-click `Spiel-starten.cmd` and open http://127.0.0.1:8765/. Keep the server window open while playing; closing it stops the local website. Alternatively run `npm start` (Node.js, no install step). If the browser reports `ERR_CONNECTION_REFUSED`, start this server again. The launcher also recognizes the bundled Codex Node runtime on this computer.
+
 Serve `dist/` using an HTTP static server. For example, from this checkout:
 
 ```sh
@@ -11,6 +13,17 @@ python -m http.server 8000 --directory dist
 ```
 
 Open http://localhost:8000. No API keys, external services or package installation are required. Three.js r170 and the generated runtime assets are committed directly in `dist/`; no restore step is required. A browser with WebGL2 and hardware acceleration is required.
+
+## Version 0.7.3 · Stadtbild & Wege
+
+- Closed the exposed outer edges of raised pavements and added continuous, walkable building aprons. The station's two granite steps now agree with the physical ground heights instead of protruding into the lower level.
+- One properly contained entrance per functional address, with threshold, glazing, handle and house number. Storefront windows and awnings reserve space for the entrance; awning stripes follow their tilted supporting surface.
+- Repositioned street trees using a shared visual/collision layout, with tested clearance from lamps, facades, benches and planters. Added slatted benches, lower planted beds and the existing textured tree asset in courtyard tree beds.
+- Rebuilt street signs with framed panels and independent, correctly oriented text on both faces; extended them to western crossings. All map labels use aspect-correct, measured text textures without horizontal squeezing.
+- Softer paving and cobblestone textures, consistent world-space pavement scale, corrected brick scale on building side walls, textured grass and brighter daytime ambient light. The existing low-quality mode and bounded night-light pool remain in place.
+- New map regression checks cover entrance bounds, planting clearance, sign faces, facade UV density, physical frontage support and closed kerbs. Existing save schema 3 is unchanged; no reset is required.
+
+The local preview also provides `/__qa`, a separate map-inspection scene with location, reverse-view, day/night and quality controls. It never loads or writes browser saves. QA/media tools are outside `dist/` and are not part of the shipped game. This is an upgrade to the existing stylized browser world, not a switch to a photorealistic engine.
 
 ## Controls
 

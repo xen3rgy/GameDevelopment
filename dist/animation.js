@@ -1,4 +1,4 @@
-import {CAFE_GESTURE_DURATION,applyCafeWorkerPose} from './cafe-gestures.js?v=0.7.2';
+import {CAFE_GESTURE_DURATION,applyCafeWorkerPose} from './cafe-gestures.js?v=0.7.3-map1';
 const blend=(a,b,t)=>a+(b-a)*t;
 export const NPC_STRIDE=1.18;
 // A planted foot moves backwards at exactly the body's forward speed.

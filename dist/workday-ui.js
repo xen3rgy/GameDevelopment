@@ -1,9 +1,9 @@
-import {WORK_LABELS} from './work-log.js?v=0.7.2';
-import {workshopCard} from './workshop-ui.js?v=0.7.2';
-import {workshopHours} from './workshop.js?v=0.7.2';
-import {cafeHours,clockLabel} from './game-time.js?v=0.7.2';
-import {deadlineView,contractById} from './contracts.js?v=0.7.2';
-import {LOCATIONS,euro} from './data.js?v=0.7.2';
+import {WORK_LABELS} from './work-log.js?v=0.7.3-map1';
+import {workshopCard} from './workshop-ui.js?v=0.7.3-map1';
+import {workshopHours} from './workshop.js?v=0.7.3-map1';
+import {cafeHours,clockLabel} from './game-time.js?v=0.7.3-map1';
+import {deadlineView,contractById} from './contracts.js?v=0.7.3-map1';
+import {LOCATIONS,euro} from './data.js?v=0.7.3-map1';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function workdayPanel(s,button,view='today'){
  const l=s.workLog??{entries:[],days:[]},day=l.days.find(d=>d.day===s.day),w=workshopHours(s),c=cafeHours(s),job=s.job,deadline=deadlineView(s);

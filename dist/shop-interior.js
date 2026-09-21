@@ -1,8 +1,8 @@
 import * as THREE from './vendor/three.module.js';
-import {createBread,createProduce} from './food-models.js?v=0.7.2';
-import {ITEMS,euro} from './data.js?v=0.7.2';
-import {SHOP_FIXTURES} from './spatial.js?v=0.7.2';
-import {createCitizen,seeded} from './art.js?v=0.7.2';
+import {createBread,createProduce} from './food-models.js?v=0.7.3-map1';
+import {ITEMS,euro} from './data.js?v=0.7.3-map1';
+import {SHOP_FIXTURES} from './spatial.js?v=0.7.3-map1';
+import {createCitizen,seeded} from './art.js?v=0.7.3-map1';
 
 // Every sales fixture shares its footprint with walking and camera collision.
 export function buildMarket(world,k){

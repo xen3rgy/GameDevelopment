@@ -1,15 +1,15 @@
-import {reachCafeHand} from './cafe-food.js?v=0.7.2';
-import {orderBike,BIKE_STYLES} from './workshop-orders.js?v=0.7.2';
-import {applyWorkshopPose} from './workshop-gestures.js?v=0.7.2';
-import {CUSTOMER_NAMES} from './workshop-life.js?v=0.7.2-stability1';
-import {parcelHands} from './courier-scene.js?v=0.7.2';
-import {surfaceMaterial} from './atmosphere.js?v=0.7.2';
+import {reachCafeHand} from './cafe-food.js?v=0.7.3-map1';
+import {orderBike,BIKE_STYLES} from './workshop-orders.js?v=0.7.3-map1';
+import {applyWorkshopPose} from './workshop-gestures.js?v=0.7.3-map1';
+import {CUSTOMER_NAMES} from './workshop-life.js?v=0.7.3-map1';
+import {parcelHands} from './courier-scene.js?v=0.7.3-map1';
+import {surfaceMaterial} from './atmosphere.js?v=0.7.3-map1';
 import * as THREE from './vendor/three.module.js';
-import {createCitizen} from './art.js?v=0.7.2';
-import {animateCitizen} from './animation.js?v=0.7.2';
-import {districtMaterial} from './district-materials.js?v=0.7.2';
-import {WORKSHOP_POINTS,workshopWorkPoint,workshopApproach} from './workshop-layout.js?v=0.7.2';
-import {workshopStep,workshopCarry} from './workshop.js?v=0.7.2';
+import {createCitizen} from './art.js?v=0.7.3-map1';
+import {animateCitizen} from './animation.js?v=0.7.3-map1';
+import {districtMaterial} from './district-materials.js?v=0.7.3-map1';
+import {WORKSHOP_POINTS,workshopWorkPoint,workshopApproach} from './workshop-layout.js?v=0.7.3-map1';
+import {workshopStep,workshopCarry} from './workshop.js?v=0.7.3-map1';
 
 // The room has its own visibility root: neither lights nor props leak into the city.
 export class WorkshopScene{

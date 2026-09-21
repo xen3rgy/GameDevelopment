@@ -1,8 +1,8 @@
 import * as THREE from './vendor/three.module.js';
-import {PROMENADE_FIXTURES,CITIZEN_PORTALS,gardenPatches} from './pedestrian-layout.js?v=0.7.2-bollardfix1';
-import {groundHeight} from './spatial.js?v=0.7.2-stationstep1';
-import {surfaceMaterial} from './atmosphere.js?v=0.7.2';
-import {CAFE_OPEN,CAFE_CLOSE,clockLabel} from './game-time.js?v=0.7.2';
+import {PROMENADE_FIXTURES,gardenPatches} from './pedestrian-layout.js?v=0.7.3-map1';
+import {groundHeight} from './spatial.js?v=0.7.3-map1';
+import {surfaceMaterial,surfaceTileMeters} from './atmosphere.js?v=0.7.3-map1';
+import {CAFE_OPEN,CAFE_CLOSE,clockLabel} from './game-time.js?v=0.7.3-map1';
 
 export function buildPromenade(world,kit){
  const {box,cylinder,sign}=kit,g=new THREE.Group();g.name='Cafe to station · public realm';world.scene.add(g);world.staticGroups.push(g);
@@ -14,21 +14,11 @@ export function buildPromenade(world,kit){
   quad([x,.02,z],[x,.02,Z],[X,.02,Z],[X,.02,z]);
   for(const [a,b] of [[[x,.02,z],[x,.02,Z]],[[x,.02,Z],[X,.02,Z]],[[X,.02,Z],[X,.02,z]],[[X,.02,z],[x,.02,z]]])quad(a,[a[0],-.05,a[2]],[b[0],-.05,b[2]],b);
  }
- for(let i=0;i<vertices.length;i+=3)uv.push(vertices[i]/6,vertices[i+2]/6);
+ for(let i=0;i<vertices.length;i+=3)uv.push(vertices[i]/surfaceTileMeters('cobble'),vertices[i+2]/surfaceTileMeters('cobble'));
  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.computeVertexNormals();
  const paving=surfaceMaterial('cobble',6,6);paving.map.repeat.set(1,1);paving.color.set(0xb4b5a4);
  const paths=new THREE.Mesh(geo,paving);paths.name='Connected garden paths';paths.receiveShadow=true;g.add(paths);
- // Recessed, dark entrance bays give ambient residents an actual place to arrive/leave.
- for(const p of CITIZEN_PORTALS){
-  const signDirection=Math.cos(p.angle),front=p.doorZ+signDirection*1.2,root=new THREE.Group();root.position.set(p.x,groundHeight(p.x,p.z),front);root.rotation.y=p.angle;g.add(root);
-  const old=p.x<0,frame=old?0x8c7d62:0x91a6a0;
-  box(root,0,1.35,0,1.68,2.70,.10,0x142b2d);
-  for(const side of [-1,1]){box(root,side*.89,1.43,.12,.11,2.86,.28,frame);box(root,side*.66,1.4,-.035,.055,2.6,.04,0x405955);}
-  box(root,0,2.84,.12,1.9,.13,.28,frame);box(root,0,.008,.2,1.74,.016,.55,0x52605a);
-  // Leaf is parked to one side, leaving a clear central door opening.
-  const leaf=box(root,-.73,1.36,.36,.09,2.62,.63,0x3c5651);leaf.rotation.y=-.18;
-  sign(root,p.home?'WOHNEN':'EINGANG',0,2.99,.14,1.65,.18,'#e4ddc9','#354f50');
- }
+ // Doors belong to the facade builder; resident portals only define arrival behavior.
  // Window displays stay inside the facade collision envelope, not in the walking aisle.
  for(const [x,width] of [[59,2.2],[74,2.8]]){
   const root=new THREE.Group();root.position.set(x,0,-13.48);g.add(root);

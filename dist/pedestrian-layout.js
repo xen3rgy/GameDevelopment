@@ -1,8 +1,9 @@
-import {NEIGHBORHOOD_FIXTURES} from './neighborhood-layout.js?v=0.7.2';
-import {STREET_LAMPS} from './lighting.js?v=0.7.2';
-import {PAVEMENTS,streetSurface} from './street-layout.js?v=0.7.2-cornerfix1';
-import {ROADS} from './city-layout.js?v=0.7.2';
-import {CITY_CHARACTER_FIXTURES,CITY_COURTYARD_PATH} from './city-character-layout.js?v=0.7.2';
+import {NEIGHBORHOOD_FIXTURES} from './neighborhood-layout.js?v=0.7.3-map1';
+import {STREET_TREES,STREET_PLANTERS} from './public-realm-layout.js?v=0.7.3-map1';
+import {STREET_LAMPS} from './lighting.js?v=0.7.3-map1';
+import {PAVEMENTS,streetSurface} from './street-layout.js?v=0.7.3-map1';
+import {ROADS} from './city-layout.js?v=0.7.3-map1';
+import {CITY_CHARACTER_FIXTURES,CITY_COURTYARD_PATH} from './city-character-layout.js?v=0.7.3-map1';
 
 // Existing street furniture now has the same physical footprint for people and navigation.
 export const STREET_SEATS=[-81,-44,-13,21,52,92.5];
@@ -18,13 +19,13 @@ export function streetSpawn(position,canWalk){
 export const PROMENADE_BOLLARDS=Array.from({length:25},(_,i)=>-98+i*8).flatMap(x=>[-7,7].map(z=>({x,z}))).filter(p=>streetSurface(p.x,p.z)?.kind!=='road');
 export const PROMENADE_FIXTURES=[
  ...STREET_SEATS.map(x=>({kind:'oldBench',x,z:10,w:1.1,d:.36,h:1.4})),
- ...[-94,-53,-15,15,47,90].flatMap(x=>[-10,10,-55,55].map(z=>({kind:'trunk',x,z,w:.19,d:.19,h:3.7}))),
+ ...STREET_TREES.map(({x,z})=>({kind:'trunk',x,z,w:.24,d:.24,h:3.7})),
  ...STREET_LAMPS.map(p=>({...p,kind:'lamp',w:.08,d:.08,h:5.25})),
  ...PROMENADE_BOLLARDS.map(p=>({...p,kind:'bollard',w:.10,d:.10,h:1.03})),
  {kind:'shelterBack',x:-59,z:10.7,w:2.65,d:.07,h:2.9},
  ...[-61.5,-56.5].map(x=>({kind:'post',x,z:10,w:.05,d:.05,h:2.9})),
  {kind:'shelterSeat',x:-59,z:9.9,w:1.1,d:.36,h:1.4},
- ...[-91,48,96].map(x=>({kind:'oldPlanter',x,z:10,w:1,d:.5,h:1.5})),
+ ...STREET_PLANTERS.map(p=>({...p,kind:'oldPlanter',h:1.5})),
  ...[57,69].flatMap(x=>[{kind:'terraceTable',x,z:-11,w:.7,d:.7,h:1},...[-1.1,1.1].map(dx=>({kind:'terraceChair',x:x+dx,z:-11,w:.27,d:.33,h:1.25}))])
 ];
 export const CITIZEN_PORTALS=[

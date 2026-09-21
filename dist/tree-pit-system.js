@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {groundHeight} from './spatial.js?v=0.7.2-stationstep1';
+import {groundHeight} from './spatial.js?v=0.7.3-map1';
 
 export const TREE_PIT_BOUNDS={
  minX:-0.950892984867096,maxX:0.947039008140564,

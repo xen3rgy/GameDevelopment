@@ -128,7 +128,7 @@ test('the full station quarter has continuous flush cobblestone ground without t
  assert.equal(lowerSteps.length,4);assert.equal(upperSteps.length,4);
  for(const step of lowerSteps){const b=new THREE.Box3().setFromObject(step);near(b.min.y,STATION_STEPS.low);near(b.max.y,STATION_STEPS.mid);}
  for(const step of upperSteps){const b=new THREE.Box3().setFromObject(step);near(b.min.y,STATION_STEPS.mid);near(b.max.y,STATION_STEPS.high);}
- assert.deepEqual(trees.slice(0,2).map(({x,z})=>({x,z})),[{x:-188,z:-56.3},{x:-159,z:-56.3}]);
+ assert.deepEqual(trees.slice(0,2).map(({x,z})=>({x,z})),[{x:-182,z:-56.3},{x:-164,z:-56.3}]);
  // The red station building ends at z=-51, so these trunks now have >5 m façade clearance.
  assert.ok(trees.slice(0,2).every(t=>Math.abs(t.z-(-51))>5));
 }));

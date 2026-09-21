@@ -1,4 +1,4 @@
-import {CAFE_MENU,guestPatience} from './cafe.js?v=0.7.2';
+import {CAFE_MENU,guestPatience} from './cafe.js?v=0.7.3-map1';
 
 export function guestServiceView(g){
  const paying=g.stage==='paying',fraction=guestPatience(g),seconds=Math.max(0,Math.ceil(g.patience-g.wait));

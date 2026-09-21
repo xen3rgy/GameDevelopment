@@ -1,8 +1,9 @@
-import {buildingStyle,modernBuilding} from './district-architecture.js?v=0.7.2';
-import {entranceForBuilding,decorateAddress} from './city-addresses.js?v=0.7.2';
+import {buildingStyle,modernBuilding} from './district-architecture.js?v=0.7.3-map1';
+import {entranceForBuilding,decorateAddress} from './city-addresses.js?v=0.7.3-map1';
 import * as THREE from './vendor/three.module.js';
-import {groundHeight} from './spatial.js?v=0.7.2-stationstep1';
-import {districtMaterial} from './district-materials.js?v=0.7.2';
+import {groundHeight} from './spatial.js?v=0.7.3-map1';
+import {districtMaterial,fitFacadeUV} from './district-materials.js?v=0.7.3-map1';
+import {facadeSpans} from './public-realm-layout.js?v=0.7.3-map1';
 
 const palette=[
  {wall:0xa86248,trim:0xdfcbb0,shop:0x254e45,type:'brick'},
@@ -35,7 +36,7 @@ export class CityArt{
   const index=this.index++,p=x<-120&&Math.abs(z)<125?{wall:color,trim:0xc2b095,shop:0x3d5953,type:'brick'}:palette[index%palette.length];
   let texture;if(x>=-120||Math.abs(z)>=125){texture=wallTexture(p.type).clone();texture.needsUpdate=true;texture.repeat.set(w/6,h/6);}
   const wall=x<-120&&Math.abs(z)<125?districtMaterial('brick',w,h,index%2?0xd8c7ad:0xdfd1bc):new THREE.MeshStandardMaterial({color:name?p.wall:color,map:texture,bumpMap:texture,bumpScale:p.type==='plaster'?.024:.065,roughness:.94});
-  box(g,x,h/2,z,w,h,d,0,wall);box(g,x,.58,z,w+.16,1.15,d+.16,p.trim);box(g,x,3.65,z,w+.28,.22,d+.28,p.trim);
+  fitFacadeUV(box(g,x,h/2,z,w,h,d,0,wall),w,d);box(g,x,.58,z,w+.16,1.15,d+.16,p.trim);box(g,x,3.65,z,w+.28,.22,d+.28,p.trim);
   box(g,x,h+.12,z,w+.6,.25,d+.6,p.trim);box(g,x,h+.42,z,w+.32,.35,d+.32,0x424e51);box(g,x,h+.64,z,w-.4,.1,d-.4,0x5e6461);
   this.w.colliders.push({x,z,w:w/2+.35,d:d/2+.35,h:h+2.8});
   if(!name&&Math.abs(z)>125){for(let y=5;y<h;y+=4)box(g,x,y,z+d/2+.025,w-.8,1.5,.035,0x465b64);return g}
@@ -70,12 +71,13 @@ export class CityArt{
   if(!name){for(const [xx,zz,width,rot] of [[x,z+d/2,w,0],[x,z-d/2,w,Math.PI],[x+w/2,z,d,Math.PI/2],[x-w/2,z,d,-Math.PI/2]]){const f=new THREE.Group();f.position.set(xx,0,zz);f.rotation.y=rot;g.add(f);for(let col=-width/2+1.8;col<width/2-1;col+=3.2){box(f,col,1.85,.13,1.3,1.75,.10,0x304842);box(f,col,1.87,.195,1.08,1.54,.018,0,this.windows[3]);box(f,col,1.87,.22,.065,1.55,.035,0xc2b095);}box(f,0,.7,.12,width,.12,.2,0x857563);}return g;}
   const front=new THREE.Group();front.position.set(x,0,z+face*d/2);front.rotation.y=face===1?0:Math.PI;g.add(front);
   box(front,0,1.78,.07,w-.45,3.25,.16,p.shop);
+  const location=entranceForBuilding(x,z,d,face),doorX=location?(location.x-x)*face:null;
   const bays=Math.floor(w/3),bayW=(w-1)/bays;
-  for(let i=0;i<bays;i++){const xx=-w/2+.5+bayW*(i+.5);box(front,xx,1.55,.18,bayW-.2,2.5,.05,0,this.windows[(i+index)%5]);box(front,xx-bayW/2,1.58,.24,.10,2.6,.12,p.trim);box(front,xx,.34,.24,bayW-.12,.16,.14,p.trim);box(front,xx,2.71,.24,bayW-.12,.12,.14,p.trim);box(front,xx,2.04,.25,bayW-.1,.05,.06,p.trim);}
+  for(let i=0;i<bays;i++){const xx=-w/2+.5+bayW*(i+.5);for(const part of facadeSpans(xx,bayW-.16,doorX)){const {x:cx,w:ww}=part;box(front,cx,1.55,.18,ww-.04,2.5,.05,0,this.windows[(i+index)%5]);for(const side of [-1,1])box(front,cx+side*ww/2,1.58,.24,.075,2.6,.12,p.trim);box(front,cx,.34,.24,ww,.16,.14,p.trim);box(front,cx,2.71,.24,ww,.12,.14,p.trim);box(front,cx,2.04,.25,ww,.05,.06,p.trim);}}
   box(front,0,3.08,.22,w-.35,.58,.28,p.shop);sign(front,name,0,3.1,.38,Math.min(w-1,name.length*.43),.42,'#f3e9cd','#'+p.shop.toString(16).padStart(6,'0'));
   // Three separate canvas awnings break the repeated solid strip silhouette.
-  for(const xx of [-w*.31,0,w*.31]){const aw=box(front,xx,2.87,.88,w*.27,.09,1.5,p.shop);aw.rotation.x=.11;box(front,xx,2.7,1.6,w*.27,.2,.07,p.shop);for(let stripe=0;stripe<7;stripe++)box(front,xx-w*.12+stripe*w*.035,2.936,.88,.14,.012,1.44,p.trim)}
-  const location=entranceForBuilding(x,z,d,face);if(location)decorateAddress(front,this.k,location,(location.x-x)*face);
+  for(const xx of [-w*.31,0,w*.31])for(const part of facadeSpans(xx,w*.27,doorX,1.35)){if(part.w<.7)continue;const awning=new THREE.Group();awning.name='Canvas awning';awning.position.set(part.x,2.87,.88);awning.rotation.x=.11;front.add(awning);box(awning,0,0,0,part.w,.07,1.5,p.shop);box(awning,0,-.085,.73,part.w,.16,.04,p.shop);for(let stripe=-part.w/2+.2;stripe<part.w/2-.1;stripe+=.46)box(awning,stripe,.039,0,.12,.006,1.46,p.trim);}
+  if(location)decorateAddress(front,this.k,location,doorX);
   for(let xx of [-w*.35,w*.35]){cylinder(front,xx,3.85,.5,.055,.8,0x323b3b);box(front,xx,4.2,.57,.32,.12,.38,0x394544)}
   if(index%3===0){const roof=new THREE.Mesh(new THREE.ConeGeometry(1,1,4),mat(0x4a5358));roof.position.set(x,h+1.1,z);roof.scale.set(w/Math.SQRT2,2.4,d/Math.SQRT2);roof.rotation.y=Math.PI/4;roof.castShadow=true;g.add(roof)}
   for(let n=0;n<3;n++){box(g,x-w*.32+n*w*.22,h+1.1,z-d*.2,1,.9,.8,p.wall);box(g,x-w*.32+n*w*.22,h+1.6,z-d*.2,1.15,.14,.95,0x505b5d)}

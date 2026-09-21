@@ -2,6 +2,13 @@ import * as THREE from './vendor/three.module.js';
 
 const textures=new Map(),materials=new Map(),sources=new Map();
 export const DISTRICT_TEXTURES={brick:'./assets/station-brick-069.png',limestone:'./assets/civic-limestone-069.png'};
+// BoxGeometry repeats the front UVs on its side walls. Correct their horizontal
+// density so a long side wall does not stretch the same bricks as a narrow front.
+export function fitFacadeUV(mesh,width,depth){
+ const geometry=mesh.geometry.clone(),uv=geometry.getAttribute('uv');
+ for(let i=0;i<8;i++)uv.setX(i,uv.getX(i)*depth/width);
+ uv.needsUpdate=true;mesh.geometry=geometry;return mesh;
+}
 export function districtMaterial(kind,width=1,height=1,tint=0xffffff){
  const key=[kind,width,height,tint].join(':');if(materials.has(key))return materials.get(key);
  let map;
@@ -9,7 +16,9 @@ export function districtMaterial(kind,width=1,height=1,tint=0xffffff){
   const textureKey=kind+':'+width+':'+height;
   if(!textures.has(textureKey)){
    if(!sources.has(kind)){const copies=[];const base=new THREE.TextureLoader().load(DISTRICT_TEXTURES[kind],()=>copies.forEach(t=>t.needsUpdate=true));sources.set(kind,{base,copies});}
-   const source=sources.get(kind),t=source.base.clone();source.copies.push(t);t.colorSpace=THREE.SRGBColorSpace;
+   // Texture.clone() marks an upload immediately, even while the image is still
+   // loading. Share the source but request upload only once pixels are available.
+   const source=sources.get(kind),t=new THREE.Texture();t.source=source.base.source;source.copies.push(t);if(source.base.image)t.needsUpdate=true;t.colorSpace=THREE.SRGBColorSpace;
    t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;
    t.repeat.set(width/(kind==='brick'?1.4:3.2),height/(kind==='brick'?1.2:2.4));textures.set(textureKey,t);
   }

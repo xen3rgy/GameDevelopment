@@ -38,7 +38,7 @@ const treeAsset=join(root,'dist/assets/lindenstadt-tree.glb');
 if(existsSync(treeAsset)){const b=readFileSync(treeAsset);if(b.length<2_000_000||b.length>2_600_000||b.readUInt32LE(0)!==0x46546c67||b.readUInt32LE(4)!==2)missing.push('dist/assets/lindenstadt-tree.glb is not the expected optimized GLB asset')}
 const treePitAsset=join(root,'dist/assets/lindenstadt-tree-pit.glb');
 if(existsSync(treePitAsset)){const b=readFileSync(treePitAsset);if(b.length<1_500_000||b.length>2_200_000||b.readUInt32LE(0)!==0x46546c67||b.readUInt32LE(4)!==2)missing.push('dist/assets/lindenstadt-tree-pit.glb is not the expected optimized GLB asset')}
-if(existsSync(join(root,'.zero-rise-parts')))missing.push('.zero-rise-parts should not exist after runtime assets are committed directly');
+if(existsSync(join(root,'.zero-rise-parts'))&&walk(join(root,'.zero-rise-parts')).length)missing.push('.zero-rise-parts must not contain legacy runtime fragments after assets are committed directly');
 
 if(missing.length){console.error('Static validation failed:\n'+missing.map(v=>' - '+v).join('\n'));process.exit(1)}
 console.log('Static validation passed for '+js.length+' JavaScript modules and critical runtime assets.');

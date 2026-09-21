@@ -1,6 +1,6 @@
-import {HOMES,LOCATIONS,euro} from './data.js?v=0.7.2';
-import {ROOMS} from './spatial.js?v=0.7.2';
-import {deliveryLeg} from './delivery-routes.js?v=0.7.2';
+import {HOMES,LOCATIONS,euro} from './data.js?v=0.7.3-map1';
+import {ROOMS} from './spatial.js?v=0.7.3-map1';
+import {deliveryLeg} from './delivery-routes.js?v=0.7.3-map1';
 
 export const homeLocation=s=>LOCATIONS.find(l=>l.id===(HOMES.find(h=>h.id===s.home)?.location||'home'));
 export const outsidePosition=s=>s.interior==='home'?{x:homeLocation(s).x,z:homeLocation(s).z-2}:ROOMS[s.interior]?.outside||s.position;

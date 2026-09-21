@@ -1,8 +1,8 @@
-import {HOMES,ITEMS,HOME_POINTS,euro} from './data.js?v=0.7.2';
-import {SLEEP_HOURS,timePreview,actionOffer,fatigue,FRIDGE_SLOTS,FRIDGE_WEIGHT,fridgeItem} from './daily-life.js?v=0.7.2';
-import {inventoryWeight} from './inventory.js?v=0.7.2';
-import {heldLoad} from './player-movement.js?v=0.7.2';
-import {cafeHours} from './game-time.js?v=0.7.2';
+import {HOMES,ITEMS,HOME_POINTS,euro} from './data.js?v=0.7.3-map1';
+import {SLEEP_HOURS,timePreview,actionOffer,fatigue,FRIDGE_SLOTS,FRIDGE_WEIGHT,fridgeItem} from './daily-life.js?v=0.7.3-map1';
+import {inventoryWeight} from './inventory.js?v=0.7.3-map1';
+import {heldLoad} from './player-movement.js?v=0.7.3-map1';
+import {cafeHours} from './game-time.js?v=0.7.3-map1';
 export function timeCard(s,minutes){const p=timePreview(s,minutes);return `<div class="time-preview"><div><span>JETZT · TAG ${p.start.day}</span><strong>${p.start.time}</strong></div><span class="time-arrow" aria-hidden="true">→</span><div><span>DANACH · TAG ${p.end.day}</span><strong>${p.end.time}</strong></div></div><p class="footnote">${minutes} Spielminuten als sichtbarer Zeitsprung. Die ganze Stadt läuft mit: Bedürfnisse, Lieferfristen und laufender Cafébetrieb. Menüs pausieren.</p>${p.warnings.map(t=>`<p class="routine-warning">${t}</p>`).join('')}`;}
 export function sleepPanel(s,hours,button){
  const home=HOMES.find(h=>h.id===s.home),minutes=hours*60;

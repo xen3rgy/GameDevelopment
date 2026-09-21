@@ -1,18 +1,22 @@
 import * as THREE from './vendor/three.module.js';
-import {LOCATIONS} from './data.js?v=0.7.2';
-import {ADDRESSES,addressOf,STREETS} from './orientation.js?v=0.7.2';
+import {LOCATIONS} from './data.js?v=0.7.3-map1';
+import {ADDRESSES,addressOf,STREETS} from './orientation.js?v=0.7.3-map1';
 export function entranceForBuilding(x,z,depth,face=1){
  return LOCATIONS.find(l=>!['recycle','park'].includes(l.id)&&Math.abs(l.x-x)<4&&Math.abs(l.z-(z+face*depth/2))<4);
 }
-export const STREET_POSTS=STREETS.flatMap(s=>[-1,1].map(side=>({x:side*9,z:s.z+side*12,name:s.name})));
+export const STREET_POSTS=STREETS.flatMap(s=>[-1,1].map(side=>({x:side*9,z:s.z+side*12,name:s.name,cross:'Bahnhofstraße'}))).concat(
+ STREETS.flatMap(s=>[[-202,'Westbogen'],[-110,'Westkai'],[110,'Parkring']].map(([x,cross])=>({x:x-9,z:s.z-12,name:s.name+(x<-120?' West':''),cross})))
+);
 export function addStreetSigns(world,kit){
  const {box,cylinder,sign}=kit;
  for(const p of STREET_POSTS){
   const g=new THREE.Group();g.position.set(p.x,0,p.z);world.scene.add(g);world.staticGroups.push(g);
-  cylinder(g,0,1.85,0,.055,3.1,0x3c5155);box(g,0,3.3,0,2.8,.42,.08,0x233d45);
-  sign(g,p.name,0,3.3,.052,2.64,.32,'#f1e7d2','#233d45');sign(g,p.name,0,3.3,-.052,2.64,.32,'#f1e7d2','#233d45',Math.PI);
-  const cross=new THREE.Group();cross.rotation.y=Math.PI/2;g.add(cross);box(cross,0,2.86,0,2.8,.35,.08,0x233d45);
-  sign(cross,'Bahnhofstraße',0,2.86,.052,2.64,.27,'#f1e7d2','#233d45');sign(cross,'Bahnhofstraße',0,2.86,-.052,2.64,.27,'#f1e7d2','#233d45',Math.PI);
+  cylinder(g,0,1.91,0,.045,3.22,0x677a7b);cylinder(g,0,.45,0,.075,.30,0x455658);
+  const panel=(parent,text,y)=>{box(parent,0,y,0,3.12,.52,.09,0xd1d5cb);box(parent,0,y,.002,3.02,.42,.102,0x173f4c);
+   for(const side of [-1,1]){sign(parent,text,0,y,side*.057,2.87,.34,'#f5f2e7','#173f4c',side<0?Math.PI:0);for(const x of [-1.49,1.49]){const bolt=cylinder(parent,x,y,side*.06,.022,.015,0xc7d1d0);bolt.rotation.x=Math.PI/2;}}
+  };
+  panel(g,p.name,3.32);
+  const cross=new THREE.Group();cross.rotation.y=Math.PI/2;g.add(cross);panel(cross,p.cross,2.72);
   world.colliders.push({x:p.x,z:p.z,w:.06,d:.06,h:3.6});
  }
 }
@@ -20,17 +24,24 @@ export function decorateAddress(front,kit,location,localX){
  if(!location)return;
  const {box,sign,cylinder}=kit,id=location.id;
  // Plaques share their source with the phone, map and navigation. No invented numbers.
- box(front,localX+1.6,2.13,.32,.68,.6,.08,0x263f45);
- sign(front,String(ADDRESSES[id][1]),localX+1.6,2.13,.371,.57,.43,'#f4e6c5','#263f45');
- sign(front,addressOf(id),localX,3.82,.17,3.4,.28,'#e8e1ce','#344b50');
+ box(front,localX+1.48,2.06,.32,.54,.54,.08,0xe2dfd0);
+ sign(front,String(ADDRESSES[id][1]),localX+1.48,2.06,.369,.46,.40,'#eff1e9','#23424a');
+ // One entrance per location, contained below the shop fascia and outside its awnings.
+ const floor=location.x<-120?.04:.30,door=new THREE.Group();door.name='Entrance · '+id;door.position.set(localX,floor,0);front.add(door);
+ box(door,0,1.24,.255,2.10,2.48,.10,0x1b2d32);
+ for(const side of [-1,1])box(door,side*1.02,1.30,.35,.12,2.60,.18,0x88958d);
+ box(door,0,2.56,.35,2.16,.12,.18,0xabb2a5);
+ box(door,0,.035,.39,2.04,.07,.42,0x969c91);
+ box(door,0,1.22,.323,1.87,2.32,.035,0x456568);
+ box(door,0,.39,.354,1.82,.45,.025,0x2c454b);
+ box(door,0,1.77,.357,1.65,1.04,.025,0x779596);
+ box(door,.69,1.07,.402,.045,.38,.08,0xd7d5bf);
+ box(door,0,1.29,.38,1.81,.055,.045,0xa6b4af);
+ const caption=id==='market'?'EINGANG · 24 H':id==='shelter'?'WILLKOMMEN':location.type==='housing'?'WOHNEN':id==='jobs'?'PAKETAUSGABE':location.type==='delivery'?'WARENANNAHME':'EINGANG';
+ sign(door,caption,0,2.30,.382,1.70,.22,'#f1ecdc','#2c454b');
+ sign(front,addressOf(id),localX,3.82,.22,3.4,.31,'#f2eddf','#344b50');
  if(id!=='jobs'&&location.type!=='delivery')return;
- const colors={jobs:0xae7041,deliveryA:0x31594c,deliveryB:0x96573d,deliveryC:0x354d60},accent=colors[id]??0x44635a;
  const g=new THREE.Group();g.position.x=localX;front.add(g);
- box(g,0,1.52,.32,1.75,2.45,.14,0x202f32);box(g,0,1.52,.413,1.50,2.25,.04,accent);
- box(g,0,1.89,.446,1.14,1.2,.022,0x6b8281);box(g,0,1.17,.455,1.32,.11,.035,0xc1ad7e);
- box(g,.53,1.42,.51,.065,.40,.075,0xd1c5a0);
- sign(g,id==='jobs'?'PAKETAUSGABE':'WARENANNAHME',0,1.95,.47,1.08,.17,'#fbebc8','#263f45');
- sign(g,id==='jobs'?'E · AUFTRÄGE ANSEHEN':'E · PERSÖNLICH ÜBERGEBEN',0,1.61,.47,1.12,.12,'#d7e2d8','#263f45');
  // Shallow fittings remain inside the existing facade collision envelope.
  box(g,-1.45,1.28,.36,.54,.65,.15,0x485e61);box(g,-1.45,1.41,.45,.38,.025,.025,0x18292d);
  sign(g,id==='deliveryB'?'ATELIER':id==='deliveryA'?'KAPITEL':id==='jobs'?'KURIER':id==='deliveryKiosk'?'KIOSK':id==='deliveryWorkshop'?'WERKSTATT':'KONTOR',-1.45,1.12,.449,.43,.11,'#eee2c7','#485e61');

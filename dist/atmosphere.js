@@ -1,19 +1,23 @@
-import {districtLampStyle} from './district-materials.js?v=0.7.2';
+import {districtLampStyle} from './district-materials.js?v=0.7.3-map1';
 import * as THREE from './vendor/three.module.js';
-import {lightingAt,selectLamps} from './lighting.js?v=0.7.2';
-import {groundHeight} from './spatial.js?v=0.7.2-stationstep1';
+import {lightingAt,selectLamps} from './lighting.js?v=0.7.3-map1';
+import {groundHeight} from './spatial.js?v=0.7.3-map1';
 function random(seed){let n=seed;return()=>{n=(n*1664525+1013904223)>>>0;return n/4294967296}}
+const surfaceSources=new Map();
+export const surfaceTileMeters=kind=>kind==='asphalt'?6:kind==='cobble'?2.4:4.8;
 export function surfaceTexture(kind){
+  if(surfaceSources.has(kind)){const copy=surfaceSources.get(kind).clone();copy.needsUpdate=true;return copy;}
   const c=document.createElement('canvas');c.width=c.height=512;const a=c.getContext('2d'),rand=random(kind==='asphalt'?18:72);
-  a.fillStyle=kind==='asphalt'?'#72777a':'#c1beb3';a.fillRect(0,0,512,512);
-  if(kind==='paving')for(let y=0;y<512;y+=32)for(let x=-64;x<512;x+=64){const xx=x+(y%64?32:0);let shade=Math.floor(166+rand()*22);a.fillStyle=`rgb(${shade+8},${shade+7},${shade})`;a.fillRect(xx+2,y+2,62,30);a.fillStyle='#d5d2bf55';a.fillRect(xx+3,y+3,60,1)}
-  if(kind==='cobble')for(let y=0;y<512;y+=24)for(let x=-32;x<512;x+=32){const xx=x+(y/24%2?16:0),v=156+Math.floor(rand()*38);a.fillStyle=`rgb(${v+8},${v+4},${v-6})`;a.fillRect(xx+2,y+2,28,20);a.fillStyle='#e0d4bd35';a.fillRect(xx+3,y+3,26,2);}
-  for(let i=0;i<26000;i++){const n=rand();a.fillStyle=n>.5?'rgba(255,255,255,.065)':'rgba(0,0,0,.075)';a.fillRect(rand()*512,rand()*512,1+rand()*2,1+rand()*2)}
-  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t;
+  a.fillStyle=kind==='asphalt'?'#777d7f':kind==='grass'?'#7c8869':kind==='cobble'?'#85877f':'#a4aaa6';a.fillRect(0,0,512,512);
+  if(kind==='paving')for(let y=0;y<512;y+=32)for(let x=-64;x<512;x+=64){const xx=x+(y%64?32:0),v=Math.floor(180+rand()*12);a.fillStyle=`rgb(${v+3},${v+4},${v})`;a.fillRect(xx+1,y+1,62,30);a.fillStyle='#ffffff18';a.fillRect(xx+2,y+1,60,1)}
+  if(kind==='cobble')for(let y=0;y<512;y+=32)for(let x=-64;x<512;x+=64){const xx=x+(y/32%2?32:0),v=157+Math.floor(rand()*23);a.fillStyle=`rgb(${v+6},${v+4},${v-2})`;a.fillRect(xx+2,y+2,60,28);a.fillStyle='#ffffff18';a.fillRect(xx+3,y+2,58,1);}
+  if(kind==='grass')for(let i=0;i<12000;i++){a.fillStyle=['#b8bb7920','#293e2c18','#c3b99620'][i%3];a.fillRect(rand()*512,rand()*512,.7+rand(),2+rand()*5);}
+  for(let i=0;i<16000;i++){const n=rand();a.fillStyle=n>.5?'rgba(255,255,255,.032)':'rgba(0,0,0,.038)';a.fillRect(rand()*512,rand()*512,1,1)}
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;surfaceSources.set(kind,t);return t.clone();
 }
 export function surfaceMaterial(kind,w,d){
-  const t=surfaceTexture(kind);t.repeat.set(w/(kind==='asphalt'?6:8),d/(kind==='asphalt'?6:8));
-  return new THREE.MeshStandardMaterial({map:t,color:kind==='asphalt'?0x899096:kind==='cobble'?0xb0a189:0xd0d6d5,roughness:kind==='asphalt'?.86:.95,metalness:kind==='asphalt'?.04:0,bumpMap:t,bumpScale:kind==='asphalt'?.014:.025});
+  const t=surfaceTexture(kind);t.repeat.set(w/surfaceTileMeters(kind),d/surfaceTileMeters(kind));t.needsUpdate=true;
+  return new THREE.MeshStandardMaterial({map:t,color:kind==='asphalt'?0x899096:kind==='grass'?0xc0c6ab:kind==='cobble'?0xc9c6b9:0xd7d9d2,roughness:kind==='asphalt'?.86:.95,metalness:kind==='asphalt'?.04:0,bumpMap:t,bumpScale:kind==='asphalt'?.010:.012});
 }
 export class Atmosphere {
   constructor(scene,renderer){

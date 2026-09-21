@@ -1,0 +1,12 @@
+<!doctype html><html lang="de"><meta charset="utf-8"><title>ZERO RISE · Map inspection</title>
+<style>body{margin:0;background:#17252b;color:#eee;font:14px system-ui}canvas{display:block}nav{position:fixed;top:12px;left:12px;z-index:2;background:#14252de8;padding:12px;border-radius:8px}button,select{padding:8px;margin:3px;background:#304852;color:#fff;border:1px solid #8c9c98}output{display:block;margin:4px}</style>
+<canvas id="world"></canvas><nav><select aria-label="Prüfstelle" id="place"></select><button id="reverse">Gegenseite</button><button id="time">Tag / Nacht</button><button id="quality">Qualität hoch / niedrig</button><output id="status">Lädt …</output></nav>
+<script type="module">
+import {World} from '/world.js';import {GameModel} from '/model.js';
+const points=[['Lichthof · Baum und Möblierung',49,2,Math.PI],['Anlaufstelle · Eingang',-68,-6,0],['Bahnhof · Stufen',-125,17,-1.2],['Viadukt · Platz',-153,23,1.4],['Kreuzung · Schilder',-8,4,.7],['Schilder · Rückseite',-12,-18,Math.PI],['Markt · Fassade',-36,-5,0],['Bank · Eingang',31,6,Math.PI],['Seitengasse · Boden',50,11,-1.2],['Werkstatt · Eingang',-174,40,Math.PI]];
+const model=new GameModel();const world=new World(document.querySelector('canvas'),model);let reverse=false;
+const select=document.querySelector('select');points.forEach(([name],i)=>select.add(new Option(name,i)));
+function go(){const [name,x,z,angle]=points[Number(select.value)];model.s.position={x,z};model.s.minute=600;world.angle=angle+(reverse?Math.PI:0);world.pitch=.22;world.distance=8;world.cameraRig.reset();world.update(0,{},false);document.querySelector('output').textContent=name;}
+select.onchange=go;document.querySelector('#reverse').onclick=()=>{reverse=!reverse;go()};document.querySelector('#time').onclick=()=>{model.s.minute=model.s.minute<1200?1320:600};document.querySelector('#quality').onclick=()=>{model.s.settings.quality=model.s.settings.quality==='high'?'low':'high';world.setQuality(model.s.settings.quality)};go();
+let last=performance.now();function frame(now){world.update(Math.min((now-last)/1000,.05),{},true);last=now;requestAnimationFrame(frame)}requestAnimationFrame(frame);
+</script></html>

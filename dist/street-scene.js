@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import {ROAD_X,ROAD_Z} from './city-layout.js?v=0.7.2';
-import {ROAD_HEIGHT,PAVEMENT_HEIGHT,HALF_ROAD,CORNER_RADIUS,CORNERS,RAMP_WIDTH,RAMP_CORE,CROSSINGS,CROSSWALK_OFFSETS,CROSSWALK_STRIPE_WIDTH,streetPatches,rampHeight,onRoad} from './street-layout.js?v=0.7.2-cornerfix1';
-import {surfaceMaterial} from './atmosphere.js?v=0.7.2';
+import {ROAD_X,ROAD_Z} from './city-layout.js?v=0.7.3-map1';
+import {ROAD_HEIGHT,PAVEMENT_HEIGHT,HALF_ROAD,CORNER_RADIUS,CORNERS,RAMP_WIDTH,RAMP_CORE,CROSSINGS,CROSSWALK_OFFSETS,CROSSWALK_STRIPE_WIDTH,streetPatches,rampHeight,onRoad,streetSurface} from './street-layout.js?v=0.7.3-map1';
+import {surfaceMaterial,surfaceTileMeters} from './atmosphere.js?v=0.7.3-map1';
 
 export function buildStreets(world,kit){
  const g=new THREE.Group();g.name='Connected streets';world.scene.add(g);world.staticGroups.push(g);
@@ -37,13 +37,18 @@ export function buildStreets(world,kit){
   }else quad(key,a,b,c,d);
   if(p.kind==='road')continue;
   for(const [u,v,px,pz] of [[a,b,x-.001,(z+Z)/2],[b,c,(x+X)/2,Z+.001],[c,d,X+.001,(z+Z)/2],[d,a,(x+X)/2,z-.001]]){
-   if(!onRoad(px,pz))continue;
-   quad('kerb',u,[u[0],ROAD_HEIGHT,u[2]],[v[0],ROAD_HEIGHT,v[2]],v);
+   const neighbor=streetSurface(px,pz);
+   if(neighbor&&neighbor.kind!=='road')continue;
+   // Close BOTH road-facing and garden/yard-facing edges. The base extends into soil
+   // so the pavement cannot be seen from underneath at changes in ground level.
+   const bottom=neighbor?ROAD_HEIGHT:-.08;
+   quad('kerb',u,[u[0],bottom,u[2]],[v[0],bottom,v[2]],v);
   }
  }
  for(const [kind,vertices] of batches){
   const geo=new THREE.BufferGeometry(),pos=new Float32Array(vertices),uv=[];
-  for(let i=0;i<vertices.length;i+=3)uv.push(vertices[i]/6,vertices[i+2]/6);
+  const tile=surfaceTileMeters(kind==='asphalt'?'asphalt':kind==='oldPaving'?'cobble':'paving');
+  for(let i=0;i<vertices.length;i+=3)uv.push(vertices[i]/tile,vertices[i+2]/tile);
   geo.setAttribute('position',new THREE.BufferAttribute(pos,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.computeVertexNormals();geo.computeBoundingSphere();
   const material=kind==='kerb'?new THREE.MeshStandardMaterial({color:0xa5aaa3,roughness:.94,side:THREE.DoubleSide}):surfaceMaterial(kind==='asphalt'?'asphalt':kind==='oldPaving'?'cobble':'paving',6,6);
   if(material.map)material.map.repeat.set(1,1);

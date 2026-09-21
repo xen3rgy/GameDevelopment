@@ -1,17 +1,19 @@
-import {HORIZON_ROADS} from './city-character-layout.js?v=0.7.2';
+import {HORIZON_ROADS} from './city-character-layout.js?v=0.7.3-map1';
 import * as THREE from './vendor/three.module.js';
-import {entranceForBuilding,decorateAddress} from './city-addresses.js?v=0.7.2';
-import {districtMaterial} from './district-materials.js?v=0.7.2';
+import {entranceForBuilding,decorateAddress} from './city-addresses.js?v=0.7.3-map1';
+import {districtMaterial,fitFacadeUV} from './district-materials.js?v=0.7.3-map1';
+import {facadeSpans} from './public-realm-layout.js?v=0.7.3-map1';
 
 export const buildingStyle=(x,z,name)=>x>0&&Math.abs(z)<125?'modern':x<-120&&Math.abs(z)<125?'heritage':name==='WESTHAFEN LOGISTIK'?'industrial':'residential';
 
 export function modernBuilding(art,x,z,w,d,h,color,name,face=1){
  const world=art.w,{box,sign,cylinder,sphere}=art.k,g=new THREE.Group();g.name='Modern · '+(name||'Skyline');world.scene.add(g);world.staticGroups.push(g);
  const civic=name==='STADTBANK',cafe=name==='CAFÉ MORGEN',office=h>23;
+ const entry=entranceForBuilding(x,z,d,face),doorX=entry?(entry.x-x)*face:null;
  const stone=civic?0xc6c6bb:cafe?0xd6d2c5:office?0xafbbb9:0xbac3be,frame=0x2f444e,base=cafe?0x815f43:0x435760;
  const skin=districtMaterial('limestone',w,h-4,stone);
  const panel=new THREE.MeshStandardMaterial({color:office?0x38596b:0x537780,roughness:.22,metalness:.52});
- box(g,x,1.95,z,w,3.9,d,base);box(g,x,(h+4)/2,z,w-.5,h-4,d-.5,0,skin);
+ box(g,x,1.95,z,w,3.9,d,base);fitFacadeUV(box(g,x,(h+4)/2,z,w-.5,h-4,d-.5,0,skin),w-.5,d-.5);
  box(g,x,4.05,z,w+.28,.18,d+.28,0xbfc8c4);
  world.colliders.push({x,z,w:w/2+.35,d:d/2+.35,h:h+2.8});
  for(const [xx,zz,width,rot] of [[x,z+d/2,w,0],[x,z-d/2,w,Math.PI],[x+w/2,z,d,Math.PI/2],[x-w/2,z,d,-Math.PI/2]]){
@@ -30,18 +32,18 @@ export function modernBuilding(art,x,z,w,d,h,color,name,face=1){
    if(!civic)box(f,0,yy+1.42,.06,width-.5,.22,.20,stone);
   }
   // Street-level glazing has visible structural frames and a continuous plinth.
-  for(let c=0;c<cols;c++){const cx=-width/2+.4+step*(c+.5);box(f,cx,1.63,.12,step-.12,2.65,.07,0,art.windows[(c+3)%5]);box(f,cx-step/2,1.65,.19,.09,2.9,.12,frame);}
-  box(f,0,.36,.16,width,.25,.18,0x626f73);
+  const frontFace=Math.abs(rot-(face===1?0:Math.PI))<.001,opening=frontFace?doorX:null;
+  for(let c=0;c<cols;c++){const cx=-width/2+.4+step*(c+.5);for(const p of facadeSpans(cx,step-.12,opening)){box(f,p.x,1.63,.12,p.w,2.65,.07,0,art.windows[(c+3)%5]);for(const side of [-1,1])box(f,p.x+side*p.w/2,1.65,.19,.07,2.9,.12,frame);}}
+  for(const p of facadeSpans(0,width,opening))box(f,p.x,.36,.16,p.w,.25,.18,0x626f73);
  }
  const front=new THREE.Group();front.position.set(x,0,z+face*d/2);front.rotation.y=face===1?0:Math.PI;g.add(front);
  if(name){
   const location=entranceForBuilding(x,z,d,face),localX=location?(location.x-x)*face:0;
   // Every sign sits on a solid fascia or wall, within that facade's width.
   box(front,0,3.24,.28,w-.45,.59,.14,base);sign(front,name,0,3.25,.359,Math.min(w-1.2,name.length*.32),.38,'#f0e9d5',cafe?'#815f43':'#435760');
-  box(front,localX,1.48,.27,1.75,2.38,.10,frame);box(front,localX,1.75,.329,1.49,1.64,.025,0x799091);box(front,localX+.57,1.38,.39,.045,.43,.075,0xc7cec9);
   if(location)decorateAddress(front,art.k,location,localX);
   if(cafe){for(let i=0;i<Math.floor(w/.25);i++){const px=-w/2+.15+i*.25;if(Math.abs(px-localX)<1.4)continue;box(front,px,.75,.31,.09,.65,.07,0xaa8359);}}
-  const canopy=box(front,0,3.92,.72,w*.85,.10,1.4,0x758d92);canopy.material=panel;
+  const canopy=box(front,0,3.56,.72,w*.85,.08,1.4,0x758d92);canopy.material=panel;
   // Layered display bays sit within the facade envelope, clear of the entrance.
   for(const px of [-w*.32,w*.32]){
    if(Math.abs(px-localX)<2.5)continue;

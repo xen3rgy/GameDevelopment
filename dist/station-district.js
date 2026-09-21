@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import {DISTRICT_FIXTURES,STATION_PLAZAS,STATION_YARD,STATION_STEPS,ROAD_Z,VIADUCT} from './city-layout.js?v=0.7.2-stationstep1';
-import {surfaceMaterial} from './atmosphere.js?v=0.7.2';
-import {groundHeight} from './spatial.js?v=0.7.2-stationstep1';
+import {DISTRICT_FIXTURES,STATION_PLAZAS,STATION_YARD,STATION_STEPS,ROAD_Z,VIADUCT} from './city-layout.js?v=0.7.3-map1';
+import {surfaceMaterial} from './atmosphere.js?v=0.7.3-map1';
+import {groundHeight} from './spatial.js?v=0.7.3-map1';
 
 export function buildStationDistrict(world,kit){
  const {box,cylinder,sign,sphere}=kit,s=world.scene,g=new THREE.Group();s.add(g);world.staticGroups.push(g);
@@ -24,7 +24,7 @@ export function buildStationDistrict(world,kit){
   const lower=box(g,(STATION_STEPS.minX+STATION_STEPS.maxX)/2,(STATION_STEPS.low+STATION_STEPS.mid)/2,z,stepDepth,STATION_STEPS.mid-STATION_STEPS.low,d,0,stepMaterial);
   lower.name='Bahnhofsviertel · Granitstufe unten';lower.castShadow=false;lower.receiveShadow=true;
   // Second riser closes the remaining 13 cm below the existing 30 cm pavement.
-  const upper=box(g,STATION_STEPS.maxX-upperLip/2,(STATION_STEPS.mid+STATION_STEPS.high)/2,z,upperLip,STATION_STEPS.high-STATION_STEPS.mid,d,0,riserMaterial);
+  const upper=box(g,STATION_STEPS.maxX+upperLip/2,(STATION_STEPS.mid+STATION_STEPS.high)/2,z,upperLip,STATION_STEPS.high-STATION_STEPS.mid,d,0,riserMaterial);
   upper.name='Bahnhofsviertel · Granitstufe oben';upper.castShadow=false;upper.receiveShadow=true;
  };
  for(const roadZ of ROAD_Z){stepSegment(stepFrom,roadZ-roadClear);stepFrom=roadZ+roadClear;}stepSegment(stepFrom,STATION_YARD.maxZ);
@@ -83,8 +83,7 @@ export function buildStationDistrict(world,kit){
  world.stationClock={root:clock,hour:hand(.48),minute:hand(.72)};
  // Housing entrance and a sheltered shared court. Furnishings stay outside the walking aisle.
  const door=new THREE.Group();door.position.set(-179,0,19);door.rotation.y=Math.PI;g.add(door);
- box(door,0,1.45,.29,1.8,2.5,.12,0x354e4b);box(door,0,1.85,.36,1.42,1.3,.025,0xa49c76);
- box(door,.62,1.3,.41,.07,.3,.06,0xe0bd79);sign(door,'GLEISHÖFE · ZIMMER',0,2.93,.42,3.6,.24,'#eddcba','#354e4b');
+ sign(door,'GLEISHÖFE · ZIMMER',0,2.80,.46,2.05,.18,'#eddcba','#354e4b');
  for(let i=0;i<4;i++){box(door,2+i*.36,1.2,.3,.29,.38,.16,0x526762);box(door,2+i*.36,1.3,.4,.19,.025,.01,0x243a39);}
  // Kiosk shelves and the workshop's roller door are visible in the street-facing windows.
  for(let row=0;row<3;row++)for(let i=0;i<9;i++)box(g,-181.9+i*.25,.65+row*.46,-14.65,.16,.28,.06,[0xb75e40,0xcbb78b,0x597774,0xd6cabc][(row+i)%4]);
@@ -99,6 +98,6 @@ export function buildStationDistrict(world,kit){
  }
  const plaque=new THREE.Group();plaque.position.set(-179,2.2,39.18);g.add(plaque);box(plaque,0,0,0,3.8,.75,.10,0x354f4b);sign(plaque,'GLEISHOF',0,.13,.058,3.35,.27,'#ead9ba','#354f4b');sign(plaque,'WOHNEN & HANDWERK',0,-.18,.058,3.35,.18,'#c7d3c3','#354f4b');
 
- for(const [x,z] of [[-188,-56.3],[-159,-56.3],[-193,49]])world.tree(x,z,1.8);
+ for(const [x,z] of [[-182,-56.3],[-164,-56.3],[-193,49]])world.tree(x,z,1.8);
  for(const z of [-47,45])world.atmosphere.addPuddle(-206,z,2,.7);
 }

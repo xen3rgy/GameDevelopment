@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {reachCafeHand} from './cafe-food.js?v=0.7.2';
+import {reachCafeHand} from './cafe-food.js?v=0.7.3-map1';
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
 export function workMotion(task){const p=task.elapsed/task.duration;return {progress:p,weight:smooth(task.age/.5)*smooth((1-p)/.12),turn:Math.sin(task.age*6)};}
 export function applyWorkshopPose(player,task,current,point){

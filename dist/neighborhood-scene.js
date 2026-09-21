@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import {NEIGHBORHOOD_FIXTURES} from './neighborhood-layout.js?v=0.7.2';
-import {groundHeight} from './spatial.js?v=0.7.2-stationstep1';
+import {NEIGHBORHOOD_FIXTURES} from './neighborhood-layout.js?v=0.7.3-map1';
+import {groundHeight} from './spatial.js?v=0.7.3-map1';
 
 export function buildNeighborhoodDetails(world,kit){
  const {box,cylinder,sphere,sign}=kit,g=new THREE.Group();g.name='Courtyards and street life';world.scene.add(g);world.staticGroups.push(g);
@@ -22,7 +22,7 @@ export function buildNeighborhoodDetails(world,kit){
     if(n%3===0){rod(root,[x,height,z],[x,height+.44,z],.013,0x57715a);sphere(root,x,height+.44,z,.08,old?0xc8b993:[0xd2b18a,0xb49b98,0xcbbf83][n%3]);}
    }
    if(p.kind==='treeBed'){
-    cylinder(root,0,2,0,.15,4,0x6a5743);for(let n=0;n<4;n++)sphere(root,Math.sin(n*2.4)*.5,3.8+n*.23,Math.cos(n*2.4)*.55,1.05,[0x526e4c,0x657c52][n%2]);
+    world.tree?.(p.x,p.z,1.8,{grate:false,height:4.2,ground:root.position.y+height-.06});
     for(const x of [-.55,.55]){cylinder(root,x,1,0,.045,2,wood);box(root,x/2,1.7,0,.65,.04,.035,metal);}
    }
   }else if(p.kind==='seat'){

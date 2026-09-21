@@ -78,7 +78,7 @@ test('every named facade maps to one real address; all delivery legs avoid build
 test('address geometry places functional signs at each entrance without new ground surfaces',()=>{
  const labels=[],kit={box:(p,x,y,z,w,h,d)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d));m.position.set(x,y,z);p.add(m);assert.ok(!(Math.abs(y-.3)<.06&&h<.1&&w>1&&d>1),'no additional floor plane');return m;},cylinder:(p,x,y,z,r,h)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h));m.position.set(x,y,z);p.add(m);return m;},sign:(p,text,x,y,z)=>{labels.push(text);const g=new THREE.Group();g.position.set(x,y,z);p.add(g);return g;}};
  for(const id of ['jobs','deliveryA','deliveryB','deliveryC']){const g=new THREE.Group();decorateAddress(g,kit,LOCATIONS.find(l=>l.id===id),0);assert.ok(labels.includes(addressOf(id)));}
- const world={scene:new THREE.Scene(),staticGroups:[],colliders:[]};addStreetSigns(world,kit);assert.equal(world.colliders.length,6);assert.equal(world.staticGroups.length,6);assert.ok(labels.includes('Bahnhofstraße'));
+ const world={scene:new THREE.Scene(),staticGroups:[],colliders:[]};addStreetSigns(world,kit);assert.equal(world.colliders.length,STREET_POSTS.length);assert.equal(world.staticGroups.length,STREET_POSTS.length);assert.ok(labels.includes('Bahnhofstraße'));
 });
 test('contract paperwork shows capacity reasons, current stop, remaining time and earned amount',()=>{
  const button=(label,action,id,cls,disabled)=>`<button data-action="${action}" ${disabled?'disabled':''}>${label}</button>`;

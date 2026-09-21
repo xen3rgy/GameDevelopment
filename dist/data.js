@@ -1,4 +1,4 @@
-import {STATION_BUILDINGS} from './city-layout.js?v=0.7.2';
+import {STATION_BUILDINGS} from './city-layout.js?v=0.7.3-map1';
 export const ITEMS={
  bottle:{name:'Pfandflasche',icon:'🍾',category:'Wertstoffe',weight:.1,stack:20,price:25,description:'Eine leere Mehrwegflasche. Am Pfandautomaten bekommst du 0,25 € zurück.'},
  water:{name:'Mineralwasser',icon:'💧',category:'Getränke',weight:.5,stack:6,price:100,effects:{thirst:45},description:'Stilles Wasser. Füllt deinen Durstvorrat um 45 Punkte auf. Die leere Flasche bleibt im Rucksack.'},

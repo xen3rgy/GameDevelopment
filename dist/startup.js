@@ -1,5 +1,5 @@
 // Catch module-graph failures too: app.js cannot handle a failed static import itself.
-import('./app.js?v=0.7.2-treepitglb2').catch(error=>{
+import('./app.js?v=0.7.3-map1').catch(error=>{
  console.error('ZERO // RISE could not load its game modules:',error);
  const loading=document.getElementById('loading');
  if(!loading)return;

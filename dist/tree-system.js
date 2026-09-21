@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {groundHeight} from './spatial.js?v=0.7.2-stationstep1';
+import {groundHeight} from './spatial.js?v=0.7.3-map1';
 
 export const TREE_ASSET_BOUNDS={
  minX:-0.4471232295036316,maxX:0.46034368872642517,
@@ -14,10 +14,10 @@ function hash(x,z,seed=0){
  let n=(Math.imul(Math.round(x*100)+seed*101,73856093)^Math.imul(Math.round(z*100)-seed*53,19349663))>>>0;
  n=Math.imul(n^(n>>>16),2246822519)>>>0;n=Math.imul(n^(n>>>13),3266489917)>>>0;return ((n^(n>>>16))>>>0)/4294967295;
 }
-export function treeTransformSpec(x,z,r=2.4,{distant=false,seed=0,ground=groundHeight(x,z)}={}){
+export function treeTransformSpec(x,z,r=2.4,{distant=false,seed=0,ground=groundHeight(x,z),height:authoredHeight=null}={}){
  const a=hash(x,z,seed),b=hash(x,z,seed+17);
  const base=distant?5.35:5.85+(Math.max(1.6,Math.min(3,r))-1.8)*.72;
- const height=base+(a-.5)*(distant?1.05:.52),scale=height/TREE_HEIGHT,sink=distant?0:.055;
+ const height=authoredHeight??base+(a-.5)*(distant?1.05:.52),scale=height/TREE_HEIGHT,sink=distant?0:.055;
  return {x,y:ground-sink-TREE_ASSET_BOUNDS.minY*scale,z,scale,yaw:b*Math.PI*2,height,sink};
 }
 function parseGLB(buffer){

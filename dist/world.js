@@ -1,44 +1,45 @@
-import {WorkshopScene} from './workshop-scene.js?v=0.7.2-stability1';
-import {WORKSHOP_POINTS,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.7.2';
-import {CityCharacter,buildHorizonLinks} from './city-character-scene.js?v=0.7.2';
-import {buildNeighborhoodDetails} from './neighborhood-scene.js?v=0.7.2';
-import {buildPromenade} from './promenade-scene.js?v=0.7.2-bollardfix1';
-import {PedestrianScene} from './pedestrian-scene.js?v=0.7.2-cornerfix2';
-import {STREET_SEATS,streetSpawn,PROMENADE_BOLLARDS} from './pedestrian-layout.js?v=0.7.2-cornerfix1';
-import {cityBackdrop} from './district-architecture.js?v=0.7.2-treeasset1';
-import {buildStreets} from './street-scene.js?v=0.7.2-cornerfix2';
-import {stepJump} from './jump-motion.js?v=0.7.2';
-import {buildStationDistrict} from './station-district.js?v=0.7.2-stationstep1';
-import {WORLD_BOUNDS,exteriorContains} from './city-layout.js?v=0.7.2-stationstep1';
-import {HomeScene} from './home-scene.js?v=0.7.2';
-import {walkingProfile} from './player-movement.js?v=0.7.2';
-import {deliveryTarget} from './delivery-routes.js?v=0.7.2';
-import {CourierScene} from './courier-scene.js?v=0.7.2';
-import {addStreetSigns} from './city-addresses.js?v=0.7.2';
+import {WorkshopScene} from './workshop-scene.js?v=0.7.3-map1';
+import {sign} from './signage.js?v=0.7.3-map1';
+import {buildFrontages} from './frontage-scene.js?v=0.7.3-map1';
+import {STREET_TREES,STREET_PLANTERS} from './public-realm-layout.js?v=0.7.3-map1';
+import {WORKSHOP_POINTS,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.7.3-map1';
+import {CityCharacter,buildHorizonLinks} from './city-character-scene.js?v=0.7.3-map1';
+import {buildNeighborhoodDetails} from './neighborhood-scene.js?v=0.7.3-map1';
+import {buildPromenade} from './promenade-scene.js?v=0.7.3-map1';
+import {PedestrianScene} from './pedestrian-scene.js?v=0.7.3-map1';
+import {STREET_SEATS,streetSpawn,PROMENADE_BOLLARDS} from './pedestrian-layout.js?v=0.7.3-map1';
+import {cityBackdrop} from './district-architecture.js?v=0.7.3-map1';
+import {buildStreets} from './street-scene.js?v=0.7.3-map1';
+import {stepJump} from './jump-motion.js?v=0.7.3-map1';
+import {buildStationDistrict} from './station-district.js?v=0.7.3-map1';
+import {WORLD_BOUNDS,exteriorContains} from './city-layout.js?v=0.7.3-map1';
+import {HomeScene} from './home-scene.js?v=0.7.3-map1';
+import {walkingProfile} from './player-movement.js?v=0.7.3-map1';
+import {deliveryTarget} from './delivery-routes.js?v=0.7.3-map1';
+import {CourierScene} from './courier-scene.js?v=0.7.3-map1';
+import {addStreetSigns} from './city-addresses.js?v=0.7.3-map1';
 import * as THREE from './vendor/three.module.js';
-import {LOCATIONS,PEOPLE,VEHICLES,HOME_POINTS,SHOP_POINTS,WORK,BUILDINGS} from './data.js?v=0.7.2';
-import {Traffic,parkedVehicleBlocks,vehicleBody} from './traffic.js?v=0.7.2-cornerfix2';
-import {animateCitizen,playGesture,VehicleTransition,vehicleDriverDoorPoint,vehicleDriverSeatPoint} from './animation.js?v=0.7.2-driverdoor1';
-import {STREET_LAMPS,streetLampHead} from './lighting.js?v=0.7.2';
-import {VehicleLights} from './vehicle-lights.js?v=0.7.2';
-import {Atmosphere,surfaceMaterial} from './atmosphere.js?v=0.7.2';
-import {approach,moveWithCollision,stepVehicle,segmentClear} from './movement.js?v=0.7.2-collisionfix1';
-import {CityNavigation,routeLength} from './navigation.js?v=0.7.2';
-import {buildMarket} from './shop-interior.js?v=0.7.2';
-import {buildCafe,attachCafeTray,updateCafe} from './cafe-interior.js?v=0.7.2';
-import {CAFE_POINTS,CAFE_FIXTURES,guestLabel,cafeGuestIntent} from './cafe.js?v=0.7.2';
-import {CityArt,createCitizen,createCar} from './art.js?v=0.7.2-treepitglb1';
-import {TreeSystem} from './tree-system.js?v=0.7.2-treepit1';
-import {TreePitSystem} from './tree-pit-system.js?v=0.7.2-treepitglb2';
-import {groundHeight,ROOMS,SHOP_FIXTURES,HOME_FIXTURES,homeFixtures,canWalkRoom,CameraRig} from './spatial.js?v=0.7.2-stationstep1';
+import {LOCATIONS,PEOPLE,VEHICLES,HOME_POINTS,SHOP_POINTS,WORK,BUILDINGS} from './data.js?v=0.7.3-map1';
+import {Traffic,parkedVehicleBlocks,vehicleBody} from './traffic.js?v=0.7.3-map1';
+import {animateCitizen,playGesture,VehicleTransition,vehicleDriverDoorPoint,vehicleDriverSeatPoint} from './animation.js?v=0.7.3-map1';
+import {STREET_LAMPS,streetLampHead} from './lighting.js?v=0.7.3-map1';
+import {VehicleLights} from './vehicle-lights.js?v=0.7.3-map1';
+import {Atmosphere,surfaceMaterial} from './atmosphere.js?v=0.7.3-map1';
+import {approach,moveWithCollision,stepVehicle,segmentClear} from './movement.js?v=0.7.3-map1';
+import {CityNavigation,routeLength} from './navigation.js?v=0.7.3-map1';
+import {buildMarket} from './shop-interior.js?v=0.7.3-map1';
+import {buildCafe,attachCafeTray,updateCafe} from './cafe-interior.js?v=0.7.3-map1';
+import {CAFE_POINTS,CAFE_FIXTURES,guestLabel,cafeGuestIntent} from './cafe.js?v=0.7.3-map1';
+import {CityArt,createCitizen,createCar} from './art.js?v=0.7.3-map1';
+import {TreeSystem} from './tree-system.js?v=0.7.3-map1';
+import {TreePitSystem} from './tree-pit-system.js?v=0.7.3-map1';
+import {groundHeight,ROOMS,SHOP_FIXTURES,HOME_FIXTURES,homeFixtures,canWalkRoom,CameraRig} from './spatial.js?v=0.7.3-map1';
 const mats=new Map();
 function mat(color,roughness=.8,metalness=0){const key=color+'_'+roughness+'_'+metalness;if(!mats.has(key))mats.set(key,new THREE.MeshStandardMaterial({color,roughness,metalness}));return mats.get(key)}
 const boxGeo=new THREE.BoxGeometry(1,1,1),sphereGeo=new THREE.IcosahedronGeometry(1,1),cylinderGeo=new THREE.CylinderGeometry(1,1,1,8);
 function box(parent,x,y,z,w,h,d,color,material){let m=new THREE.Mesh(boxGeo,material??mat(color));m.position.set(x,y,z);m.scale.set(w,h,d);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
 function cylinder(parent,x,y,z,r,h,color){let m=new THREE.Mesh(cylinderGeo,mat(color));m.position.set(x,y,z);m.scale.set(r,h,r);m.castShadow=true;parent.add(m);return m}
 function sphere(parent,x,y,z,r,color){let m=new THREE.Mesh(sphereGeo,mat(color));m.position.set(x,y,z);m.scale.setScalar(r);m.castShadow=true;parent.add(m);return m}
-function textureLabel(text,color='#ece3cc',bg='#202e30',w=1024,h=160){let c=document.createElement('canvas');c.width=w;c.height=h;let a=c.getContext('2d');a.fillStyle=bg;a.fillRect(0,0,w,h);a.fillStyle=color;a.font='600 '+Math.floor(h*.48)+'px Arial';a.textAlign='center';a.textBaseline='middle';a.fillText(text,w/2,h/2,w*.92);let t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
-function sign(parent,text,x,y,z,w,h,color='#e9d9b6',bg='#243232',rotate=0){let m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:textureLabel(text,color,bg),side:THREE.DoubleSide}));m.position.set(x,y,z);m.rotation.y=rotate;parent.add(m);return m}
 const artKit={box,cylinder,sphere,sign,mat};
 function person(color,skin,variant=0){return createCitizen(artKit,color,skin,variant)}
 
@@ -47,12 +48,12 @@ export class World{
  this.hemi=new THREE.HemisphereLight(0xaac8df,0x5c5949,2.4);this.scene.add(this.hemi);this.sun=new THREE.DirectionalLight(0xffc791,3.2);this.sun.position.set(-65,80,30);this.sun.castShadow=true;this.sun.shadow.mapSize.set(2048,2048);Object.assign(this.sun.shadow.camera,{left:-80,right:80,top:80,bottom:-80,near:1,far:250});this.sun.shadow.bias=-.0006;this.scene.add(this.sun);this.scene.add(this.sun.target);
  this.moon=new THREE.DirectionalLight(0xa9c9ef,0);this.scene.add(this.moon);this.scene.add(this.moon.target);this.vehicleLights=new VehicleLights(this.scene);this.atmosphere=new Atmosphere(this.scene,this.renderer);this.treeSystem=new TreeSystem(this);this.treePitSystem=new TreePitSystem(this);this.art=new CityArt(this,artKit);this.buildCity();this.batchStaticGroup(this.shop);this.batchStaticGroup(this.cafe);this.batchStatic();this.isolateWorld();this.treeSystem.load();this.treePitSystem.load();this.homeScene=new HomeScene(this,artKit);this.workshopScene=new WorkshopScene(this,artKit);this.carMeshes=this.cars.map(c=>c.mesh);this.courierScene=new CourierScene(this,artKit);this.pedestrians=new PedestrianScene(this,artKit);this.npcs=this.pedestrians.life.people;this.cityCharacter.initResidents();this.cameraObstacles=[...this.colliders,...this.overheadColliders];this.navigator=new CityNavigation((x,z,r)=>this.canWalkExterior(x,z,r),4,WORLD_BOUNDS);this.routeLine=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xdfc089,transparent:true,opacity:.48,depthWrite:false}));this.scene.add(this.routeLine);this.player=person();this.player.rotation.y=Math.PI;this.scene.add(this.player);this.carried=box(this.player,0,1.15,.49,.62,.52,.48,0xb99968);this.carried.visible=false;this.shoppingBasket=new THREE.Group();const basket=this.shoppingBasket;box(basket,0,0,0,.32,.22,.26,0x37584b);for(const x of [-.14,.14])box(basket,x,.2,0,.024,.25,.025,0xc4baa1);box(basket,0,.32,0,.30,.025,.025,0xc4baa1);basket.position.set(0,-.82,.04);this.player.userData.arms[0].add(basket);basket.visible=false;attachCafeTray(this);this.focusRing=new THREE.Mesh(new THREE.RingGeometry(.32,.36,24),new THREE.MeshBasicMaterial({color:0xf0cf8c,transparent:true,opacity:.8,side:THREE.DoubleSide}));this.focusRing.rotation.x=-Math.PI/2;this.scene.add(this.focusRing);if(!model.s.inside&&!model.s.riding)model.s.position=streetSpawn(model.s.position,(x,z)=>this.canWalkExterior(x,z));this.player.position.set(model.s.position.x,0,model.s.position.z);this.buildRain();this.resize=()=>{this.camera.aspect=innerWidth/innerHeight;this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight)};addEventListener('resize',this.resize);this.update(0,{},false);this.camera.position.copy(this.desiredCamera);this.camera.lookAt(this.player.position.clone().add(new THREE.Vector3(0,1.4,0)));this.renderer.render(this.scene,this.camera)}
  building(...args){return this.art.building(...args)}
- buildCity(){let s=this.scene;box(s,0,-.3,0,250,.5,250,0x65735e);buildStreets(this,artKit);
+ buildCity(){let s=this.scene;box(s,0,-.3,0,250,.5,250,0,surfaceMaterial('grass',250,250));buildStreets(this,artKit);buildFrontages(this);
  const buildings=BUILDINGS;
- for(let b of buildings)this.building(...b);box(s,-36,1.55,-13.7,1.75,2.6,.18,0x182f32);box(s,-36,1.8,-13.58,1.4,1.8,.04,0x819b91);box(s,-35.45,1.25,-13.51,.06,.42,.06,0xdccdad);sign(s,'EINGANG',-36,2.85,-13.48,1.65,.3);box(s,-36,.31,-12.65,2,.025,1.4,0x354f49);
+ for(let b of buildings)this.building(...b);
  cityBackdrop(this,artKit);
  // Trees and furnished pavements form distinct walkable blocks.
- for(let x of [-94,-53,-15,15,47,90])for(let z of [-10,10,-55,55])this.tree(x,z,2.4);
+ for(const {x,z,r} of STREET_TREES)this.tree(x,z,r);
  for(let x of [54,66,82,95])for(let z of [83,99,111])this.tree(x,z,2.8);
  box(s,76,.08,93,39,.2,36,0x708061);box(s,76,.2,93,5,.15,36,0xb9ab93);box(s,76,.2,93,39,.15,4,0xb9ab93);
  buildStationDistrict(this,artKit);for(const {x,z} of STREET_LAMPS)this.lamp(x,z);for(const x of STREET_SEATS)this.bench(x,10);this.bench(65,77);this.bench(87,88);this.streetDetails();this.art.streetLife();addStreetSigns(this,artKit);buildNeighborhoodDetails(this,artKit);buildPromenade(this,artKit);this.cityCharacter=new CityCharacter(this,artKit);buildHorizonLinks(this,artKit);
@@ -83,9 +84,8 @@ export class World{
 
   // Outdoor seating, planting, a shelter and street-name signs give the block a human scale.
   for(let x of [57,69]){cylinder(s,x,.93,-11,.7,.1,0x9b8761);cylinder(s,x,.58,-11,.07,.7,0x4b5b57);for(let dx of [-1.1,1.1]){box(s,x+dx,.63,-11,.5,.12,.55,0x64705a);box(s,x+dx,.95,-11.25,.5,.56,.08,0x64705a)}}
-  for(let x of [-91,48,96]){box(s,x,.62,10,2,.7,1,0x777b70);for(let dx of [-.55,0,.55])sphere(s,x+dx,1.1,10,.5,0x657d51)}
+  for(const {x,z,w,d} of STREET_PLANTERS){const y=groundHeight(x,z);for(const side of [-1,1]){box(s,x+side*(w-.06),y+.3,z,.12,.6,d*2,0x848980);box(s,x,y+.3,z+side*(d-.06),w*2,.6,.12,0x848980)}box(s,x,y+.53,z,w*2-.2,.06,d*2-.2,0x514b3b);for(const dx of [-.55,0,.55]){const shrub=sphere(s,x+dx,y+.76,z,.37,0x657d51);shrub.scale.y*=.85;}}
   box(s,-59,2.9,10,5.5,.16,2,0x3c5157);for(let x of [-61.5,-56.5])box(s,x,1.65,10,.08,2.6,.08,0x5c706e);box(s,-59,1.55,10.7,5.3,2.35,.07,0x516f76);sign(s,'LINDENPLATZ · TREFFPUNKT',-59,2.45,10.8,4.8,.32);this.bench(-59,9.9);
-  for(let x of [-12,12]){cylinder(s,x,1.8,9,.05,3,0x596866);sign(s,'BAHNHOFSTRASSE',x,3.05,9,2.6,.3,'#e1e7df','#28454d')}
  }
  exitDoor(parent,x,z,label,animated=false){
   const leaf=box(parent,x,1.42,z-.06,1.92,2.7,.14,0x263f3c);
@@ -129,7 +129,7 @@ export class World{
  makeOwnedVehicle(id){if(this.vehicleMesh)this.vehicleMesh.visible=false;let g=this.vehicleMeshes.get(id);if(g){this.vehicleMesh=g;this.vehicleId=id;g.visible=true;return}g=new THREE.Group();if(id==='bike'){for(let z of [-.7,.7]){let wheel=new THREE.Mesh(new THREE.TorusGeometry(.4,.045,8,24),mat(0x252d30));wheel.rotation.y=Math.PI/2;wheel.position.set(0,.46,z);g.add(wheel);cylinder(g,0,.45,z,.035,.8,0xb6bdb8)}box(g,0,.73,0,.1,.16,1.25,0x5d9292);box(g,0,1.05,0,.08,.55,.1,0x5d9292);box(g,0,1.3,-.1,.35,.12,.42,0x293435);box(g,0,1.4,.68,.65,.08,.1,0xb3b6a9);box(g,0,1.04,.65,.08,.68,.08,0x566a6a)}else{g=createCar(artKit,id,id==='sport'?0x984f3b:id==='van'?0xb6bdba:0x447c84)}this.vehicleMeshes.set(id,g);this.vehicleMesh=g;this.vehicleId=id;this.scene.add(g)}
  tree(x,z,r,options={}){return this.art.tree(x,z,r,options)}
  lamp(x,z){const head=streetLampHead(x,z);cylinder(this.scene,x,2.7,z,.07,5,0x354444);box(this.scene,x+head.dx/2,5.16,z+head.dz/2,Math.abs(head.dx)+.10,.10,Math.abs(head.dz)+.10,0x354444);box(this.scene,head.x,5.2,head.z,.65,.2,.65,0x38494a);const bulb=new THREE.MeshBasicMaterial({color:0x293338});box(this.scene,head.x,5,head.z,.45,.25,.45,0,bulb).castShadow=false;this.atmosphere.registerLamp(head.x,head.z,bulb);if(x<-120){for(const dx of [-.25,.25])for(const dz of [-.25,.25])box(this.scene,head.x+dx,5.03,head.z+dz,.035,.43,.035,0x30423c);box(this.scene,head.x,4.8,head.z,.59,.075,.59,0x30423c);}else if(x>0){box(this.scene,head.x,5.22,head.z,1.05,.07,.45,0x71878a);}}
- bench(x,z){const y=groundHeight(x,z);box(this.scene,x,y+.47,z,2.2,.10,.6,0x7d6b4c);box(this.scene,x,y+.82,z+.3,2.2,.55,.1,0x7d6b4c);for(const dx of [-.8,.8])box(this.scene,x+dx,y+.22,z,.12,.44,.55,0x3d4746)}
+ bench(x,z){const y=groundHeight(x,z),s=this.scene;for(let i=0;i<4;i++)box(s,x,y+.48,z-.24+i*.16,2.2,.08,.12,0x9b815b);for(let i=0;i<3;i++)box(s,x,y+.67+i*.16,z+.3,2.2,.12,.065,0x9b815b);for(const dx of [-.8,.8]){box(s,x+dx,y+.22,z,.09,.44,.55,0x3d4746);box(s,x+dx,y+.73,z+.3,.05,.65,.065,0x3d4746);box(s,x+dx,y+.67,z-.1,.055,.3,.055,0x3d4746);box(s,x+dx,y+.81,z,.07,.05,.5,0x3d4746)}}
  bottle(x,z){let g=new THREE.Group();cylinder(g,0,.19,0,.09,.35,0x4d8165);cylinder(g,0,.43,0,.036,.15,0x638f70);cylinder(g,0,.52,0,.04,.04,0xb1b397);g.rotation.z=.95;g.position.set(x,groundHeight(x,z)+.065,z);this.scene.add(g);return g}
  buildRain(){let pos=new Float32Array(1200*3);for(let i=0;i<pos.length;i+=3){pos[i]=Math.random()*100-50;pos[i+1]=Math.random()*40;pos[i+2]=Math.random()*100-50}let geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));this.rain=new THREE.Points(geo,new THREE.PointsMaterial({color:0xccdeea,size:.065,transparent:true,opacity:.6}));this.scene.add(this.rain)}
  canWalkExterior(x,z,radius=.35){if(!exteriorContains(x,z,radius))return false;return !this.colliders.some(c=>Math.abs(x-c.x)<c.w+radius&&Math.abs(z-c.z)<c.d+radius)}
