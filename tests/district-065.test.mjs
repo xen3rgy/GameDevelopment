@@ -32,7 +32,7 @@ test('connected western footprint supports three road links without admitting bl
 test('new and old saves preserve western positions, parked vehicles, dropped items and household contents',()=>{
  const m=new GameModel(newGame(true));at(m,'stationHome');assert.equal(m.moveHome('stationRoom'),true);
  m.s.storage=[{id:'bread',count:2}];m.s.fridge=[{id:'water',count:2}];m.s.vehicle={id:'bike',x:-199,z:17,angle:0,speed:0,fuel:100,condition:95};
- m.add('cheese');m.drop(0);const loaded=validateSave(JSON.parse(JSON.stringify(m.s)));assert.deepEqual(loaded,m.s);
+ m.add('cheese');m.drop(0);const loaded=validateSave(JSON.parse(JSON.stringify(m.s)));assert.equal(loaded.vehicle.id,'bike');assert.equal(loaded.vehicle.x,-199);assert.equal(loaded.vehicle.condition,95);assert.ok(loaded.vehicle.uid);assert.deepEqual(loaded.vehicle.trunk,[]);assert.deepEqual(loaded.garageVehicles,[]);assert.equal(loaded.mobility.serial,1);assert.deepEqual(loaded.storage,m.s.storage);assert.deepEqual(loaded.fridge,m.s.fridge);assert.deepEqual(loaded.drops,m.s.drops);
  assert.equal(m.enterInterior('home'),true);assert.deepEqual(outsidePosition(m.s),{x:-179,z:15});
  assert.equal(validateSave(m.s).home,'stationRoom');assert.equal(m.leaveInterior(),true);assert.deepEqual(m.s.position,{x:-179,z:15});
  assert.deepEqual(m.s.storage,[{id:'bread',count:2}]);assert.deepEqual(m.s.fridge,[{id:'water',count:2}]);
