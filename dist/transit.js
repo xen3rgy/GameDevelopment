@@ -2,7 +2,7 @@
 // A stop sign may stand beside furniture/lighting, but a passenger must always exit on validated free pavement.
 export const TRANSIT_LOCATIONS=[
  {id:'transitCenter',name:'Haltestelle Stadtmitte',type:'transit',x:12,z:9,arrival:{x:12,z:12,angle:Math.PI},icon:'▰',color:'#8fc4d0',address:'Lindenplatz · Stadtmitte'},
- {id:'transitDepot',name:'Haltestelle Westhafen',type:'transit',x:-50,z:-73,arrival:{x:-50,z:-74,angle:0},icon:'▰',color:'#8fc4d0',address:'Hafenstraße · Westhafen'},
+ {id:'transitDepot',name:'Haltestelle Westhafen',type:'transit',x:-55,z:-74,arrival:{x:-55,z:-72,angle:0},icon:'▰',color:'#8fc4d0',address:'Hafenstraße · Westhafen'},
  {id:'transitPark',name:'Haltepunkt Lindenpark',type:'transit',x:90,z:76,arrival:{x:90,z:74,angle:Math.PI},icon:'▤',color:'#d5b97f',address:'Parkring · Lindenpark'}
 ];
 export const TRANSIT_STOPS={
