@@ -14,6 +14,18 @@ python -m http.server 8000 --directory dist
 
 Open http://localhost:8000. No API keys, external services or package installation are required. Three.js r170 and the generated runtime assets are committed directly in `dist/`; no restore step is required. A browser with WebGL2 and hardware acceleration is required.
 
+## Version 0.7.5 · Mobilität
+
+- Bis zu fünf eigene Fahrzeuge gleichzeitig. Das aktive Fahrzeug bleibt vollständig fahrbar; weitere Fahrzeuge werden im Mobilwerk auf vier markierten Stellplätzen verwaltet und können dort als aktives Fahrzeug geholt werden.
+- Neuer täglicher Gebrauchtmarkt mit zustands-, kilometer-, tank- und preisabhängigen Angeboten für Kleinwagen, Lieferwagen und Sportcoupé. Gekaufte Tagesangebote verschwinden aus dem Markt.
+- Individueller Fahrzeugzustand mit Kilometerstand, streckenabhängigem Verschleiß und zusätzlichem Aufprallschaden. Verkaufspreise basieren auf tatsächlichem Kaufpreis und aktuellem Zustand.
+- Motorfahrzeuge können freiwillig versichert werden. Die Prämie fällt pro Spieltag an; versicherte Fahrzeuge sind dafür deutlich günstiger zu reparieren. Das Stadtrad braucht weder Kraftstoff noch Versicherung.
+- Echter Fahrzeugstauraum: Kleinwagen 8 Plätze / 35 kg, Lieferwagen 16 / 90 kg, Sportcoupé 4 / 18 kg. Das Stadtrad erhält einen kleinen Gepäckträger mit 2 Plätzen / 5 kg und bleibt damit im Early Game praktisch.
+- Markierte Parkplätze beim Mobilwerk sowie Parkpunkte bei Markt, Bahnhof, Café und Westhafen. Ein ausgestiegenes Fahrzeug kann auf einen nahen Platz sauber eingerastet werden.
+- Bahnhof Lindenstadt West ist funktional: Bus 2, Bus 5 und Regionalbahn R1 fahren nach Spielzeit-Fahrplan. Tickets kosten Geld; Warte- und Fahrzeit laufen durch die gemeinsame Simulation und beeinflussen Bedürfnisse, Fristen, Miete und Cafébetrieb.
+- Neue Haltestellen Stadtmitte, Westhafen und Lindenpark sind in Welt, Karte und Navigation integriert.
+- Save-Schema 3 bleibt erhalten. Alte Spielstände mit einem einzelnen Fahrzeug werden automatisch in das neue Mobilitätssystem übernommen.
+
 ## Version 0.7.4 · Core Polish
 
 - Spieler-Kollisionen verwenden kleinere Substeps und testen beide möglichen Slide-Reihenfolgen. Dadurch bleibt tangentiale Bewegung an Gebäudeecken und schmalen Kanten erhalten, ohne durch Hindernisse zu tunneln.
