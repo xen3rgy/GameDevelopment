@@ -1,8 +1,8 @@
 import {ITEMS,VEHICLES,euro} from './data.js?v=0.7.3-map1';
 import {inventoryWeight} from './inventory.js?v=0.7.3-map1';
 import {itemIcon} from './icons.js?v=0.7.3-map1';
-import {allVehicles,ownedVehicleCount,usedOffers,trunkLimits,insurancePremium,repairPrice,resaleValue,nearestParkingSpot,MAX_OWNED_VEHICLES} from './mobility.js?v=0.7.5-mobility1';
-import {transitOptions,transitStop} from './transit.js?v=0.7.5-mobility1';
+import {allVehicles,ownedVehicleCount,usedOffers,trunkLimits,insurancePremium,repairPrice,resaleValue,nearestParkingSpot,parkingSpotOccupied,MAX_OWNED_VEHICLES} from './mobility.js?v=0.7.5-fix1';
+import {transitOptions,transitStop,displayMinutes,clockText} from './transit.js?v=0.7.5-fix1';
 
 const km=v=>(v.mileage||0).toFixed(1).replace('.',',')+' km';
 const atGarage=s=>!s.inside&&!s.riding&&Math.hypot(s.position.x-76,s.position.z-12)<=4.5;
@@ -32,7 +32,7 @@ export function vehiclesPanel(s,button){
  const owned=allVehicles(s),v=s.vehicle,near=nearActive(s),spot=v?nearestParkingSpot(v,7):null;
  if(!owned.length)return '<p class="lead">Du besitzt noch kein Fahrzeug. Beim Mobilwerk beginnt Mobilität mit dem Stadtrad. Es braucht keinen Kraftstoff, keine Versicherung und bleibt für kurze Wege sowie Kurierfahrten günstig.</p>'+button('Mobilwerk markieren','navigate','garage');
  let html='<div class="stats-grid"><div class="stat"><span>Eigene Fahrzeuge</span><strong>'+owned.length+'</strong></div><div class="stat"><span>Aktiv</span><strong>'+(v?VEHICLES[v.id].name:'—')+'</strong></div><div class="stat"><span>ÖPNV-Fahrten</span><strong>'+s.mobility.transitTrips+'</strong></div></div>';
- if(v){html+='<div class="info-box"><b>'+VEHICLES[v.id].name+'</b><br>'+vehicleLine(v)+'<br>'+(v.parkingSpot?'Geparkt: '+(nearestParkingSpot(v,.5)?.name||v.parkingSpot):'Frei abgestellt in Lindenstadt')+'.</div><div class="button-row">'+button('Fahrzeug finden','trackVehicle')+button(trunkLimits(v).name+' öffnen','trunk','','secondary',!near)+(spot?button('Hier sauber einparken','parkVehicle',spot.id,'secondary',!near):'')+'</div>';}
+ if(v){html+='<div class="info-box"><b>'+VEHICLES[v.id].name+'</b><br>'+vehicleLine(v)+'<br>'+(v.parkingSpot?'Geparkt: '+(nearestParkingSpot(v,.5)?.name||v.parkingSpot):'Frei abgestellt in Lindenstadt')+'.</div><div class="button-row">'+button('Fahrzeug finden','trackVehicle')+button(trunkLimits(v).name+' öffnen','trunk','','secondary',!near)+(spot?button(parkingSpotOccupied(s,spot.id,v.uid)?'Stellplatz belegt':'Hier sauber einparken','parkVehicle',spot.id,'secondary',!near||parkingSpotOccupied(s,spot.id,v.uid)):'')+'</div>';}
  html+='<h3 class="section-title">Alle Fahrzeuge</h3><div class="rows">'+owned.map(v=>'<div class="row"><div><strong>'+VEHICLES[v.id].name+'</strong><small>'+(v===s.vehicle?'Aktiv in der Stadt':'Im Mobilwerk')+' · '+vehicleLine(v)+'</small></div><span class="tag">'+(v.used?'GEBRAUCHT':'EIGEN')+'</span></div>').join('')+'</div>'+button('Garage & Gebrauchtmarkt','navigate','garage','secondary');
  return html;
 }
@@ -42,10 +42,10 @@ export function trunkPanel(s,button){
  const list=(slots,direction)=>slots.length?slots.map((item,i)=>'<div class="row"><div><strong>'+itemIcon(item.id)+' '+ITEMS[item.id].name+' ×'+item.count+'</strong><small>'+(ITEMS[item.id].weight*item.count).toFixed(1)+' kg</small></div><div>'+button('1','trunkTransfer',direction+'|'+i+'|1','secondary',item.id==='parcel')+button('Alle','trunkTransfer',direction+'|'+i+'|'+item.count,'secondary',item.id==='parcel')+'</div></div>').join(''):'<p class="lead">Leer.</p>';
  return '<p class="lead">'+lim.name+' des '+VEHICLES[v.id].name+'. Auftrags-Pakete bleiben im bestehenden Kurier-System und können hier nicht manuell verschoben werden.</p>'+(!near?'<div class="info-box">Gehe zum abgestellten Fahrzeug und öffne den Stauraum erneut.</div>':'')+'<div class="storage-layout"><section><h3 class="section-title">Rucksack <small>'+inventoryWeight(s.inventory).toFixed(1)+' / 20 kg</small></h3><div class="rows">'+list(s.inventory,'deposit')+'</div></section><section><h3 class="section-title">'+lim.name+' <small>'+inventoryWeight(v.trunk).toFixed(1)+' / '+lim.weight+' kg · '+v.trunk.length+' / '+lim.slots+' Plätze</small></h3><div class="rows">'+list(v.trunk,'withdraw')+'</div></section></div>';
 }
-const time=n=>String(Math.floor((n%1440)/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+const time=clockText;
 export function transitPanel(s,stopId,button){
  const stop=transitStop(stopId),options=transitOptions(s,stopId);if(!stop)return '<p class="lead">Keine Haltestelle.</p>';
- let cards=options.map(o=>'<article class="card"><span class="tag">'+(o.line.kind==='rail'?'BAHN':'BUS')+'</span><h3>'+o.line.name+' → '+o.stop.name+'</h3><p>Abfahrt '+time(o.depart)+' · noch '+o.wait+' Spielminuten warten · '+o.ride+' Spielminuten Fahrt.</p><div class="price">'+euro(o.fare)+'<small>Gesamtzeit '+o.total+' Spielminuten</small></div>'+button('Ticket kaufen & fahren','travelTransit',o.line.id+'|'+stopId,'primary',s.money<o.fare||s.riding||s.inside)+'</article>').join('');
+ let cards=options.map(o=>'<article class="card"><span class="tag">'+(o.line.kind==='rail'?'BAHN':'BUS')+'</span><h3>'+o.line.name+' → '+o.stop.name+'</h3><p>Abfahrt '+time(o.depart)+' · noch '+displayMinutes(o.wait)+' Spielminuten warten · '+o.ride+' Spielminuten Fahrt.</p><div class="price">'+euro(o.fare)+'<small>Gesamtzeit '+displayMinutes(o.total)+' Spielminuten</small></div>'+button('Ticket kaufen & fahren','travelTransit',o.line.id+'|'+stopId,'primary',s.money<o.fare||s.riding||s.inside)+'</article>').join('');
  let last=s.mobility.lastTransit?'<div class="info-box">Letzte Fahrt: '+s.mobility.lastTransit.line.toUpperCase()+' · Tag '+s.mobility.lastTransit.day+' · '+time(s.mobility.lastTransit.minute)+' · '+euro(s.mobility.lastTransit.cost)+'</div>':'';
  return '<p class="lead">Fahrplan in echter Spielzeit. Warten und Fahrt lassen Hunger, Durst, Miettage, Cafébetrieb und Expressfristen weiterlaufen. Menüs selbst pausieren weiterhin.</p><div class="cards">'+cards+'</div>'+last+'<div class="funds">Dein Bargeld <b>'+euro(s.money)+'</b></div>';
 }

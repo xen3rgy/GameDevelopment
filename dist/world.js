@@ -1,6 +1,6 @@
 import {WorkshopScene} from './workshop-scene.js?v=0.7.3-map1';
-import {GARAGE_SPOTS,vehicleExtra} from './mobility.js?v=0.7.5-mobility1';
-import {TRANSIT_LOCATIONS} from './transit.js?v=0.7.5-mobility1';
+import {GARAGE_SPOTS,vehicleExtra} from './mobility.js?v=0.7.5-fix1';
+import {TRANSIT_LOCATIONS} from './transit.js?v=0.7.5-fix1';
 import {sign} from './signage.js?v=0.7.3-map1';
 import {buildFrontages} from './frontage-scene.js?v=0.7.3-map1';
 import {STREET_TREES,STREET_PLANTERS} from './public-realm-layout.js?v=0.7.3-map1';
@@ -140,6 +140,7 @@ export class World{
  bottle(x,z){let g=new THREE.Group();cylinder(g,0,.19,0,.09,.35,0x4d8165);cylinder(g,0,.43,0,.036,.15,0x638f70);cylinder(g,0,.52,0,.04,.04,0xb1b397);g.rotation.z=.95;g.position.set(x,groundHeight(x,z)+.065,z);this.scene.add(g);return g}
  buildRain(){let pos=new Float32Array(1200*3);for(let i=0;i<pos.length;i+=3){pos[i]=Math.random()*100-50;pos[i+1]=Math.random()*40;pos[i+2]=Math.random()*100-50}let geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(pos,3));this.rain=new THREE.Points(geo,new THREE.PointsMaterial({color:0xccdeea,size:.065,transparent:true,opacity:.6}));this.scene.add(this.rain)}
  canWalkExterior(x,z,radius=.35){if(!exteriorContains(x,z,radius))return false;return !this.colliders.some(c=>Math.abs(x-c.x)<c.w+radius&&Math.abs(z-c.z)<c.d+radius)}
+ canSpawnAt(x,z,radius=.35){const v=this.model.s.vehicle;return this.canWalkExterior(x,z,radius)&&!this.traffic.blocks(x,z,radius)&&!(v&&!this.model.s.riding&&parkedVehicleBlocks(v,x,z,radius,null))}
  canMove(x,z,radius=.35){if(!this.model.s.inside&&!this.model.s.riding&&this.flight?.airborne&&groundHeight(x,z)>this.flight.y+.025)return false;if(this.model.s.inside)return canWalkRoom(this.model.s.interior,x,z,radius,this.model.s.home);const v=this.model.s.vehicle;return this.canWalkExterior(x,z,radius)&&!this.traffic.blocks(x,z,radius)&&!(v&&!this.model.s.riding&&parkedVehicleBlocks(v,x,z,radius,this.model.s.position))}
  canDrive(vehicle,x,z,angle,radius=1.3){const candidate=vehicleBody(vehicle,x,z,angle),current=vehicleBody(vehicle);return this.canWalkExterior(x,z,radius)&&!this.traffic.blocksVehicle(candidate,current)}
  update(dt,keys,active){let s=this.model.s;if(this.stationClock){this.stationClock.hour.rotation.z=-(s.minute%720)/720*Math.PI*2;this.stationClock.minute.rotation.z=-(s.minute%60)/60*Math.PI*2;}if(active)this.elapsed+=dt;let p=this.player;const delta=s.position;if(this.lastInterior!==s.interior||Math.hypot(p.position.x-delta.x,p.position.z-delta.z)>15){this.cameraRig.reset();this.flight=null;this.jump=0;this.velocityY=0;this.focusTarget=null;this.focusAge=.12;this.lastInterior=s.interior}if(Math.hypot(p.position.x-delta.x,p.position.z-delta.z)>.0001){p.position.x=delta.x;p.position.z=delta.z}
@@ -149,7 +150,7 @@ export class World{
   const input={forward:keys.w||keys.ArrowUp,backward:keys.s||keys.ArrowDown,left:keys.a||keys.ArrowLeft,right:keys.d||keys.ArrowRight,brake:keys[' ']};
   if(s.riding&&vehicle){
    const beforeSpeed=Math.abs(vehicle.speed||0),result=stepVehicle(vehicle,input,dt,(x,z,r,angle)=>this.canDrive(vehicle,x,z,angle,r),VEHICLES[vehicle.id].speed),extra=vehicleExtra(vehicle);vehicle.angle=result.angle;vehicle.speed=result.speed;for(const wheel of this.vehicleMesh.userData.wheels||[])wheel.rotation.x+=result.distance*Math.sign(result.speed)/.37;this.vehicleMesh.userData.braking=!!input.brake;p.position.set(result.x,p.position.y,result.z);p.rotation.y=result.angle;movedDistance=result.distance;moving=movedDistance>.0001;
-   if(moving){this.model.recordCourierTravel(movedDistance,vehicle);if(vehicle.id==='van'&&s.job?.type==='courier')s.job.vehicleUsed=true;vehicle.mileage=(vehicle.mileage||0)+movedDistance/1000;vehicle.condition=Math.max(0,vehicle.condition-movedDistance*extra.wear);if(vehicle.id!=='bike')vehicle.fuel=Math.max(0,vehicle.fuel-movedDistance*extra.fuelRate);else s.needs.energy=Math.max(0,s.needs.energy-movedDistance*.008)}
+   if(moving){vehicle.parkingSpot=null;this.model.recordCourierTravel(movedDistance,vehicle);if(vehicle.id==='van'&&s.job?.type==='courier')s.job.vehicleUsed=true;vehicle.mileage=(vehicle.mileage||0)+movedDistance/1000;vehicle.condition=Math.max(0,vehicle.condition-movedDistance*extra.wear);if(vehicle.id!=='bike')vehicle.fuel=Math.max(0,vehicle.fuel-movedDistance*extra.fuelRate);else s.needs.energy=Math.max(0,s.needs.energy-movedDistance*.008)}
    if(result.blocked&&beforeSpeed>4){const damage=Math.min(7,(beforeSpeed-3)*.22);vehicle.condition=Math.max(0,vehicle.condition-damage);if(damage>.6)this.model.emit('Aufprall · Fahrzeugzustand −'+damage.toFixed(1)+' %.','warning')}
   }else{
    let x=Number(!!input.right)-Number(!!input.left),z=Number(!!input.backward)-Number(!!input.forward),len=Math.hypot(x,z);const gait=walkingProfile(s,!!keys.Shift);running=gait.running;

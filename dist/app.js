@@ -15,7 +15,7 @@ import {contractById,deadlineView,jobStops} from './contracts.js?v=0.7.3-map1';
 import {addressOf,streetAt,STREETS,routeGuidance} from './orientation.js?v=0.7.3-map1';
 import {careerPanel,contractCards,itinerary,courierReceipt,deadlineMarkup} from './courier-ui.js?v=0.7.3-map1';
 import {ITEMS,LOCATIONS,HOMES,BUSINESSES,PEOPLE,QUESTS,VEHICLES,RECIPES,SHOP_POINTS,BUILDINGS,euro,clamp} from './data.js?v=0.7.3-map1';
-import {GameModel,newGame,validateSave,SAVE_KEY} from './model.js?v=0.7.5-mobility1';
+import {GameModel,newGame,validateSave,SAVE_KEY} from './model.js?v=0.7.5-fix1';
 import {inventoryWeight,itemCount} from './inventory.js?v=0.7.3-map1';
 import {readSavedGame,writeSavedGame,BACKUP_KEY} from './persistence.js?v=0.7.3-map1';
 import {itemIcon} from './icons.js?v=0.7.3-map1';
@@ -25,9 +25,9 @@ import {Soundscape} from './soundscape.js?v=0.7.3-map1';
 import {guestSeat} from './cafe-layout.js?v=0.7.3-map1';
 import {guestServiceView} from './cafe-service-view.js?v=0.7.3-map1';
 import {interactionVerb} from './interaction.js?v=0.7.4-core1';
-import {garagePanel,vehiclesPanel,trunkPanel,transitPanel} from './mobility-ui.js?v=0.7.5-mobility1';
-import {TRANSIT_LOCATIONS} from './transit.js?v=0.7.5-mobility1';
-import {World} from './world.js?v=0.7.5-mobility1';
+import {garagePanel,vehiclesPanel,trunkPanel,transitPanel} from './mobility-ui.js?v=0.7.5-fix1';
+import {TRANSIT_LOCATIONS,resolveTransitArrival} from './transit.js?v=0.7.5-fix1';
+import {World} from './world.js?v=0.7.5-fix1';
 const ALL_LOCATIONS=[...LOCATIONS,...TRANSIT_LOCATIONS],locationById=id=>ALL_LOCATIONS.find(l=>l.id===id),locationAddress=l=>l?.address||addressOf(l?.id);
 const $=id=>document.getElementById(id),esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const htmlCache=new WeakMap();function setHTML(id,value){const el=$(id);if(htmlCache.get(el)!==value){el.innerHTML=value;htmlCache.set(el,value)}}
@@ -164,7 +164,7 @@ function cafeInstruction(c){
 }
 function updateRoutineHud(s){const a=s.dailyLife.action,node=$('dailyActionHud');if(a!==routineView||a?.interrupted!==routineInterrupted){node.innerHTML=activityHud(s);routineView=a;routineInterrupted=a?.interrupted;}if(a){node.querySelector('progress').value=a.elapsed/a.duration;const end=timePreview(s,Math.max(0,a.minutes-a.applied)).end;node.querySelector('.routine-time').textContent=a.minutes&&!a.interrupted?'Bis '+end.time+' · Tag '+end.day:'Einen Moment …';}}
 function hud(){const s=model.s;setHTML('dailyHints',dailyHints(s).map(h=>'<div class="daily-hint '+h.tone+'">'+esc(h.text)+'</div>').join(''));updateRoutineHud(s);setHTML('workshopHud',workshopHud(s));$('money').textContent=euro(s.money);setHTML('clock',timeText()+` <small>${s.weather==='rain'?'☂':s.minute>1200||s.minute<360?'☾':'☀'}</small>`);$('date').textContent=['MONTAG','DIENSTAG','MITTWOCH','DONNERSTAG','FREITAG','SAMSTAG','SONNTAG'][(s.day-1)%7]+' · TAG '+s.day+(s.settings.speed>1?' · '+s.settings.speed+'×':'');let district=s.inside?(s.interior==='shop'?'MARKT 24 · EINKAUF':s.interior==='cafe'?'CAFÉ MORGEN · '+(s.cafe?.phase==='open'?'DEINE SCHICHT':'BETRIEBSBUCH'):s.interior==='workshop'?'WERKSTATT WEST · DEINE ARBEIT':'DEIN ZUHAUSE'):(cityLandmarkAt(s.position)||districtOf(s.position));$('district').textContent=district+(s.inside?'':' · '+streetAt(s.position));setHTML('needs',needConfig.map(([id,label,icon,color])=>`<div class="need" style="--need:${color}"><span class="need-icon">${icon}</span><span>${label}</span><strong>${Math.round(s.needs[id])}</strong><div class="bar"><i style="width:${s.needs[id]}%"></i></div></div>`).join(''));let level=Math.floor(s.xp/150)+1;$('level').textContent='LEVEL '+level+' · '+(s.businesses.cafe?'UNTERNEHMER':s.home?'ANGEKOMMEN':s.stats.jobs?'AUF DEM WEG':'NEU IN DER STADT');$('rep').textContent='RUF '+s.reputation;$('xpBar').style.width=(s.xp%150)/1.5+'%';const q=QUESTS[s.quest];$('questTitle').textContent=q?q.name:'Dein Aufstieg geht weiter';$('questText').textContent=q?q.text:'Alle elf Etappenziele erreicht. Entwickle deine Unternehmen weiter und gestalte dein Leben.';$('chapter').textContent=String(Math.min(s.quest+1,QUESTS.length)).padStart(2,'0')+' / 11';let n=q?Math.min(s.stats[q.key],q.goal):1;$('questCount').textContent=q?q.key==='wealth'?euro(n)+' / '+euro(q.goal):n+' / '+q.goal:'GESCHAFFT';$('questBar').style.width=(q?n/q.goal*100:100)+'%';const shift=s.cafe?.phase==='open';$('jobHud').classList.toggle('hidden',!s.job&&!shift&&!s.workshop.active);$('jobHud').textContent=s.job?jobName(s.job.type)+' · '+jobInstruction():shift?'CAFÉ GEÖFFNET · '+s.cafe.served+' BEDIENT · '+s.cafe.lost+' VERLOREN · '+Math.ceil(Math.max(0,(s.cafe.duration??CAFE_SHIFT)-s.cafe.elapsed))+' SPIELMIN. · '+cafeInstruction(s.cafe):s.workshop.active?(needsSupply(s)?s.workshop.active.supply.phase==='requested'?'TEILEFAHRT · Reservierung am Westhafen abholen · 8 € + 2 € Expressbonus':'TEILEFAHRT · Zur Werkstatt / Wareneingang · '+(s.workshop.active.supply.deadline>s.day*1440+s.minute?'Bonusfrist: '+Math.ceil(s.workshop.active.supply.deadline-s.day*1440-s.minute)+' Spielmin.':'Bonusfrist abgelaufen · 8 € Fahrtlohn bleiben'):'WERKSTATT WEST · Auftrag offen · Abgabe bis 19:00'):'';
- let target=waypoint==='job'?jobTarget():waypoint==='quest'?(q?LOCATIONS.find(l=>l.id===q.target):null):waypoint;if(!target&&s.job)target=jobTarget();if(!target&&s.workshop.active)target=LOCATIONS.find(l=>l.id===(needsSupply(s)?supplyTarget(s):'deliveryWorkshop'));if(!target&&q)target=LOCATIONS.find(l=>l.id===q.target);if(target?.id)target=deliveryTarget(target.id);world.target=target;
+ let target=waypoint==='job'?jobTarget():waypoint==='quest'?(q?LOCATIONS.find(l=>l.id===q.target):null):waypoint;if(!target&&s.job)target=jobTarget();if(!target&&s.workshop.active)target=LOCATIONS.find(l=>l.id===(needsSupply(s)?supplyTarget(s):'deliveryWorkshop'));if(!target&&q)target=LOCATIONS.find(l=>l.id===q.target);if(target?.id)target=deliveryTarget(target.id)||target;world.target=target;
  $('navigation').classList.toggle('hidden',!target||s.inside);if(target){const guide=routeGuidance(s.position,target,world.route,s.riding);setHTML('navigation',`<div><b>◇ ${esc(target.name)}</b><small>${esc(locationAddress(target))}</small></div><strong>${guide.distance} m</strong><p>${esc(guide.instruction)}</p>`);}
  const deadline=deadlineView(s),handoff=s.job?.interaction;$('tourHud').classList.toggle('hidden',!s.job&&!s.courier.last);setHTML('tourHud',s.job?`<button data-action="tour">Auftrag & Stoppliste ↗</button>${handoff?`<div class="handoff-progress"><strong>${handoff.kind==='pickup'?'Sendungen übernehmen':'Persönlich übergeben'}</strong><progress max="1" value="${handoff.elapsed/DELIVERY_SECONDS[handoff.kind]}" aria-label="Fortschritt der Paketübergabe"></progress></div>`:''}${deadlineMarkup(s)}`:s.courier.last?'<button data-action="tour">Letzte Lieferabrechnung ↗</button>':'');
  const headings=['N','NO','O','SO','S','SW','W','NW'],heading=headings[((Math.round(-world.angle/(Math.PI/4))%8)+8)%8];setHTML('compass',`<span>·</span> <span>·</span> <b>${heading}</b> <span>·</span> <span>·</span>`);
@@ -214,6 +214,10 @@ function toggleVehicle(){
  save();hud();
 }
 function syncInterior(){world.angle=model.s.angle;world.player.rotation.y=model.s.angle+Math.PI;world.distance=model.s.inside?5.5:8;world.flight=null;world.jump=0;world.velocityY=0;world.walkSpeed=0;world.cameraRig.reset();keys={};world.update(0,{},false);}
+function syncTransitArrival(){
+ const s=model.s,safe=resolveTransitArrival(s.position,(x,z)=>world.canSpawnAt(x,z,.35));s.position={x:safe.x,z:safe.z};
+ world.transition=null;world.flight=null;world.jump=0;world.velocityY=0;world.walkSpeed=0;world.focusTarget=null;world.focusAge=.12;world.routeKey='';world.routeOrigin=null;world.cameraRig.reset();world.angle=s.angle;world.player.rotation.y=s.angle+Math.PI;world.player.position.x=s.position.x;world.player.position.z=s.position.z;keys={};world.update(0,{},false);world.camera.position.copy(world.desiredCamera);
+}
 function interact(){if(!playing||screen||world.transition||model.s.job?.interaction||model.s.dailyLife?.action||model.s.workshop?.active?.action)return;const n=world.nearest();if(!n)return;const s=model.s;tone(330,.08,.02);
  if(n.type==='bottle'){model.collect(n.id);world.gesture('pickup');soundscape.effect('pickup');}
  else if(n.type==='vehicle'){toggleVehicle()}
@@ -309,7 +313,7 @@ async function action(a,arg=''){
  if(a==='activateVehicle'){if(model.activateVehicle(arg)){world.update(0,{},false);renderModal()}}
  if(a==='trunkTransfer'){const [direction,index,count]=arg.split('|');if(model.vehicleStorage(Number(index),direction,Number(count)))renderModal();return}
  if(a==='parkVehicle'){if(model.parkVehicle(arg)){world.update(0,{},false);renderModal()}return}
- if(a==='travelTransit'){const [line,from]=arg.split('|');if(model.travelTransit(line,from)){world.cameraRig.reset();world.update(0,{},false);close();save();hud()}else renderModal();return}
+ if(a==='travelTransit'){const [line,from]=arg.split('|');if(model.travelTransit(line,from)){syncTransitArrival();close();save();hud()}else renderModal();return}
  if(a==='vehicleService'){const [op,uid]=arg.split('|');model.serviceVehicle(op,uid||undefined);open('garage')}
  if(a==='trackVehicle'){if(model.s.vehicle){waypoint={x:model.s.vehicle.x,z:model.s.vehicle.z,name:VEHICLES[model.s.vehicle.id].name};close()}return}
  if(a==='rest'){open('dailyPlan','rest');return;}
