@@ -15,7 +15,7 @@ import {contractById,deadlineView,jobStops} from './contracts.js?v=0.7.3-map1';
 import {addressOf,streetAt,STREETS,routeGuidance} from './orientation.js?v=0.7.3-map1';
 import {careerPanel,contractCards,itinerary,courierReceipt,deadlineMarkup} from './courier-ui.js?v=0.7.3-map1';
 import {ITEMS,LOCATIONS,HOMES,BUSINESSES,PEOPLE,QUESTS,VEHICLES,RECIPES,SHOP_POINTS,BUILDINGS,euro,clamp} from './data.js?v=0.7.3-map1';
-import {GameModel,newGame,validateSave,SAVE_KEY} from './model.js?v=0.7.5-mobility1';
+import {GameModel,newGame,validateSave,SAVE_KEY} from './model.js?v=0.7.5-fix1';
 import {inventoryWeight,itemCount} from './inventory.js?v=0.7.3-map1';
 import {readSavedGame,writeSavedGame,BACKUP_KEY} from './persistence.js?v=0.7.3-map1';
 import {itemIcon} from './icons.js?v=0.7.3-map1';
@@ -25,9 +25,9 @@ import {Soundscape} from './soundscape.js?v=0.7.3-map1';
 import {guestSeat} from './cafe-layout.js?v=0.7.3-map1';
 import {guestServiceView} from './cafe-service-view.js?v=0.7.3-map1';
 import {interactionVerb} from './interaction.js?v=0.7.4-core1';
-import {garagePanel,vehiclesPanel,trunkPanel,transitPanel} from './mobility-ui.js?v=0.7.5-mobility1';
-import {TRANSIT_LOCATIONS} from './transit.js?v=0.7.5-mobility1';
-import {World} from './world.js?v=0.7.5-mobility1';
+import {garagePanel,vehiclesPanel,trunkPanel,transitPanel} from './mobility-ui.js?v=0.7.5-fix1';
+import {TRANSIT_LOCATIONS} from './transit.js?v=0.7.5-fix1';
+import {World} from './world.js?v=0.7.5-fix1';
 const ALL_LOCATIONS=[...LOCATIONS,...TRANSIT_LOCATIONS],locationById=id=>ALL_LOCATIONS.find(l=>l.id===id),locationAddress=l=>l?.address||addressOf(l?.id);
 const $=id=>document.getElementById(id),esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const htmlCache=new WeakMap();function setHTML(id,value){const el=$(id);if(htmlCache.get(el)!==value){el.innerHTML=value;htmlCache.set(el,value)}}
@@ -214,6 +214,9 @@ function toggleVehicle(){
  save();hud();
 }
 function syncInterior(){world.angle=model.s.angle;world.player.rotation.y=model.s.angle+Math.PI;world.distance=model.s.inside?5.5:8;world.flight=null;world.jump=0;world.velocityY=0;world.walkSpeed=0;world.cameraRig.reset();keys={};world.update(0,{},false);}
+function syncTransitArrival(){
+ const s=model.s;world.transition=null;world.flight=null;world.jump=0;world.velocityY=0;world.walkSpeed=0;world.focusTarget=null;world.focusAge=.12;world.routeKey='';world.routeOrigin=null;world.cameraRig.reset();world.angle=s.angle;world.player.rotation.y=s.angle+Math.PI;world.player.position.x=s.position.x;world.player.position.z=s.position.z;keys={};world.update(0,{},false);world.camera.position.copy(world.desiredCamera);
+}
 function interact(){if(!playing||screen||world.transition||model.s.job?.interaction||model.s.dailyLife?.action||model.s.workshop?.active?.action)return;const n=world.nearest();if(!n)return;const s=model.s;tone(330,.08,.02);
  if(n.type==='bottle'){model.collect(n.id);world.gesture('pickup');soundscape.effect('pickup');}
  else if(n.type==='vehicle'){toggleVehicle()}
@@ -309,7 +312,7 @@ async function action(a,arg=''){
  if(a==='activateVehicle'){if(model.activateVehicle(arg)){world.update(0,{},false);renderModal()}}
  if(a==='trunkTransfer'){const [direction,index,count]=arg.split('|');if(model.vehicleStorage(Number(index),direction,Number(count)))renderModal();return}
  if(a==='parkVehicle'){if(model.parkVehicle(arg)){world.update(0,{},false);renderModal()}return}
- if(a==='travelTransit'){const [line,from]=arg.split('|');if(model.travelTransit(line,from)){world.cameraRig.reset();world.update(0,{},false);close();save();hud()}else renderModal();return}
+ if(a==='travelTransit'){const [line,from]=arg.split('|');if(model.travelTransit(line,from)){syncTransitArrival();close();save();hud()}else renderModal();return}
  if(a==='vehicleService'){const [op,uid]=arg.split('|');model.serviceVehicle(op,uid||undefined);open('garage')}
  if(a==='trackVehicle'){if(model.s.vehicle){waypoint={x:model.s.vehicle.x,z:model.s.vehicle.z,name:VEHICLES[model.s.vehicle.id].name};close()}return}
  if(a==='rest'){open('dailyPlan','rest');return;}
