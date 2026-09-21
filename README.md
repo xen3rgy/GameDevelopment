@@ -14,6 +14,15 @@ python -m http.server 8000 --directory dist
 
 Open http://localhost:8000. No API keys, external services or package installation are required. Three.js r170 and the generated runtime assets are committed directly in `dist/`; no restore step is required. A browser with WebGL2 and hardware acceleration is required.
 
+## Version 0.7.4 · Core Polish
+
+- Spieler-Kollisionen verwenden kleinere Substeps und testen beide möglichen Slide-Reihenfolgen. Dadurch bleibt tangentiale Bewegung an Gebäudeecken und schmalen Kanten erhalten, ohne durch Hindernisse zu tunneln.
+- Ein gemeinsames Interaction-Modul definiert Reichweiten, Prioritäten und HUD-Verben. Arbeitsziele, aufhebbare Gegenstände, Fahrzeuge, Personen und Gebäudeeingänge konkurrieren damit nicht mehr nur nach roher Entfernung.
+- Das Interaktions-HUD zeigt jetzt Aktionstyp und Entfernung. HUD und Welt teilen sich den gecachten Fokus statt in kurzen Abständen dieselbe Umgebung doppelt zu durchsuchen.
+- Innenraumkamera auf maximal 4 m verdichtet, Kollisionspuffer leicht erhöht und das Ausfahren nach Hindernissen verlangsamt. Einfahren bleibt sofort, damit Wände und Möbel nicht durch die Kamera schneiden.
+- Segmentprüfungen für Navigation/Kollisionen wurden dichter abgetastet. Bestehende Save-Schema-3-Spielstände bleiben kompatibel; Wirtschaft, Jobs und Progression werden nicht zurückgesetzt.
+- Neue Core-Polish-Regressionstests prüfen Wall-Sliding, Interaction-Priorisierung und Kamera-Recovery. CI läuft zusätzlich direkt auf dem Branch `zero-rise-v0.7.4`.
+
 ## Version 0.7.3 · Stadtbild & Wege
 
 - Closed the exposed outer edges of raised pavements and added continuous, walkable building aprons. The station's two granite steps now agree with the physical ground heights instead of protruding into the lower level.

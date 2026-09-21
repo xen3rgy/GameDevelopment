@@ -2,13 +2,28 @@
 export const approach = (value, target, amount) => value < target ? Math.min(target, value + amount) : Math.max(target, value - amount);
 export function moveWithCollision(position, dx, dz, canWalk, radius=.35, slide=true) {
   const next={...position}; let blocked=false;
-  const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.22));
+  // Smaller substeps reduce corner tunnelling and make collision behaviour independent of frame rate.
+  const steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.16)),sx=dx/steps,sz=dz/steps;
+  const attempt=(base,first)=>{
+    const out={...base};
+    const axes=first==='x'?[['x',sx],['z',sz]]:[['z',sz],['x',sx]];
+    for(const [axis,delta] of axes){
+      if(!delta)continue;
+      const candidate={...out,[axis]:out[axis]+delta};
+      if(canWalk(candidate.x,candidate.z,radius))Object.assign(out,candidate);
+    }
+    return out;
+  };
   for(let i=0;i<steps;i++){
-    const x=next.x+dx/steps,z=next.z+dz/steps;
+    const x=next.x+sx,z=next.z+sz;
     if(canWalk(x,z,radius)){next.x=x;next.z=z;continue}
     blocked=true;if(!slide)break;
-    if(canWalk(x,next.z,radius))next.x=x;
-    if(canWalk(next.x,z,radius))next.z=z;
+    // Evaluate both slide orders. Fixed X-then-Z ordering could pin the player on some
+    // convex corners even though a valid tangential step existed.
+    const a=attempt(next,'x'),b=attempt(next,'z');
+    const da=Math.hypot(a.x-next.x,a.z-next.z),db=Math.hypot(b.x-next.x,b.z-next.z);
+    const best=db>da?b:a;
+    next.x=best.x;next.z=best.z;
   }
   return {...next,blocked,distance:Math.hypot(next.x-position.x,next.z-position.z)};
 }
@@ -28,6 +43,6 @@ export function stepVehicle(vehicle, input, dt, canWalk, maximumSpeed){
   return {...result,angle,speed:result.blocked?0:speed};
 }
 export function segmentClear(a,b,canWalk,radius=.35){
-  const steps=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/.45));
+  const steps=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/.32));
   for(let i=1;i<=steps;i++){const t=i/steps;if(!canWalk(a.x+(b.x-a.x)*t,a.z+(b.z-a.z)*t,radius))return false}return true;
 }
