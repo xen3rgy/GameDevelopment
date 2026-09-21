@@ -14,15 +14,14 @@ python -m http.server 8000 --directory dist
 
 Open http://localhost:8000. No API keys, external services or package installation are required. Three.js r170 and the generated runtime assets are committed directly in `dist/`; no restore step is required. A browser with WebGL2 and hardware acceleration is required.
 
-## Version 0.7.5 · Living Ground Visual Upgrade
+## Version 0.7.5 · Hi3D Ground Replacement
 
-- Die bisher prozedural erzeugte, sehr gleichmäßige grüne Fläche wurde durch eine eigens für ZERO // RISE erzeugte, eingebettete Grastextur mit feinen Halmen, Klee, Unkraut, Gänseblümchen und kleinen gelben Blüten ersetzt.
-- Das neue Grasmaterial nutzt die Textur zugleich sehr dezent als Reliefquelle und bleibt rau genug, damit es bei Sonnenlicht nicht wie Plastik wirkt.
-- Lindenpark verwendet jetzt dasselbe hochwertige Grasmaterial statt des alten einfarbigen grünen Blocks.
-- Neue leichte 3D-Bodendeckung über InstancedMesh: zwei Grasbüschel-Varianten, niedrige Unkraut-/Klee-Rosetten sowie weiße und gelbe Wildblumen.
-- Die Verteilung ist deterministisch und zonenabhängig: Lindenpark ist dichter und gepflegt-lebendig, westliche Randbereiche etwas wilder, normale Stadtgrünflächen bleiben zurückhaltender.
-- Straßen, Gehwege, Hauseingänge, Gartenwege und Kollisionsobjekte werden beim Streuen automatisch ausgespart. Die Vegetation verändert keine Spieler-Kollision.
-- Auf niedriger Grafikqualität wird die Zusatzvegetation stark reduziert; die neue Grastextur bleibt erhalten.
+- Der vorherige Living-Ground-Versuch wurde entfernt.
+- Grundlage ist jetzt direkt die vom Nutzer gelieferte Datei `Hi3D_Untitled_allparts_20260921_135600.glb`.
+- Das originale GLB ist für einen Browser-Boden extrem schwer (rund 63 MB, über 1 Mio. Vertices und fast 2 Mio. Dreiecke). Deshalb wird seine sichtbare Oberflächenstruktur für das Spiel gebacken und als leichtes WebP-Material verwendet, statt das komplette High-Poly-Mesh mehrfach in die Stadt zu laden.
+- Die neue Oberfläche bleibt damit optisch an das Hi3D-Asset gebunden, während Straßen, Kollision, Navigation und Ladezeit unverändert beherrschbar bleiben.
+- Das zuvor zusätzlich gestreute prozedurale 3D-Gras/Klee/Blumen-System wurde vollständig entfernt.
+- Grasflächen und Lindenpark nutzen denselben neuen Hi3D-basierten Boden mit Mirrored-Repeating und stärkerem Relief.
 
 ## Version 0.7.5 · Stabilitäts-Pass
 

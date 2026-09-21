@@ -2,17 +2,17 @@ import {districtLampStyle} from './district-materials.js?v=0.7.3-map1';
 import * as THREE from './vendor/three.module.js';
 import {lightingAt,selectLamps} from './lighting.js?v=0.7.3-map1';
 import {groundHeight} from './spatial.js?v=0.7.3-map1';
-import {GRASS_LUSH_URL} from './grass-texture.js?v=0.7.5-grass1';
+import {GRASS_LUSH_URL} from './grass-texture.js?v=0.7.5-hi3d1';
 function random(seed){let n=seed;return()=>{n=(n*1664525+1013904223)>>>0;return n/4294967296}}
 const surfaceSources=new Map(),grassCopies=[];let grassBase=null;
-export const surfaceTileMeters=kind=>kind==='asphalt'?6:kind==='cobble'?2.4:kind==='grass'?7.2:4.8;
+export const surfaceTileMeters=kind=>kind==='asphalt'?6:kind==='cobble'?2.4:kind==='grass'?2.35:4.8;
 export function surfaceTexture(kind){
   if(kind==='grass'){
     if(!grassBase){
       grassBase=new THREE.TextureLoader().load(GRASS_LUSH_URL,()=>grassCopies.forEach(t=>t.needsUpdate=true));
-      grassBase.colorSpace=THREE.SRGBColorSpace;grassBase.wrapS=grassBase.wrapT=THREE.RepeatWrapping;grassBase.anisotropy=8;
+      grassBase.colorSpace=THREE.SRGBColorSpace;grassBase.wrapS=grassBase.wrapT=THREE.MirroredRepeatWrapping;grassBase.anisotropy=8;
     }
-    const t=grassBase.clone();t.source=grassBase.source;t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;grassCopies.push(t);if(grassBase.image)t.needsUpdate=true;return t;
+    const t=grassBase.clone();t.source=grassBase.source;t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.MirroredRepeatWrapping;t.anisotropy=8;grassCopies.push(t);if(grassBase.image)t.needsUpdate=true;return t;
   }
   if(surfaceSources.has(kind)){const copy=surfaceSources.get(kind).clone();copy.needsUpdate=true;return copy;}
   const c=document.createElement('canvas');c.width=c.height=512;const a=c.getContext('2d'),rand=random(kind==='asphalt'?18:72);
@@ -20,11 +20,11 @@ export function surfaceTexture(kind){
   if(kind==='paving')for(let y=0;y<512;y+=32)for(let x=-64;x<512;x+=64){const xx=x+(y%64?32:0),v=Math.floor(180+rand()*12);a.fillStyle=`rgb(${v+3},${v+4},${v})`;a.fillRect(xx+1,y+1,62,30);a.fillStyle='#ffffff18';a.fillRect(xx+2,y+1,60,1)}
   if(kind==='cobble')for(let y=0;y<512;y+=32)for(let x=-64;x<512;x+=64){const xx=x+(y/32%2?32:0),v=157+Math.floor(rand()*23);a.fillStyle=`rgb(${v+6},${v+4},${v-2})`;a.fillRect(xx+2,y+2,60,28);a.fillStyle='#ffffff18';a.fillRect(xx+3,y+2,58,1);}
   for(let i=0;i<16000;i++){const n=rand();a.fillStyle=n>.5?'rgba(255,255,255,.032)':'rgba(0,0,0,.038)';a.fillRect(rand()*512,rand()*512,1,1)}
-  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;surfaceSources.set(kind,t);return t.clone();
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.MirroredRepeatWrapping;t.anisotropy=8;surfaceSources.set(kind,t);return t.clone();
 }
 export function surfaceMaterial(kind,w,d){
   const t=surfaceTexture(kind);t.repeat.set(w/surfaceTileMeters(kind),d/surfaceTileMeters(kind));t.needsUpdate=true;
-  return new THREE.MeshStandardMaterial({map:t,color:kind==='asphalt'?0x899096:kind==='grass'?0xe2e8d8:kind==='cobble'?0xc9c6b9:0xd7d9d2,roughness:kind==='asphalt'?.86:kind==='grass'?.91:.95,metalness:kind==='asphalt'?.04:0,bumpMap:t,bumpScale:kind==='asphalt'?.010:kind==='grass'?.026:.012});
+  return new THREE.MeshStandardMaterial({map:t,color:kind==='asphalt'?0x899096:kind==='grass'?0xd8e2cc:kind==='cobble'?0xc9c6b9:0xd7d9d2,roughness:kind==='asphalt'?.86:kind==='grass'?.93:.95,metalness:kind==='asphalt'?.04:0,bumpMap:t,bumpScale:kind==='asphalt'?.010:kind==='grass'?.038:.012});
 }
 export class Atmosphere {
   constructor(scene,renderer){
