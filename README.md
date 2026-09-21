@@ -14,6 +14,16 @@ python -m http.server 8000 --directory dist
 
 Open http://localhost:8000. No API keys, external services or package installation are required. Three.js r170 and the generated runtime assets are committed directly in `dist/`; no restore step is required. A browser with WebGL2 and hardware acceleration is required.
 
+## Version 0.7.5 · Living Ground Visual Upgrade
+
+- Die bisher prozedural erzeugte, sehr gleichmäßige grüne Fläche wurde durch eine eigens für ZERO // RISE erzeugte, eingebettete Grastextur mit feinen Halmen, Klee, Unkraut, Gänseblümchen und kleinen gelben Blüten ersetzt.
+- Das neue Grasmaterial nutzt die Textur zugleich sehr dezent als Reliefquelle und bleibt rau genug, damit es bei Sonnenlicht nicht wie Plastik wirkt.
+- Lindenpark verwendet jetzt dasselbe hochwertige Grasmaterial statt des alten einfarbigen grünen Blocks.
+- Neue leichte 3D-Bodendeckung über InstancedMesh: zwei Grasbüschel-Varianten, niedrige Unkraut-/Klee-Rosetten sowie weiße und gelbe Wildblumen.
+- Die Verteilung ist deterministisch und zonenabhängig: Lindenpark ist dichter und gepflegt-lebendig, westliche Randbereiche etwas wilder, normale Stadtgrünflächen bleiben zurückhaltender.
+- Straßen, Gehwege, Hauseingänge, Gartenwege und Kollisionsobjekte werden beim Streuen automatisch ausgespart. Die Vegetation verändert keine Spieler-Kollision.
+- Auf niedriger Grafikqualität wird die Zusatzvegetation stark reduziert; die neue Grastextur bleibt erhalten.
+
 ## Version 0.7.5 · Stabilitäts-Pass
 
 - ÖPNV-Ankunftspunkte von Interaktionspunkten getrennt und gegen Stadtgeometrie validiert. Stadtmitte lag zuvor exakt auf einer Straßenlaterne; diese Kollision ist behoben.
