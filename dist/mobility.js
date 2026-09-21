@@ -32,14 +32,28 @@ export function ensureMobility(s){
  if(!Array.isArray(s.mobility.usedBought))s.mobility.usedBought=[];
  if(!safeInt(s.mobility.transitTrips))s.mobility.transitTrips=0;
  if(!safeInt(s.mobility.insurancePaid))s.mobility.insurancePaid=0;
- const normalize=(v,stored=false,index=0)=>{
+ const normalize=v=>{
   if(!v)return null;
   v.uid??=nextUid(s);v.trunk??=[];v.purchasePrice??=VEHICLES[v.id]?.cost??0;v.mileage??=0;v.used=!!v.used;
-  v.insured=v.id==='bike'?true:!!v.insured;v.parkingSpot??=stored?(GARAGE_SPOTS[index]?.id||null):null;v.speed=Number.isFinite(v.speed)?v.speed:0;
+  v.insured=v.id==='bike'?true:!!v.insured;v.parkingSpot??=null;v.speed=Number.isFinite(v.speed)?v.speed:0;
   return v;
  };
- if(s.vehicle)normalize(s.vehicle,false,0);
- s.garageVehicles=s.garageVehicles.map((v,i)=>normalize(v,true,i)).filter(Boolean);
+ if(s.vehicle)normalize(s.vehicle);
+ s.garageVehicles=s.garageVehicles.map(normalize).filter(Boolean);
+ // Garage vehicles always receive unique physical bays. This also repairs saves produced by
+ // early 0.7.5 builds that could assign the same bay twice.
+ const used=new Set();
+ for(const v of s.garageVehicles){
+  let spot=GARAGE_SPOTS.find(p=>p.id===v.parkingSpot&&!used.has(p.id));
+  if(!spot)spot=GARAGE_SPOTS.find(p=>!used.has(p.id));
+  if(spot){placeInSpot(v,spot);used.add(spot.id)}
+ }
+ // An active vehicle only owns a parking reservation while it is actually still on that marker.
+ // Driving away from an older save must not leave a ghost-occupied bay behind.
+ if(s.vehicle?.parkingSpot){
+  const spot=PARKING_SPOTS.find(p=>p.id===s.vehicle.parkingSpot);
+  if(!spot||used.has(spot.id)||Math.hypot(s.vehicle.x-spot.x,s.vehicle.z-spot.z)>1.5)s.vehicle.parkingSpot=null;
+ }
  return s;
 }
 export const allVehicles=s=>[s.vehicle,...(s.garageVehicles||[])].filter(Boolean);
@@ -69,7 +83,7 @@ export function createOwnedVehicle(s,id,options={}){
 function rand(seed){let x=Math.sin(seed*12.9898+78.233)*43758.5453;return x-Math.floor(x)}
 export function usedOffers(s){
  const day=s.day||1,types=['car','van','sport'];
- return types.map((id,i)=>{const def=VEHICLES[id],r=rand(day*17+i*31),r2=rand(day*29+i*47),condition=Math.round(48+r*38),mileage=Math.round(38000+r2*145000)/1000,price=Math.round(def.cost*(.42+r2*.27)/100)*100,fuel=Math.round(22+r*63),offerId='d'+day+'-'+id+'-'+i;return{offerId,id,condition,mileage,price,fuel,name:def.name};}).filter(o=>!s.mobility.usedBought.includes(o.offerId));
+ return types.map((id,i)=>{const def=VEHICLES[id],r=rand(day*17+i*31),r2=rand(day*29+i*47),condition=Math.round(48+r*38),mileage=Math.round((38000+r2*145000)*10)/10,price=Math.round(def.cost*(.42+r2*.27)/100)*100,fuel=Math.round(22+r*63),offerId='d'+day+'-'+id+'-'+i;return{offerId,id,condition,mileage,price,fuel,name:def.name};}).filter(o=>!s.mobility.usedBought.includes(o.offerId));
 }
 export function validateMobility(s){
  ensureMobility(s);const vehicles=allVehicles(s);
