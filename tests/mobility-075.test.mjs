@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {GameModel,newGame,validateSave} from '../dist/model.js';
 import {BUILDINGS} from '../dist/data.js';
-import {allVehicles,usedOffers,trunkLimits,repairPrice,nearestParkingSpot,parkingSpotOccupied} from '../dist/mobility.js';
+import {allVehicles,usedOffers,trunkLimits,repairPrice,nearestParkingSpot,parkingSpotOccupied,ensureMobility} from '../dist/mobility.js';
 import {TRANSIT_STOPS,transitOffer,displayMinutes,clockText} from '../dist/transit.js';
 import {transitPanel} from '../dist/mobility-ui.js';
 import {exteriorContains,DISTRICT_FIXTURES} from '../dist/city-layout.js';
@@ -26,7 +26,7 @@ test('0.7.5 owns several vehicles and switches them at Mobilwerk',()=>{
 test('0.7.5 used offers are deterministic and keep their actual purchase state',()=>{
  const s=newGame(true),m=new GameModel(s);s.position={x:76,z:12};const a=usedOffers(s),b=usedOffers(s);
  assert.deepEqual(a,b);assert.ok(a.every(o=>o.price>0&&o.price<({car:90000,van:180000,sport:650000}[o.id])));
- const offer=a[0];assert.ok(m.buyUsedVehicle(offer.offerId));assert.equal(s.vehicle.used,true);assert.equal(s.vehicle.condition,offer.condition);assert.equal(s.vehicle.purchasePrice,offer.price);assert.ok(!usedOffers(s).some(o=>o.offerId===offer.offerId));
+ assert.ok(a.every(o=>o.mileage>=38000&&o.mileage<=183000));const offer=a[0];assert.ok(m.buyUsedVehicle(offer.offerId));assert.equal(s.vehicle.used,true);assert.equal(s.vehicle.condition,offer.condition);assert.equal(s.vehicle.purchasePrice,offer.price);assert.ok(!usedOffers(s).some(o=>o.offerId===offer.offerId));
 });
 
 test('0.7.5 trunk transfers are atomic and bike rack stays useful early',()=>{
@@ -51,6 +51,14 @@ test('0.7.5 cannot park two owned vehicles on the same marked space',()=>{
  s.vehicle.x=68.5;s.vehicle.z=8.4;s.position={x:68.5,z:10};
  assert.equal(m.parkVehicle(spot),false);assert.notEqual(s.vehicle.parkingSpot,spot);
  assert.doesNotThrow(()=>validateSave(JSON.parse(JSON.stringify(s))));
+});
+
+
+test('0.7.5 mobility migration repairs duplicate garage bays and stale active reservations',()=>{
+ const s=newGame(true),m=new GameModel(s);s.position={x:76,z:12};m.buyVehicle('bike');m.buyVehicle('car');m.buyVehicle('van');
+ const spot=s.garageVehicles[0].parkingSpot;s.garageVehicles[1].parkingSpot=spot;s.garageVehicles[1].x=s.garageVehicles[0].x;s.garageVehicles[1].z=s.garageVehicles[0].z;
+ s.vehicle.parkingSpot=spot;s.vehicle.x=40;s.vehicle.z=40;ensureMobility(s);
+ const spots=s.garageVehicles.map(v=>v.parkingSpot);assert.equal(new Set(spots).size,spots.length);assert.equal(s.vehicle.parkingSpot,null);assert.doesNotThrow(()=>validateSave(JSON.parse(JSON.stringify(s))));
 });
 
 test('0.7.5 every public transport arrival is clear of static world collision',()=>{
