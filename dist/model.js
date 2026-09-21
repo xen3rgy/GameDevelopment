@@ -1,6 +1,6 @@
 import {newWorkLog,recordWork,validateWorkLog} from './work-log.js?v=0.7.3-map1';
-import {newMobility,ensureMobility,allVehicles,ownedVehicleCount,createOwnedVehicle,usedOffers,vehicleByUid,freeGarageSpot,placeInSpot,PARKING_SPOTS,GARAGE_EXIT,trunkLimits,insurancePremium,repairPrice,resaleValue,dailyInsuranceCost,validateMobility} from './mobility.js?v=0.7.5-mobility1';
-import {transitOffer,transitStop,validateTransitState} from './transit.js?v=0.7.5-mobility1';
+import {newMobility,ensureMobility,allVehicles,ownedVehicleCount,createOwnedVehicle,usedOffers,vehicleByUid,freeGarageSpot,parkingSpotOccupied,placeInSpot,PARKING_SPOTS,GARAGE_EXIT,trunkLimits,insurancePremium,repairPrice,resaleValue,dailyInsuranceCost,validateMobility} from './mobility.js?v=0.7.5-fix1';
+import {transitOffer,transitStop,validateTransitState} from './transit.js?v=0.7.5-fix1';
 import {tickWorkshopLife} from './workshop-life.js?v=0.7.3-map1';
 import {newWorkshop,workshopHours,workshopCommand,tickWorkshop,expireWorkshop,validateWorkshop} from './workshop.js?v=0.7.3-map1';
 import {homeLocation,outsidePosition} from './housing.js?v=0.7.3-map1';
@@ -230,6 +230,7 @@ export class GameModel{
  }
  parkVehicle(spotId){
   const s=this.s,v=s.vehicle,spot=PARKING_SPOTS.find(p=>p.id===spotId);if(!v||!spot||s.riding||s.inside||Math.hypot(s.position.x-v.x,s.position.z-v.z)>4.2||Math.hypot(v.x-spot.x,v.z-spot.z)>8)return false;
+  if(parkingSpotOccupied(s,spot.id,v.uid)){this.emit('Dieser Stellplatz ist bereits belegt.','warning');return false}
   placeInSpot(v,spot);s.position={x:spot.x+Math.cos(spot.angle)*2,z:spot.z-Math.sin(spot.angle)*2};this.emit('Geparkt: '+spot.name+'.','success');return true;
  }
  serviceVehicle(action,uid=this.s.vehicle?.uid){
@@ -244,7 +245,7 @@ export class GameModel{
  travelTransit(lineId,from){
   const s=this.s,stop=transitStop(from),offer=transitOffer(s,lineId,from);if(!stop||!offer||s.inside||s.riding||s.dailyLife.action||s.workshop?.active?.action||Math.hypot(s.position.x-stop.x,s.position.z-stop.z)>3.4)return false;
   if(!this.spend(offer.fare)){this.emit('Für dieses Ticket reicht dein Bargeld nicht.');return false}
-  this.advance(offer.total);s.position={x:offer.stop.x,z:offer.stop.z};s.angle=0;s.mobility.transitTrips++;s.mobility.lastTransit={line:offer.line.id,from,to:offer.to,day:s.day,minute:s.minute,cost:offer.fare};
+  this.advance(offer.total);s.position={x:offer.arrival.x,z:offer.arrival.z};s.angle=offer.arrival.angle??0;s.mobility.transitTrips++;s.mobility.lastTransit={line:offer.line.id,from,to:offer.to,day:s.day,minute:s.minute,cost:offer.fare};
   this.emit(offer.line.name+' · '+offer.stop.name+' erreicht. Ticket '+(offer.fare/100).toFixed(2)+' €.','success');return true;
  }
  talk(id,option){let r=this.s.relations[id]??{value:0,lastDay:0};if(r.lastDay===this.s.day){this.emit('Ihr habt heute schon ausführlich gesprochen. Komm morgen wieder.');return}if(option==='gift'&&!this.remove('coffee')){this.emit('Dafür brauchst du einen Kaffee im Rucksack.');return}r.value=clamp(r.value+(option==='gift'?18:10));r.lastDay=this.s.day;this.s.relations[id]=r;this.s.reputation++;this.s.needs.stress=clamp(this.s.needs.stress-8);if(r.value>=30&&r.value-(option==='gift'?18:10)<30){this.earn(4000);this.emit('Ein Kontakt hat dir einen bezahlten Tipp vermittelt: +40 €.','success')}this.emit('Ein gutes Gespräch. Eure Beziehung ist gewachsen.','success')}
