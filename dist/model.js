@@ -238,7 +238,7 @@ export class GameModel{
   if(action==='fuel'){if(v.id==='bike'||v.fuel>=100)return false;const price=Math.ceil((100-v.fuel)*30);if(!this.spend(price)){this.emit('Nicht genug Geld zum Tanken.');return false}v.fuel=100;this.emit(VEHICLES[v.id].name+' vollgetankt.','success')}
   else if(action==='repair'){if(v.condition>=100)return false;const price=repairPrice(v);if(!this.spend(price)){this.emit('Nicht genug Geld für die Reparatur.');return false}v.condition=100;this.emit('Reparatur abgeschlossen · '+(price/100).toFixed(2)+' €.','success')}
   else if(action==='insurance'){if(v.id==='bike')return false;if(v.insured){v.insured=false;this.emit('Versicherung zum Tagesende beendet.','warning')}else{const price=insurancePremium(v);if(!this.spend(price)){this.emit('Für die erste Versicherungsprämie fehlt Geld.');return false}v.insured=true;s.mobility.insurancePaid+=price;this.emit('Fahrzeug versichert · '+(price/100).toFixed(2)+' € pro Spieltag.','success')}}
-  else if(action==='sell'){const value=resaleValue(v);if(v===s.vehicle){s.vehicle=null;s.riding=false}else{s.garageVehicles=s.garageVehicles.filter(x=>x.uid!==v.uid)}this.earn(value);this.emit(VEHICLES[v.id].name+' verkauft · '+(value/100).toFixed(2)+' €.','success')}
+  else if(action==='sell'){if(v.trunk.length){this.emit('Leere zuerst '+trunkLimits(v).name+'.','warning');return false}const value=resaleValue(v);if(v===s.vehicle){s.vehicle=null;s.riding=false}else{s.garageVehicles=s.garageVehicles.filter(x=>x.uid!==v.uid)}this.earn(value);this.emit(VEHICLES[v.id].name+' verkauft · '+(value/100).toFixed(2)+' €.','success')}
   else return false;this.checkQuests();this.onChange();return true;
  }
  travelTransit(lineId,from){
