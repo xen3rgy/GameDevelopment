@@ -53,9 +53,11 @@ export const resaleValue=v=>Math.max(0,Math.round((v.purchasePrice||VEHICLES[v.i
 export const dailyInsuranceCost=s=>allVehicles(s).reduce((n,v)=>n+(v.insured?insurancePremium(v):0),0);
 export const nearestParkingSpot=(position,maxDistance=7)=>PARKING_SPOTS.map(p=>({...p,distance:Math.hypot(position.x-p.x,position.z-p.z)})).filter(p=>p.distance<=maxDistance).sort((a,b)=>a.distance-b.distance)[0]||null;
 
+export function parkingSpotOccupied(s,spotId,ignoreUid=null){
+ return allVehicles(s).some(v=>v.uid!==ignoreUid&&v.parkingSpot===spotId);
+}
 export function freeGarageSpot(s,ignoreUid=null){
- const used=new Set((s.garageVehicles||[]).filter(v=>v.uid!==ignoreUid).map(v=>v.parkingSpot));
- return GARAGE_SPOTS.find(p=>!used.has(p.id))||null;
+ return GARAGE_SPOTS.find(p=>!parkingSpotOccupied(s,p.id,ignoreUid))||null;
 }
 export function placeInSpot(v,spot){v.x=spot.x;v.z=spot.z;v.angle=spot.angle;v.speed=0;v.parkingSpot=spot.id;return v}
 export function createOwnedVehicle(s,id,options={}){
@@ -72,13 +74,14 @@ export function usedOffers(s){
 export function validateMobility(s){
  ensureMobility(s);const vehicles=allVehicles(s);
  if(vehicles.length>MAX_OWNED_VEHICLES)throw Error('Zu viele eigene Fahrzeuge.');
- const ids=new Set();
+ const ids=new Set(),spots=new Set();
  for(const [index,v] of vehicles.entries()){
   if(!v||!Object.hasOwn(VEHICLES,v.id)||typeof v.uid!=='string'||!v.uid||ids.has(v.uid))throw Error('Ungültiges Fahrzeug.');ids.add(v.uid);
   if(!Number.isFinite(v.fuel)||v.fuel<0||v.fuel>100||!Number.isFinite(v.condition)||v.condition<0||v.condition>100||!Number.isFinite(v.x)||!Number.isFinite(v.z)||Math.abs(v.x)>350||Math.abs(v.z)>125||!Number.isFinite(v.angle)||!Number.isFinite(v.speed)||Math.abs(v.speed)>35||!Number.isFinite(v.mileage)||v.mileage<0||v.mileage>1e7||!Number.isSafeInteger(v.purchasePrice)||v.purchasePrice<0||typeof v.insured!=='boolean'||typeof v.used!=='boolean')throw Error('Ungültige Fahrzeugdaten.');
   if(!Array.isArray(v.trunk))throw Error('Ungültiger Fahrzeugstauraum.');const lim=trunkLimits(v);if(v.trunk.length>lim.slots||inventoryWeight(v.trunk)>lim.weight+.00001)throw Error('Fahrzeugstauraum überladen.');
   for(const item of v.trunk)if(!item||!Object.hasOwn(ITEMS,item.id)||item.id==='parcel'||!Number.isInteger(item.count)||item.count<1||item.count>ITEMS[item.id].stack)throw Error('Ungültiger Gegenstand im Fahrzeug.');
-  if(index&&v.parkingSpot&&!PARKING_SPOTS.some(p=>p.id===v.parkingSpot))throw Error('Ungültiger Stellplatz.');
+  if(v.parkingSpot){if(!PARKING_SPOTS.some(p=>p.id===v.parkingSpot)||spots.has(v.parkingSpot))throw Error('Ungültiger Stellplatz.');spots.add(v.parkingSpot);}
+  if(index&&v.parkingSpot&&!GARAGE_SPOTS.some(p=>p.id===v.parkingSpot))throw Error('Garagenfahrzeug steht außerhalb des Mobilwerks.');
  }
  const m=s.mobility;if(!Array.isArray(m.usedBought)||m.usedBought.some(v=>typeof v!=='string')||!safeInt(m.transitTrips)||!safeInt(m.insurancePaid)||!safeInt(m.serial))throw Error('Ungültige Mobilitätsdaten.');
  return s;
