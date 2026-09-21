@@ -26,7 +26,7 @@ import {guestSeat} from './cafe-layout.js?v=0.7.3-map1';
 import {guestServiceView} from './cafe-service-view.js?v=0.7.3-map1';
 import {interactionVerb} from './interaction.js?v=0.7.4-core1';
 import {garagePanel,vehiclesPanel,trunkPanel,transitPanel} from './mobility-ui.js?v=0.7.5-fix1';
-import {TRANSIT_LOCATIONS} from './transit.js?v=0.7.5-fix1';
+import {TRANSIT_LOCATIONS,resolveTransitArrival} from './transit.js?v=0.7.5-fix1';
 import {World} from './world.js?v=0.7.5-fix1';
 const ALL_LOCATIONS=[...LOCATIONS,...TRANSIT_LOCATIONS],locationById=id=>ALL_LOCATIONS.find(l=>l.id===id),locationAddress=l=>l?.address||addressOf(l?.id);
 const $=id=>document.getElementById(id),esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -215,7 +215,8 @@ function toggleVehicle(){
 }
 function syncInterior(){world.angle=model.s.angle;world.player.rotation.y=model.s.angle+Math.PI;world.distance=model.s.inside?5.5:8;world.flight=null;world.jump=0;world.velocityY=0;world.walkSpeed=0;world.cameraRig.reset();keys={};world.update(0,{},false);}
 function syncTransitArrival(){
- const s=model.s;world.transition=null;world.flight=null;world.jump=0;world.velocityY=0;world.walkSpeed=0;world.focusTarget=null;world.focusAge=.12;world.routeKey='';world.routeOrigin=null;world.cameraRig.reset();world.angle=s.angle;world.player.rotation.y=s.angle+Math.PI;world.player.position.x=s.position.x;world.player.position.z=s.position.z;keys={};world.update(0,{},false);world.camera.position.copy(world.desiredCamera);
+ const s=model.s,safe=resolveTransitArrival(s.position,(x,z)=>world.canSpawnAt(x,z,.35));s.position={x:safe.x,z:safe.z};
+ world.transition=null;world.flight=null;world.jump=0;world.velocityY=0;world.walkSpeed=0;world.focusTarget=null;world.focusAge=.12;world.routeKey='';world.routeOrigin=null;world.cameraRig.reset();world.angle=s.angle;world.player.rotation.y=s.angle+Math.PI;world.player.position.x=s.position.x;world.player.position.z=s.position.z;keys={};world.update(0,{},false);world.camera.position.copy(world.desiredCamera);
 }
 function interact(){if(!playing||screen||world.transition||model.s.job?.interaction||model.s.dailyLife?.action||model.s.workshop?.active?.action)return;const n=world.nearest();if(!n)return;const s=model.s;tone(330,.08,.02);
  if(n.type==='bottle'){model.collect(n.id);world.gesture('pickup');soundscape.effect('pickup');}
