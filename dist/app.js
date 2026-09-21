@@ -27,7 +27,7 @@ import {guestServiceView} from './cafe-service-view.js?v=0.7.3-map1';
 import {interactionVerb} from './interaction.js?v=0.7.4-core1';
 import {garagePanel,vehiclesPanel,trunkPanel,transitPanel} from './mobility-ui.js?v=0.7.5-fix1';
 import {TRANSIT_LOCATIONS,resolveTransitArrival} from './transit.js?v=0.7.5-fix1';
-import {World} from './world.js?v=0.7.5-hi3d1';
+import {World} from './world.js?v=0.7.5-hi3d2';
 const ALL_LOCATIONS=[...LOCATIONS,...TRANSIT_LOCATIONS],locationById=id=>ALL_LOCATIONS.find(l=>l.id===id),locationAddress=l=>l?.address||addressOf(l?.id);
 const $=id=>document.getElementById(id),esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const htmlCache=new WeakMap();function setHTML(id,value){const el=$(id);if(htmlCache.get(el)!==value){el.innerHTML=value;htmlCache.set(el,value)}}
