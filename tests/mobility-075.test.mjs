@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {GameModel,newGame,validateSave} from '../dist/model.js';
 import {BUILDINGS} from '../dist/data.js';
 import {allVehicles,usedOffers,trunkLimits,repairPrice,nearestParkingSpot,parkingSpotOccupied,ensureMobility} from '../dist/mobility.js';
-import {TRANSIT_STOPS,transitOffer,displayMinutes,clockText} from '../dist/transit.js';
+import {TRANSIT_STOPS,transitOffer,displayMinutes,clockText,resolveTransitArrival} from '../dist/transit.js';
 import {transitPanel} from '../dist/mobility-ui.js';
 import {exteriorContains,DISTRICT_FIXTURES} from '../dist/city-layout.js';
 import {NEIGHBORHOOD_FIXTURES} from '../dist/neighborhood-layout.js';
@@ -76,6 +76,11 @@ test('0.7.5 fractional game time never leaks long decimals into transit UI',()=>
  const html=transitPanel(s,'station',button);
  assert.doesNotMatch(html,/\d+\.\d{2,}\s*Spielminuten/);
  assert.doesNotMatch(html,/481\.234/);
+});
+
+test('0.7.5 transit arrival moves off a dynamic obstacle instead of trapping the player',()=>{
+ const start={x:12,z:12,angle:Math.PI},safe=resolveTransitArrival(start,(x,z)=>Math.hypot(x-12,z-12)>1.2&&x>8&&x<16&&z>8&&z<16);
+ assert.ok(Math.hypot(safe.x-start.x,safe.z-start.z)>=1.2);assert.equal(safe.angle,start.angle);
 });
 
 test('0.7.5 scheduled transit advances the shared clock, charges fare and exits on clear pavement',()=>{
