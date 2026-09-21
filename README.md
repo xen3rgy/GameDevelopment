@@ -14,6 +14,18 @@ python -m http.server 8000 --directory dist
 
 Open http://localhost:8000. No API keys, external services or package installation are required. Three.js r170 and the generated runtime assets are committed directly in `dist/`; no restore step is required. A browser with WebGL2 and hardware acceleration is required.
 
+## Version 0.7.5 · Stabilitäts-Pass
+
+- ÖPNV-Ankunftspunkte von Interaktionspunkten getrennt und gegen Stadtgeometrie validiert. Stadtmitte lag zuvor exakt auf einer Straßenlaterne; diese Kollision ist behoben.
+- Nach Bus-/Bahnfahrten wird Spieler, Kamera, Interaktionsfokus und Routenstatus vollständig synchronisiert. Zusätzlich sucht die Laufzeit bei dynamischen Hindernissen einen freien Ankunftspunkt in direkter Nähe.
+- Fahrplanzeiten runden Anzeige-Werte auf ganze Spielminuten; interne Fließkomma-Zeit bleibt für die Simulation erhalten, ohne lange Dezimalfolgen im UI.
+- ÖPNV-Ziele bleiben beim Markieren über Karte/Navigation erhalten und werden nicht mehr vom Delivery-Zielsystem verworfen.
+- Westhafen-Haltestelle und Fahrzeug-Parkpunkt wurden räumlich getrennt.
+- Stellplatzbelegung ist eindeutig. Alte 0.7.5-Spielstände mit doppelten Garagenplätzen oder veralteten Parkplatz-Reservierungen werden beim Laden automatisch repariert.
+- Beim Losfahren wird eine alte Parkplatz-Reservierung gelöscht; belegte Stellplätze können nicht doppelt verwendet werden.
+- Gebrauchtwagen zeigen jetzt realistische Kilometerstände im Bereich von ungefähr 38.000–183.000 km statt fälschlich 38–183 km.
+- Zusätzliche Regressionstests prüfen alle ÖPNV-Ankunftspunkte, dynamische Spawn-Recovery, Dezimalzeit-Anzeige, Stellplatzmigration und alle markierten Parkausstiege.
+
 ## Version 0.7.5 · Mobilität
 
 - Bis zu fünf eigene Fahrzeuge gleichzeitig. Das aktive Fahrzeug bleibt vollständig fahrbar; weitere Fahrzeuge werden im Mobilwerk auf vier markierten Stellplätzen verwaltet und können dort als aktives Fahrzeug geholt werden.
