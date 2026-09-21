@@ -6,7 +6,7 @@ export const TRANSIT_LOCATIONS=[
  {id:'transitPark',name:'Haltepunkt Lindenpark',type:'transit',x:90,z:76,arrival:{x:90,z:74,angle:Math.PI},icon:'▤',color:'#d5b97f',address:'Parkring · Lindenpark'}
 ];
 export const TRANSIT_STOPS={
- station:{id:'station',name:'Bahnhof Lindenstadt West',x:-175,z:-31,arrival:{x:-166,z:-29.4,angle:Math.PI},address:'Bahnhofplatz 1'},
+ station:{id:'station',name:'Bahnhof Lindenstadt West',x:-175,z:-31,arrival:{x:-175,z:-29.4,angle:Math.PI},address:'Bahnhofplatz 1'},
  transitCenter:TRANSIT_LOCATIONS[0],transitDepot:TRANSIT_LOCATIONS[1],transitPark:TRANSIT_LOCATIONS[2]
 };
 export const TRANSIT_LINES=[
