@@ -17,6 +17,15 @@ export const TRANSIT_LINES=[
 export const transitStop=id=>TRANSIT_STOPS[id]||null;
 export const transitArrival=id=>{const s=transitStop(id);return s?.arrival?{...s.arrival}:{x:s?.x??0,z:s?.z??0,angle:0}};
 export const lineById=id=>TRANSIT_LINES.find(l=>l.id===id)||null;
+export function resolveTransitArrival(position,isClear,maxRadius=5){
+ if(typeof isClear!=='function')return {...position};
+ if(isClear(position.x,position.z))return {...position};
+ for(let radius=.5;radius<=maxRadius;radius+=.5){
+  for(let i=0;i<24;i++){const a=i*Math.PI/12,x=position.x+Math.sin(a)*radius,z=position.z+Math.cos(a)*radius;if(isClear(x,z))return {...position,x,z};}
+ }
+ return {...position};
+}
+
 const absolute=(day,minute)=>(day-1)*1440+minute;
 export const displayMinutes=n=>Math.max(0,Math.ceil((Number(n)||0)-1e-8));
 export const clockText=n=>{const m=Math.floor((((Number(n)||0)%1440)+1440)%1440+1e-7);return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
