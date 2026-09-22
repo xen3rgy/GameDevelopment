@@ -1,7 +1,7 @@
-import {LOCATIONS,ITEMS,euro} from './data.js?v=0.7.3-map1';
-import {CONTRACTS,contractById,canAcceptContract,contractQuote,courierRank,jobStops,deadlineView} from './contracts.js?v=0.7.3-map1';
-import {addressOf} from './orientation.js?v=0.7.3-map1';
-import {deliveryPlan,transportAvailable,transportLabel,DELIVERY_PEOPLE,DELIVERY_SECONDS} from './delivery-routes.js?v=0.7.3-map1';
+import {LOCATIONS,ITEMS,euro} from './data.js?v=0.8.0';
+import {CONTRACTS,contractById,canAcceptContract,contractQuote,courierRank,jobStops,deadlineView} from './contracts.js?v=0.8.0';
+import {addressOf} from './orientation.js?v=0.8.0';
+import {deliveryPlan,transportAvailable,transportLabel,DELIVERY_PEOPLE,DELIVERY_SECONDS} from './delivery-routes.js?v=0.8.0';
 const location=id=>LOCATIONS.find(l=>l.id===id);
 export const realTime=n=>`${Math.floor(Math.max(0,Math.ceil(n))/60)}:${String(Math.max(0,Math.ceil(n))%60).padStart(2,'0')}`;
 export function careerPanel(s){const c=s.courier;return `<div class="courier-career"><div><span class="eyebrow">DEIN WEG IM LIEFERDIENST</span><h3>${courierRank(c)}</h3><p>${c.completed} Touren abgeschlossen · ${c.late} verspätet · ${c.cancelled} abgebrochen</p></div><div class="courier-score"><strong>${c.reliability}<small> / 100</small></strong><span>Zuverlässigkeit</span><progress max="100" value="${c.reliability}" aria-label="Zuverlässigkeit"></progress></div></div>`;}

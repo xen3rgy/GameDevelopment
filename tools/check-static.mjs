@@ -32,7 +32,9 @@ for(const rel of [
  'dist/assets/lindenstadt-mural.png',
  'dist/assets/station-brick-069.png',
  'dist/assets/lindenstadt-tree.glb',
- 'dist/assets/lindenstadt-tree-pit.glb'
+ 'dist/assets/lindenstadt-tree-pit.glb',
+ 'dist/assets/meadow-ground.png',
+ 'dist/assets/meadow-clumps.png'
 ])if(!existsSync(join(root,rel)))missing.push(rel);
 const treeAsset=join(root,'dist/assets/lindenstadt-tree.glb');
 if(existsSync(treeAsset)){const b=readFileSync(treeAsset);if(b.length<2_000_000||b.length>2_600_000||b.readUInt32LE(0)!==0x46546c67||b.readUInt32LE(4)!==2)missing.push('dist/assets/lindenstadt-tree.glb is not the expected optimized GLB asset')}

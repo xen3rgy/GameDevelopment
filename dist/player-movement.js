@@ -1,4 +1,4 @@
-import {workshopCarry} from './workshop.js?v=0.7.3-map1';
+import {workshopCarry} from './workshop.js?v=0.8.0';
 // Real metres per second. The clock multiplier never changes player movement.
 export const PARCEL_WALK_SPEED=2.8;
 export function heldLoad(s){

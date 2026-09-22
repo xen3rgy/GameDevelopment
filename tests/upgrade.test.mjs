@@ -22,7 +22,7 @@ test('cooking failure is atomic and overflow goes to the fridge',()=>{
  m.remove('pasta');m.add('bottle',200);insertItem(m.s.storage,'pasta',1,32,100);insertItem(m.s.storage,'vegetables',1,32,100);assert.ok(m.cook('pasta'));assert.equal(itemCount(m.s.fridge,'meal'),2);assert.equal(m.count('meal'),0)
 });
 test('legacy saves migrate without losing progression, drops, active jobs or vehicles',()=>{
- const m=new GameModel(newGame(true));m.buyVehicle('car');m.startJob('warehouse');m.s.position={...WORK.crate};m.work('crate');m.add('water');m.drop(0);const legacy=structuredClone(m.s);legacy.version=1;delete legacy.storage;delete legacy.stats.cooked;delete legacy.vehicle.angle;delete legacy.vehicle.speed;delete legacy.job.vehicleUsed;
+ const m=new GameModel(newGame(true));m.s.position={x:76,z:12};m.buyVehicle('car');m.startJob('warehouse');m.s.position={...WORK.crate};m.work('crate');m.add('water');m.drop(0);const legacy=structuredClone(m.s);legacy.version=1;delete legacy.fleet;delete legacy.fleetSerial;delete legacy.storage;delete legacy.stats.cooked;delete legacy.vehicle.angle;delete legacy.vehicle.speed;delete legacy.job.vehicleUsed;
  const updated=validateSave(legacy);assert.equal(updated.version,3);assert.equal(updated.money,legacy.money);assert.equal(updated.vehicle.id,'car');assert.equal(updated.job.carrying,true);assert.equal(updated.drops.length,1);assert.deepEqual(updated.storage,[]);assert.equal(legacy.version,1);assert.equal(updated.vehicle.speed,0)
 });
 test('local backup restores damaged primary while a failed write preserves the existing save',()=>{

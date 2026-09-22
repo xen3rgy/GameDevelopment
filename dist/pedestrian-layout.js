@@ -1,9 +1,9 @@
-import {NEIGHBORHOOD_FIXTURES} from './neighborhood-layout.js?v=0.7.3-map1';
-import {STREET_TREES,STREET_PLANTERS} from './public-realm-layout.js?v=0.7.3-map1';
-import {STREET_LAMPS} from './lighting.js?v=0.7.3-map1';
-import {PAVEMENTS,streetSurface} from './street-layout.js?v=0.7.3-map1';
-import {ROADS} from './city-layout.js?v=0.7.3-map1';
-import {CITY_CHARACTER_FIXTURES,CITY_COURTYARD_PATH} from './city-character-layout.js?v=0.7.3-map1';
+import {NEIGHBORHOOD_FIXTURES} from './neighborhood-layout.js?v=0.8.0';
+import {STREET_TREES,STREET_PLANTERS} from './public-realm-layout.js?v=0.8.0';
+import {STREET_LAMPS} from './lighting.js?v=0.8.0';
+import {PAVEMENTS,streetSurface} from './street-layout.js?v=0.8.0';
+import {ROADS} from './city-layout.js?v=0.8.0';
+import {CITY_CHARACTER_FIXTURES,CITY_COURTYARD_PATH} from './city-character-layout.js?v=0.8.0';
 
 // Existing street furniture now has the same physical footprint for people and navigation.
 export const STREET_SEATS=[-81,-44,-13,21,52,92.5];

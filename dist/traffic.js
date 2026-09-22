@@ -1,5 +1,5 @@
-import {crossingObstacles} from './street-layout.js?v=0.7.3-map1';
-import {ROAD_X} from './city-layout.js?v=0.7.3-map1';
+import {crossingObstacles} from './street-layout.js?v=0.8.0';
+import {ROAD_X} from './city-layout.js?v=0.8.0';
 // Deterministic lane routes and braking, independent of rendering and game time speed.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -43,7 +43,7 @@ export function pedestrianBlocks(car,p,time=0){
 }
 export function parkedVehicleBlocks(vehicle,x,z,r=.35,from=null){
  if(!vehicle)return false;
- const body={...vehicle,angle:vehicle.angle??Math.PI,length:vehicle.id==='van'?4.8:vehicle.id==='bike'?1.8:3.8,width:vehicle.id==='bike'?.65:1.85};
+ const body={...vehicle,angle:vehicle.angle??Math.PI,length:vehicle.id==='van'?4.8:vehicle.id==='sport'?4.1:vehicle.id==='bike'?1.8:3.8,width:vehicle.id==='bike'?.65:1.85};
  const hit=(x,z)=>overlaps({x,z,angle:0,length:r*2,width:r*2},body,.03);
  if(!hit(x,z))return false;
  // Older saves could place a walking player inside their parked vehicle: allow escape.
@@ -73,7 +73,7 @@ export class Traffic {
   for(const car of this.cars){
    // Let a car already over a crossing clear it; approaching people stop the next car.
    // Actual body collisions are still checked independently below.
-   const obstacles=[...snapshot.filter(c=>c.id!==car.id),...crossings.filter(c=>!overlaps(car,c,.25)),...(owned?[owned]:[])].filter(o=>distance(o,car)<38),people=pedestrians.filter(p=>distance(p,car)<24);
+   const obstacles=[...snapshot.filter(c=>c.id!==car.id),...crossings.filter(c=>!overlaps(car,c,.25)),...(Array.isArray(owned)?owned:owned?[owned]:[])].filter(o=>distance(o,car)<38),people=pedestrians.filter(p=>distance(p,car)<24);
    const look=4+car.speed*car.speed/8.4+car.speed*.4;
    const closed=this.junctions.filter(j=>j.owner!=null&&j.owner!==car.id&&distance(car,j)<38);
    let gap=look;for(let d=0;d<=look;d+=.5){const pose={...routePose(car.route,car.progress+d),length:car.length,width:car.width};if(obstacles.some(o=>overlaps(pose,o,.25))||people.some(p=>pedestrianBlocks(pose,p,d/Math.max(1,car.speed)))||closed.some(j=>Math.abs(pose.x-j.x)<12&&Math.abs(pose.z-j.z)<12)){gap=Math.max(0,d-.5);break}}

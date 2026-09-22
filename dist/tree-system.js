@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import {groundHeight} from './spatial.js?v=0.7.3-map1';
+import {groundHeight} from './spatial.js?v=0.8.0';
 
 export const TREE_ASSET_BOUNDS={
  minX:-0.4471232295036316,maxX:0.46034368872642517,

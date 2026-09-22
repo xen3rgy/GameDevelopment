@@ -1,8 +1,8 @@
-import {supplyPlan,needsSupply,supplyTarget} from './workshop-supply.js?v=0.7.3-map1';
-import {orderBike} from './workshop-orders.js?v=0.7.3-map1';
-import {euro} from './data.js?v=0.7.3-map1';
-import {WORKSHOP_TYPES,WORKSHOP_TRAINING,workshopHours,workshopEstimate,workshopStep,workshopSteps,workshopPayout} from './workshop.js?v=0.7.3-map1';
-import {WORKSHOP_POINTS,atWorkshop} from './workshop-layout.js?v=0.7.3-map1';
+import {supplyPlan,needsSupply,supplyTarget} from './workshop-supply.js?v=0.8.0';
+import {orderBike} from './workshop-orders.js?v=0.8.0';
+import {euro} from './data.js?v=0.8.0';
+import {WORKSHOP_TYPES,WORKSHOP_TRAINING,workshopHours,workshopEstimate,workshopStep,workshopSteps,workshopPayout} from './workshop.js?v=0.8.0';
+import {WORKSHOP_POINTS,atWorkshop} from './workshop-layout.js?v=0.8.0';
 const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const level=w=>['Aushilfe','Zweirad-Basiskurs','Sicheres Arbeiten'][w.training];
 const hours=s=>`<div class="cafe-hours ${workshopHours(s).accept?'open':'closed'}"><strong>${workshopHours(s).accept?'Aufträge werden angenommen':workshopHours(s).open?'Annahme geschlossen · laufende Arbeiten abschließen':'Heute geschlossen'}</strong><span>Geöffnet 08:00–19:00 · neue Aufträge bis 17:00</span></div>`;

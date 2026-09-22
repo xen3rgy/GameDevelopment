@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import {ROAD_X,ROAD_Z} from './city-layout.js?v=0.7.3-map1';
-import {ROAD_HEIGHT,PAVEMENT_HEIGHT,HALF_ROAD,CORNER_RADIUS,CORNERS,RAMP_WIDTH,RAMP_CORE,CROSSINGS,CROSSWALK_OFFSETS,CROSSWALK_STRIPE_WIDTH,streetPatches,rampHeight,onRoad,streetSurface} from './street-layout.js?v=0.7.3-map1';
-import {surfaceMaterial,surfaceTileMeters} from './atmosphere.js?v=0.7.3-map1';
+import {ROAD_X,ROAD_Z} from './city-layout.js?v=0.8.0';
+import {ROAD_HEIGHT,PAVEMENT_HEIGHT,HALF_ROAD,CORNER_RADIUS,CORNERS,RAMP_WIDTH,RAMP_CORE,CROSSINGS,CROSSWALK_OFFSETS,CROSSWALK_STRIPE_WIDTH,streetPatches,rampHeight,onRoad,streetSurface} from './street-layout.js?v=0.8.0';
+import {surfaceMaterial,surfaceTileMeters} from './atmosphere.js?v=0.8.0';
 
 export function buildStreets(world,kit){
  const g=new THREE.Group();g.name='Connected streets';world.scene.add(g);world.staticGroups.push(g);

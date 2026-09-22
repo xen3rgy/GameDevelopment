@@ -1,8 +1,8 @@
 import * as THREE from './vendor/three.module.js';
-import {createCitizen} from './art.js?v=0.7.3-map1';
-import {animateCitizen} from './animation.js?v=0.7.3-map1';
-import {groundHeight} from './spatial.js?v=0.7.3-map1';
-import {DELIVERY_PEOPLE,DELIVERY_SECONDS,deliveryLocation,stationFacing} from './delivery-routes.js?v=0.7.3-map1';
+import {createCitizen} from './art.js?v=0.8.0';
+import {animateCitizen} from './animation.js?v=0.8.0';
+import {groundHeight} from './spatial.js?v=0.8.0';
+import {DELIVERY_PEOPLE,DELIVERY_SECONDS,deliveryLocation,stationFacing} from './delivery-routes.js?v=0.8.0';
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t)};
 export function parcelAsset(kit,index=0,label=''){
  const g=new THREE.Group(),{box,sign}=kit;

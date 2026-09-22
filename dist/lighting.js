@@ -1,4 +1,4 @@
-import {ROAD_X} from './city-layout.js?v=0.7.3-map1';
+import {ROAD_X} from './city-layout.js?v=0.8.0';
 const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
 export function lightingAt(minute,inside=false){
  const time=((minute%1440)+1440)%1440;

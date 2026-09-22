@@ -1,4 +1,4 @@
-import {ROADS,ROAD_X,ROAD_Z} from './city-layout.js?v=0.7.3-map1';
+import {ROADS,ROAD_X,ROAD_Z} from './city-layout.js?v=0.8.0';
 export const ROAD_HEIGHT=.14, PAVEMENT_HEIGHT=.30, HALF_ROAD=6.5, CORNER_RADIUS=2, RAMP_WIDTH=3, RAMP_CORE=.9;
 // Centered around the road axis: equal kerb margins, including an odd center stripe.
 export const CROSSWALK_STRIPE_WIDTH=.72;

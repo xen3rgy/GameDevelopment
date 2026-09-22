@@ -1,10 +1,12 @@
-import {attachStreetProps,resetStreetArms,animateStreetIdle} from './street-idle.js?v=0.7.3-map1';
+import {attachStreetProps,resetStreetArms,animateStreetIdle} from './street-idle.js?v=0.8.0';
+import {availableVehicles} from './fleet.js?v=0.8.0';
+import {vehicleBody} from './traffic.js?v=0.8.0';
 import * as THREE from './vendor/three.module.js';
-import {createCitizen} from './art.js?v=0.7.3-map1';
-import {animateCitizen} from './animation.js?v=0.7.3-map1';
-import {groundHeight} from './spatial.js?v=0.7.3-map1';
-import {PedestrianLife} from './pedestrian-life.js?v=0.7.3-map1';
-import {PEOPLE} from './data.js?v=0.7.3-map1';
+import {createCitizen} from './art.js?v=0.8.0';
+import {animateCitizen} from './animation.js?v=0.8.0';
+import {groundHeight} from './spatial.js?v=0.8.0';
+import {PedestrianLife} from './pedestrian-life.js?v=0.8.0';
+import {PEOPLE} from './data.js?v=0.8.0';
 
 export function citizenAppearance(id){return {
  color:[0x496e79,0x936347,0x5f7053,0x344955,0xa08e74,0x754f56,0x747d85,0x8c814e][id%8],
@@ -39,8 +41,8 @@ export class PedestrianScene{
  }
  update(state,dt,position){
   const bystanders=[...PEOPLE.map(p=>({x:p.x,z:p.z})),...(!state.inside&&!state.riding?[{...position,radius:.4}]:[])];
-  const owned=state.vehicle?{...state.vehicle,length:state.vehicle.id==='van'?4.8:state.vehicle.id==='bike'?1.8:3.8,width:state.vehicle.id==='bike'?.65:1.85,speed:Math.abs(state.vehicle.speed||0),angle:state.vehicle.angle??Math.PI}:null;
-  this.life.update(dt,state.minute,{speed:state.settings.speed,bystanders,cars:[...this.world.traffic.cars,...(owned?[owned]:[])]});
+  const owned=availableVehicles(state).map(v=>({...vehicleBody(v),speed:Math.abs(v.speed||0)}));
+  this.life.update(dt,state.minute,{speed:state.settings.speed,bystanders,cars:[...this.world.traffic.cars,...owned]});
   this.root.visible=!state.inside;
   for(const p of this.life.people){
    const m=p.mesh,ground=['enter','exit'].includes(p.phase)?groundHeight(p.portal.x,p.portal.z):groundHeight(p.x,p.z);m.visible=p.visible;m.position.set(p.x,ground-.05*p.height,p.z);m.rotation.y=p.yaw;

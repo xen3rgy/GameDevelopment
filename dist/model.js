@@ -1,24 +1,28 @@
-import {newWorkLog,recordWork,validateWorkLog} from './work-log.js?v=0.7.3-map1';
-import {tickWorkshopLife} from './workshop-life.js?v=0.7.3-map1';
-import {newWorkshop,workshopHours,workshopCommand,tickWorkshop,expireWorkshop,validateWorkshop} from './workshop.js?v=0.7.3-map1';
-import {homeLocation,outsidePosition} from './housing.js?v=0.7.3-map1';
-import {exteriorContains} from './city-layout.js?v=0.7.3-map1';
-import {newDailyLife,validateDailyLife,actionOffer,applyRest,prepareRecipe,FRIDGE_SLOTS,FRIDGE_WEIGHT,fridgeItem} from './daily-life.js?v=0.7.3-map1';
-import {deliveryPlan,deliveryLocation,transportAvailable,DELIVERY_SECONDS} from './delivery-routes.js?v=0.7.3-map1';
-import {simulationMinutes,CAFE_CLOSE} from './game-time.js?v=0.7.3-map1';
-import {contractById,newCourier,canAcceptContract,contractQuote,clockMinutes,recordCourier,validateCourier} from './contracts.js?v=0.7.3-map1';
-import {ITEMS,HOMES,BUSINESSES,QUESTS,VEHICLES,LOCATIONS,WORK,RECIPES,SHOP_POINTS,HOME_POINTS,clamp} from './data.js?v=0.7.3-map1';
-import {inventoryWeight,itemCount,insertItem,removeItem,transferItem} from './inventory.js?v=0.7.3-map1';
-import {ROOMS,canWalkRoom} from './spatial.js?v=0.7.3-map1';
-import {newCafe,validateCafe,cafeAction,tickCafe,finishCafe,cafeDayResult,STAFF_TRAINING_COST,validStaffLevels} from './cafe.js?v=0.7.3-map1';
+import {newWorkLog,recordWork,validateWorkLog} from './work-log.js?v=0.8.0';
+import {tickWorkshopLife} from './workshop-life.js?v=0.8.0';
+import {newWorkshop,workshopHours,workshopCommand,tickWorkshop,expireWorkshop,validateWorkshop} from './workshop.js?v=0.8.0';
+import {homeLocation,outsidePosition} from './housing.js?v=0.8.0';
+import {exteriorContains} from './city-layout.js?v=0.8.0';
+import {newDailyLife,validateDailyLife,actionOffer,applyRest,prepareRecipe,FRIDGE_SLOTS,FRIDGE_WEIGHT,fridgeItem} from './daily-life.js?v=0.8.0';
+import {deliveryPlan,deliveryLocation,transportAvailable,DELIVERY_SECONDS} from './delivery-routes.js?v=0.8.0';
+import {simulationMinutes,CAFE_CLOSE} from './game-time.js?v=0.8.0';
+import {contractById,newCourier,canAcceptContract,contractQuote,clockMinutes,recordCourier,validateCourier} from './contracts.js?v=0.8.0';
+import {ITEMS,HOMES,BUSINESSES,QUESTS,VEHICLES,LOCATIONS,WORK,RECIPES,SHOP_POINTS,HOME_POINTS,clamp} from './data.js?v=0.8.0';
+import {inventoryWeight,itemCount,insertItem,removeItem,transferItem} from './inventory.js?v=0.8.0';
+import {ROOMS,canWalkRoom} from './spatial.js?v=0.8.0';
+import {newCafe,validateCafe,cafeAction,tickCafe,finishCafe,cafeDayResult,STAFF_TRAINING_COST,validStaffLevels} from './cafe.js?v=0.8.0';
+import {initFleet,validateFleet,purchaseVehicle,fleetCommand,ownedVehicles,resale,insuranceDay} from './fleet.js?v=0.8.0';
+import {tickTransit,validateTransit} from './transit.js?v=0.8.0';
+import {inReach} from './interactions.js?v=0.8.0';
+import {tickFieldWork} from './field-work.js?v=0.8.0';
 export const SAVE_KEY='zero-rise-save-v1';
 export function newGame(sandbox=false){return {version:3,mode:sandbox?'sandbox':'story',money:sandbox?2000000:0,bank:0,debt:0,day:1,minute:8*60,needs:{health:100,hunger:78,thirst:75,energy:85,hygiene:65,stress:12},inventory:[],storage:[],fridge:[],dailyLife:newDailyLife(),position:{x:-27,z:-4},angle:0,inside:false,interior:null,basket:[],riding:false,vehicle:null,home:null,rentDue:0,job:null,courier:newCourier(),workshop:newWorkshop(),workLog:newWorkLog(),skills:{fitness:0,logistics:0,business:0,tech:0},xp:0,reputation:0,relations:{},businesses:{},properties:0,quest:0,stats:{collected:0,returned:0,consumed:0,jobs:0,slept:0,homes:0,courses:0,businesses:0,hired:0,properties:0,wealth:0,earned:0,cooked:0},collected:[],drops:[],weather:'clear',economy:'Normal',history:[],dailyIncome:0,cafe:newCafe(),settings:{sound:true,quality:'high',speed:1,sensitivity:1,brightness:1,fov:55,ambienceVolume:100,vehicleVolume:100,effectsVolume:100}}}
 export class GameModel{
- constructor(state=newGame()){this.s=state.version<3?validateSave(state):state;this.s.courier??=newCourier();this.s.dailyLife??=newDailyLife();this.s.fridge??=[];this.s.workshop??=newWorkshop();this.s.workLog??=newWorkLog();this.events=[];this.onChange=()=>{}}
+ constructor(state=newGame()){this.s=state.version<3?validateSave(state):state;this.s.courier??=newCourier();this.s.dailyLife??=newDailyLife();this.s.fridge??=[];this.s.workshop??=newWorkshop();this.s.workLog??=newWorkLog();initFleet(this.s);this.s.transit??=null;this.events=[];this.onChange=()=>{}}
  emit(text,type='info'){this.events.push({text,type});this.s.history.unshift({text,day:this.s.day});this.s.history=this.s.history.slice(0,30);this.onChange()}
  get weight(){return this.s.inventory.reduce((n,v)=>n+ITEMS[v.id].weight*v.count,0)}
  get capacity(){return 16}
- get wealth(){return this.s.money+this.s.bank-this.s.debt+Object.entries(this.s.businesses).reduce((v,[id])=>v+BUSINESSES[id].cost,0)+this.s.properties*150000+(this.s.vehicle?Math.round(VEHICLES[this.s.vehicle.id].cost*.65*this.s.vehicle.condition/100):0)}
+ get wealth(){return this.s.money+this.s.bank-this.s.debt+Object.entries(this.s.businesses).reduce((v,[id])=>v+BUSINESSES[id].cost,0)+this.s.properties*150000+ownedVehicles(this.s).reduce((n,v)=>n+resale(v),0)}
  add(id,count=1){return insertItem(this.s.inventory,id,count)}
  count(id){return itemCount(this.s.inventory,id)}
  remove(id,count=1){return removeItem(this.s.inventory,id,count)}
@@ -44,7 +48,7 @@ export class GameModel{
   this.onChange();return true;
  }
  beginLifeAction(kind,arg){
-  if(this.s.workshop?.active?.action)return false;
+  if(this.s.transit||this.s.job?.fieldAction||this.s.workshop?.active?.action)return false;
   const s=this.s,offer=actionOffer(s,kind,arg);if(!offer){this.emit('Diese Aktion ist hier gerade nicht möglich. Prüfe freie Hände, Zutaten und Bargeld.');return false;}
   if(!this.spend(offer.cost))return false;
   s.dailyLife.action={...offer,elapsed:0,applied:0,interrupted:false,origin:{...s.position},yaw:s.angle+Math.PI};this.onChange();return true;
@@ -69,7 +73,7 @@ export class GameModel{
 
  enterInterior(id){
   const s=this.s,room=ROOMS[id],location=id==='home'?homeLocation(s):LOCATIONS.find(l=>l.id===(id==='shop'?'market':id==='cafe'?'cafe':id==='workshop'?'deliveryWorkshop':'home'));
-  if(s.dailyLife.action||s.workshop?.active?.action||!Object.hasOwn(ROOMS,id)||s.inside||s.riding||id==='home'&&!s.home||Math.hypot(s.position.x-location.x,s.position.z-location.z)>3.1)return false;
+  if(s.transit||s.job?.fieldAction||s.dailyLife.action||s.workshop?.active?.action||!Object.hasOwn(ROOMS,id)||s.inside||s.riding||id==='home'&&!s.home||!inReach(s.position,location))return false;
   if(id==='workshop'&&!workshopHours(s).open){this.emit('Werkstatt West ist von 08:00 bis 19:00 geöffnet. Neue Aufträge bis 17:00.');return false;}
   s.inside=true;s.interior=id;s.position={...room.spawn};s.angle=room.angle;s.basket=[];return true;
  }
@@ -85,12 +89,12 @@ export class GameModel{
  get basketTotal(){return this.s.basket.reduce((sum,v)=>sum+ITEMS[v.id].price*v.count,0)}
  basketAdd(id){
   if(this.s.interior!=='shop')return false;
-  const nearShelf=Object.values(SHOP_POINTS).some(p=>p.items?.includes(id)&&Math.hypot(this.s.position.x-p.x,this.s.position.z-p.z)<=2);if(!nearShelf)return false;
+  const nearShelf=Object.values(SHOP_POINTS).some(p=>p.items?.includes(id)&&inReach(this.s.position,p,'indoor'));if(!nearShelf)return false;
   let slot=this.s.basket.find(v=>v.id===id);if(slot?.count>=20){this.emit('Maximal 20 Stück pro Ware im Korb.');return false}if(slot)slot.count++;else this.s.basket.push({id,count:1});this.onChange();return true;
  }
  basketRemove(id){const i=this.s.basket.findIndex(v=>v.id===id);if(i<0)return false;if(--this.s.basket[i].count===0)this.s.basket.splice(i,1);return true}
  checkout(){
-  const s=this.s,point=SHOP_POINTS.checkout;if(s.interior!=='shop'||Math.hypot(s.position.x-point.x,s.position.z-point.z)>2||!s.basket.length)return false;
+  const s=this.s,point=SHOP_POINTS.checkout;if(s.interior!=='shop'||!inReach(s.position,point,'indoor')||!s.basket.length)return false;
   const total=this.basketTotal;if(s.money<total){this.emit('Dafür reicht dein Bargeld nicht. Lege einzelne Waren zurück.');return false}
   const inventory=structuredClone(s.inventory);for(const v of s.basket)if(!insertItem(inventory,v.id,v.count)){this.emit('Dein Rucksack hat nicht genug Platz. Lege Waren zurück oder schaffe Platz.');return false}
   s.inventory=inventory;s.money-=total;s.basket=[];this.emit('Einkauf bezahlt. Alle Waren sind jetzt in deinem Rucksack.','success');return true;
@@ -124,13 +128,13 @@ export class GameModel{
  cancelJob(){const j=this.s.job;if(!j)return false;if(j.type==='courier')recordCourier(this.s,{contract:j.contract||null,status:'cancelled',stops:j.progress,duration:clockMinutes(this.s)-j.started,estimatedCosts:Math.round(j.operatingCosts||0),deliveries:j.deliveries||[]});if(j.type!=='courier')recordWork(this.s,{ref:j.type+'-cancel-'+this.s.workLog.serial,type:j.type,status:'cancelled',minutes:clockMinutes(this.s)-j.started});const parcels=this.count('parcel');if(parcels)this.remove('parcel',parcels);this.s.job=null;this.emit('Auftrag beendet. Keine Auszahlung.'+(j.type==='courier'?' Zuverlässigkeit '+this.s.courier.last.reliabilityDelta+'.':''));return true;}
  work(action,index=0){
   const s=this.s,j=s.job;if(!j||s.inside||s.riding)return false;
-  const near=p=>p&&Math.hypot(s.position.x-p.x,s.position.z-p.z)<3.1;
+  const near=p=>p&&Math.hypot(s.position.x-p.x,s.position.z-p.z)<=(j.type==='courier'?3:2.2);
   if(action==='deliver'&&j.type==='courier'){
    if(!near(LOCATIONS.find(l=>l.id===j.target))||!this.count('parcel'))return false;
    if(j.protocol===2){if(j.interaction)return false;const point=deliveryLocation(j.target);if(Math.hypot(s.position.x-point.x,s.position.z-point.z)>1.9){this.emit('Gehe näher zum Empfänger am markierten Eingang.');return false;}j.interaction={kind:'deliver',target:j.target,elapsed:0};this.onChange();return true;}
    if(j.contract){this.remove('parcel');j.progress++;const c=contractById(j.contract);if(j.progress<c.route.length)j.target=c.route[j.progress];}else j.progress=1;
   }else if(action==='trash'&&j.type==='cleaning'){
-   const p=WORK.cleaning[j.progress];if(index!==j.progress||!near(p&&{x:p[0],z:p[1]}))return false;j.progress++;s.needs.hygiene=clamp(s.needs.hygiene-2);s.needs.energy=clamp(s.needs.energy-1);
+   const p=WORK.cleaning[index];j.cleaned??=Array.from({length:j.progress},(_,i)=>i);if(!Number.isInteger(index)||!p||j.cleaned.includes(index)||!near({x:p[0],z:p[1]}))return false;j.cleaned.push(index);j.progress++;s.needs.hygiene=clamp(s.needs.hygiene-2);s.needs.energy=clamp(s.needs.energy-1);
   }else if(action==='crate'&&j.type==='warehouse'){
    if(j.carrying||!near(WORK.crate))return false;j.carrying=true;this.emit('Kiste gescannt. Bringe sie zum Regal '+['A','B','C','D'][j.progress]+'.');return true;
   }else if(action==='shelf'&&j.type==='warehouse'){
@@ -184,19 +188,19 @@ export class GameModel{
  if(action==='open')b.open=!b.open;
  if(action==='quality'&&b.quality<3){if(!this.spend(25000*b.quality)){this.emit('Dafür fehlt das Geld.');return}b.quality++}
  this.onChange()}
- daily(){let s=this.s;finishCafe(s,'Mitternacht');s.collected=[];let states=['Normal','Normal','Aufschwung','Rezession'];s.economy=states[Math.floor(s.day/3)%4];s.weather=s.day%3===0?'rain':'clear';let income=0,cashAdjustment=0;
+ daily(){insuranceDay(this);let s=this.s;finishCafe(s,'Mitternacht');s.collected=[];let states=['Normal','Normal','Aufschwung','Rezession'];s.economy=states[Math.floor(s.day/3)%4];s.weather=s.day%3===0?'rain':'clear';let income=0,cashAdjustment=0;
  for(let [id,b]of Object.entries(s.businesses)){if(id==='cafe'){const active=s.cafe?.phase!=='idle'&&s.cafe?.day===s.day-1,result=cafeDayResult(active?s.cafe:null,b,BUSINESSES[id],s.skills.business);b.sales=result.sales;b.costs=result.costs;b.profit=result.profit;b.cafeReport={day:s.day-1,...result};income+=b.profit;cashAdjustment+=result.cashAdjustment||0;continue}let d=BUSINESSES[id];b.sales=0;b.costs=Math.round(d.baseCosts*.35)+b.staff*4500+(b.marketing?1500:0);if(b.open&&b.stock>0){let demand=(s.economy==='Aufschwung'?1.22:s.economy==='Rezession'?.75:1)*(1+(b.quality-1)*.18)*(b.marketing?1.2:1)*(1+b.staff*.32)*(1+(s.skills.business/100)*.08);let staffing=b.staff===0?.65:1;demand*=Math.max(.25,1-(b.price-1)*1.8);b.sales=Math.round(d.baseSales*demand*b.price*staffing);b.stock--;b.costs+=Math.round(d.baseCosts*.65)}b.profit=b.sales-b.costs;income+=b.profit}
  income+=s.properties*7500;s.dailyIncome=income;const payout=income+cashAdjustment;if(payout>=0)this.earn(payout);else{let loss=-payout;let paid=Math.min(s.money,loss);s.money-=paid;s.debt+=loss-paid}
  if(s.debt)s.debt+=Math.ceil(s.debt*.01);
  if(s.home&&s.day>=s.rentDue){let home=HOMES.find(h=>h.id===s.home);if(this.spend(home.rent)){this.emit('Miete für '+home.name+' bezahlt.')}else{s.debt+=home.rent;this.emit('Miete offen. Der Betrag wurde als Schuld verbucht.','warning')}s.rentDue=s.day+3}
  if(Object.keys(s.businesses).length||s.properties)this.emit('Tagesabschluss: '+(income/100).toFixed(2)+' € Ergebnis.',income>=0?'success':'warning');this.checkQuests()}
- updateTime(seconds){if(this.s.dailyLife.action){this.tickLifeAction(seconds);return;}this.advance(simulationMinutes(seconds,this.s.settings.speed));this.tickCourier(seconds);tickWorkshop(this,seconds);tickWorkshopLife(this.s,seconds);}
+ updateTime(seconds){if(this.s.transit){tickTransit(this,seconds);return;}tickFieldWork(this,seconds);if(this.s.dailyLife.action){this.tickLifeAction(seconds);return;}this.advance(simulationMinutes(seconds,this.s.settings.speed));this.tickCourier(seconds);tickWorkshop(this,seconds);tickWorkshopLife(this.s,seconds);}
  advance(minutes,resting=false,lifeKind=null){if(!Number.isFinite(minutes)||minutes<=0)return;let s=this.s;while(minutes>0){const c=s.cafe,busy=c?.phase==='open'||c?.employees?.some(e=>e.status==='leaving');let part=Math.min(minutes,1440-s.minute,busy?.25:lifeKind?1:Infinity);if(busy)this.tickCafe(part);s.minute+=part;minutes-=part;const n=s.needs,deprived=Math.max(0,part-n.hunger/.025,part-n.thirst/.034);n.hunger=clamp(n.hunger-part*.025);n.thirst=clamp(n.thirst-part*.034);n.energy=clamp(n.energy-part*(lifeKind&&resting?0:resting?.003:.023));if(lifeKind)applyRest(s,part,lifeKind);if(!['sleep','shelterSleep','rest'].includes(lifeKind))s.dailyLife.awakeMinutes=Math.min(2880,s.dailyLife.awakeMinutes+part);n.hygiene=clamp(n.hygiene-part*.014);n.stress=clamp(n.stress+part*(Object.keys(s.businesses).length*.0015));if(deprived>0)n.health=clamp(n.health-deprived*.035);if(c?.phase==='open'&&s.minute>=CAFE_CLOSE)finishCafe(s,'Ladenschluss um 20:00');if(s.minute>=1440){s.minute=0;s.day++;this.daily()}}
  if(s.needs.health<=0){if(s.workshop?.active)s.workshop.active.action=null;s.dailyLife.action=null;s.dailyLife.awakeMinutes=600;finishCafe(s,'Schicht wegen Erschöpfung beendet');s.needs={health:65,hunger:50,thirst:55,energy:55,hygiene:40,stress:40};s.money=Math.max(0,s.money-1500);s.position={x:-68,z:-7};s.inside=false;s.interior=null;s.basket=[];s.riding=false;this.emit('Du bist zusammengebrochen. Die Anlaufstelle hat dich versorgt. Bis zu 15 € Behandlungskosten.','warning')}expireWorkshop(this);this.checkQuests()}
  bank(action,amount){amount=Math.round(amount);if(!Number.isFinite(amount)||amount<=0)return;if(action==='deposit'&&this.spend(amount))this.s.bank+=amount;else if(action==='withdraw'&&this.s.bank>=amount){this.s.bank-=amount;this.s.money+=amount}else if(action==='loan'){if(this.s.debt+amount>100000){this.emit('Dein Kreditrahmen beträgt 1.000 €.');return}this.s.debt+=amount;this.s.money+=amount;this.emit('Kredit ausgezahlt. Zinsen: 1 % pro Spieltag.')}else if(action==='repay'){let n=Math.min(amount,this.s.debt);if(this.spend(n))this.s.debt-=n}else this.emit('Betrag nicht verfügbar.');this.checkQuests()}
  property(){if(!this.spend(150000)){this.emit('Eine Mietwohnung kostet 1.500 €.');return}this.s.properties++;this.s.stats.properties++;this.emit('Mietwohnung gekauft. Nettoertrag: 75 € pro Spieltag.','success');this.checkQuests()}
- buyVehicle(id){let v=VEHICLES[id];if(!v||this.s.vehicle)return;if(!this.spend(v.cost)){this.emit('Nicht genug Geld für dieses Fahrzeug.');return}this.s.vehicle={id,fuel:100,condition:100,x:76,z:9,angle:Math.PI,speed:0};this.emit(v.name+' gekauft. Es steht vor dem Mobilwerk.','success');this.checkQuests()}
- serviceVehicle(action){let v=this.s.vehicle;if(!v)return;if(action==='fuel'){if(v.id==='bike')return;let price=Math.ceil((100-v.fuel)*30);if(!this.spend(price)){this.emit('Nicht genug Geld zum Tanken.');return}v.fuel=100;this.emit('Vollgetankt.','success')}if(action==='repair'){let price=Math.ceil((100-v.condition)*(v.id==='bike'?10:120));if(!this.spend(price)){this.emit('Nicht genug Geld für die Reparatur.');return}v.condition=100;this.emit('Wieder in gutem Zustand.','success')}if(action==='sell'){this.earn(Math.round(VEHICLES[v.id].cost*.65*v.condition/100));this.s.vehicle=null;this.s.riding=false;this.emit('Fahrzeug verkauft.','success')}this.checkQuests()}
+ buyVehicle(id,offer=null){return purchaseVehicle(this,id,offer)}
+ serviceVehicle(action){return fleetCommand(this,action,this.s.vehicle?.uid)}
  talk(id,option){let r=this.s.relations[id]??{value:0,lastDay:0};if(r.lastDay===this.s.day){this.emit('Ihr habt heute schon ausführlich gesprochen. Komm morgen wieder.');return}if(option==='gift'&&!this.remove('coffee')){this.emit('Dafür brauchst du einen Kaffee im Rucksack.');return}r.value=clamp(r.value+(option==='gift'?18:10));r.lastDay=this.s.day;this.s.relations[id]=r;this.s.reputation++;this.s.needs.stress=clamp(this.s.needs.stress-8);if(r.value>=30&&r.value-(option==='gift'?18:10)<30){this.earn(4000);this.emit('Ein Kontakt hat dir einen bezahlten Tipp vermittelt: +40 €.','success')}this.emit('Ein gutes Gespräch. Eure Beziehung ist gewachsen.','success')}
 }
 export function validateSave(raw){
@@ -241,5 +245,5 @@ export function validateSave(raw){
  validateWorkshop(s);
  validateWorkLog(s);
  s.history=Array.isArray(s.history)?s.history.filter(v=>typeof v.text==='string'&&Number.isFinite(v.day)).slice(0,30):[];
- return s;
+ validateFleet(s);validateTransit(s);if(s.job?.type==='cleaning'){s.job.cleaned??=Array.from({length:s.job.progress},(_,i)=>i);if(!Array.isArray(s.job.cleaned)||s.job.cleaned.length!==s.job.progress||new Set(s.job.cleaned).size!==s.job.cleaned.length||s.job.cleaned.some(i=>!Number.isInteger(i)||i<0||i>=6))throw Error('Ungültiger Reinigungsfortschritt.');}if(s.job)delete s.job.fieldAction;return s;
 }

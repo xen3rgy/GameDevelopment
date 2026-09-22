@@ -1,4 +1,4 @@
-import {deliveryLeg} from './delivery-routes.js?v=0.7.3-map1';
+import {deliveryLeg} from './delivery-routes.js?v=0.8.0';
 export const SUPPLY_BASE=800,SUPPLY_BONUS=200;
 export function supplyPlan(s){
  const leg=deliveryLeg('deliveryWorkshop','depot');if(!leg)return null;

@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import {frontagePatches,frontageSurface} from './frontage-layout.js?v=0.7.3-map1';
-import {streetSurface} from './street-layout.js?v=0.7.3-map1';
-import {surfaceMaterial,surfaceTileMeters} from './atmosphere.js?v=0.7.3-map1';
+import {frontagePatches,frontageSurface} from './frontage-layout.js?v=0.8.0';
+import {streetSurface} from './street-layout.js?v=0.8.0';
+import {surfaceMaterial,surfaceTileMeters} from './atmosphere.js?v=0.8.0';
 export function buildFrontages(world){
  const vertices=[],sides=[],uv=[],tile=surfaceTileMeters('paving');
  const quad=(arr,a,b,c,d)=>arr.push(...a,...b,...c,...a,...c,...d);

@@ -1,9 +1,9 @@
-import {WORKSHOP_ROOM,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.7.3-map1';
-import {frontageSurface} from './frontage-layout.js?v=0.7.3-map1';
-import {streetSurface} from './street-layout.js?v=0.7.3-map1';
-import {onGardenPath} from './pedestrian-layout.js?v=0.7.3-map1';
-import {STATION_PLAZAS,STATION_YARD,STATION_STEPS,stationStepOpen} from './city-layout.js?v=0.7.3-map1';
-import {CAFE_FIXTURES} from './cafe.js?v=0.7.3-map1';
+import {WORKSHOP_ROOM,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.8.0';
+import {frontageSurface} from './frontage-layout.js?v=0.8.0';
+import {streetSurface} from './street-layout.js?v=0.8.0';
+import {onGardenPath} from './pedestrian-layout.js?v=0.8.0';
+import {STATION_PLAZAS,STATION_YARD,STATION_STEPS,stationStepOpen} from './city-layout.js?v=0.8.0';
+import {CAFE_FIXTURES} from './cafe.js?v=0.8.0';
 // World-space surface heights match the top faces of the rendered geometry.
 export function groundHeight(x,z,interior=null){
  if(interior||x>290)return .07;
@@ -50,7 +50,7 @@ export class CameraRig{
  reset(){this.height=null;this.boom=null;this.angle=null;this.pitch=null;this.zoom=null}
  constructor(){this.reset()}
  update(position,angle,pitch,distance,dt,colliders=[],room=null){
-  dt=Math.max(0,dt);const orbitEase=1-Math.exp(-dt*24),desiredPitch=room?.06+(pitch-.06)*.48:pitch,desiredDistance=room?Math.min(distance,4.3):distance;
+  dt=Number.isFinite(dt)?Math.max(0,Math.min(dt,.25)):0;const orbitEase=1-Math.exp(-dt*24),desiredPitch=room?.06+(pitch-.06)*.48:pitch,desiredDistance=room?Math.min(distance,4.3):distance;
   this.angle=this.angle==null?angle:this.angle+Math.atan2(Math.sin(angle-this.angle),Math.cos(angle-this.angle))*orbitEase;
   this.pitch=this.pitch==null?desiredPitch:this.pitch+(desiredPitch-this.pitch)*orbitEase;
   this.zoom=this.zoom==null?desiredDistance:this.zoom+(desiredDistance-this.zoom)*(1-Math.exp(-dt*12));
@@ -60,8 +60,8 @@ export class CameraRig{
   const anchor={x:position.x,y:room?Math.min(this.height,room.ceiling-.35):this.height,z:position.z};
   const dir={x:Math.sin(angle)*Math.cos(pitch),y:Math.sin(pitch),z:Math.cos(angle)*Math.cos(pitch)};
   let limit=distance;
-  for(const c of colliders)limit=Math.min(limit,rayBox(anchor,dir,{minX:c.x-c.w-.15,maxX:c.x+c.w+.15,minZ:c.z-c.d-.15,maxZ:c.z+c.d+.15,minY:c.minY??-1,maxY:c.h+.2},distance));
-  if(room){for(const axis of ['X','Z']){let k=axis.toLowerCase();if(dir[k]>1e-9)limit=Math.min(limit,(room['max'+axis]-.15-anchor[k])/dir[k]);if(dir[k]<-1e-9)limit=Math.min(limit,(room['min'+axis]+.15-anchor[k])/dir[k])}if(dir.y>0)limit=Math.min(limit,(room.ceiling-.15-anchor.y)/dir.y)}
+  for(const c of colliders)limit=Math.min(limit,rayBox(anchor,dir,{minX:c.x-(c.w??c.radius)-.22,maxX:c.x+(c.w??c.radius)+.22,minZ:c.z-(c.d??c.radius)-.22,maxZ:c.z+(c.d??c.radius)+.22,minY:c.minY??-1,maxY:c.h+.2},distance));
+  if(room){for(const axis of ['X','Z']){let k=axis.toLowerCase();if(dir[k]>1e-9)limit=Math.min(limit,(room['max'+axis]-.15-anchor[k])/dir[k]);if(dir[k]<-1e-9)limit=Math.min(limit,(room['min'+axis]+.15-anchor[k])/dir[k])}if(dir.y>0)limit=Math.min(limit,(room.ceiling-.22-anchor.y)/dir.y);if(dir.y<0)limit=Math.min(limit,(.25-anchor.y)/dir.y)}
   limit=Math.max(.15,limit-.05);
   this.boom=this.boom==null?limit:Math.min(limit,this.boom+(limit-this.boom)*(1-Math.exp(-dt*7)));
   return {anchor,position:{x:anchor.x+dir.x*this.boom,y:anchor.y+dir.y*this.boom,z:anchor.z+dir.z*this.boom},distance:this.boom};

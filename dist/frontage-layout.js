@@ -1,7 +1,7 @@
-import {BUILDINGS} from './data.js?v=0.7.3-map1';
-import {ROADS} from './city-layout.js?v=0.7.3-map1';
-import {PAVEMENTS,streetSurface} from './street-layout.js?v=0.7.3-map1';
-import {GARDEN_PATHS,onGardenPath} from './pedestrian-layout.js?v=0.7.3-map1';
+import {BUILDINGS} from './data.js?v=0.8.0';
+import {ROADS} from './city-layout.js?v=0.8.0';
+import {PAVEMENTS,streetSurface} from './street-layout.js?v=0.8.0';
+import {GARDEN_PATHS,onGardenPath} from './pedestrian-layout.js?v=0.8.0';
 export const FRONTAGE_APRONS=BUILDINGS.filter(([x,,,,,,name])=>x>=-120&&name).map(([x,z,w,d])=>({x,z,w:w+3,d:d+3}));
 const inside=(x,z,p)=>Math.abs(x-p.x)<p.w/2&&Math.abs(z-p.z)<p.d/2;
 export function frontageSurface(x,z){

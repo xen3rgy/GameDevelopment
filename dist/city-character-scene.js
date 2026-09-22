@@ -1,8 +1,8 @@
 import * as THREE from './vendor/three.module.js';
-import {CITY_CHARACTER_FIXTURES,CITY_CHARACTER_OVERHEAD,LITTER_ZONES,HORIZON_ROADS} from './city-character-layout.js?v=0.7.3-map1';
-import {groundHeight} from './spatial.js?v=0.7.3-map1';
-import {createCitizen} from './art.js?v=0.7.3-map1';
-import {seatedStreetPose} from './pedestrian-scene.js?v=0.7.3-map1';
+import {CITY_CHARACTER_FIXTURES,CITY_CHARACTER_OVERHEAD,LITTER_ZONES,HORIZON_ROADS} from './city-character-layout.js?v=0.8.0';
+import {groundHeight} from './spatial.js?v=0.8.0';
+import {createCitizen} from './art.js?v=0.8.0';
+import {seatedStreetPose} from './pedestrian-scene.js?v=0.8.0';
 
 // Shared fixtures are used by collision, old-save recovery and route planning.
 export class CityCharacter {

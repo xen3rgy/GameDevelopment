@@ -1,4 +1,4 @@
-import {STATION_BUILDINGS} from './city-layout.js?v=0.7.3-map1';
+import {STATION_BUILDINGS} from './city-layout.js?v=0.8.0';
 export const ITEMS={
  bottle:{name:'Pfandflasche',icon:'🍾',category:'Wertstoffe',weight:.1,stack:20,price:25,description:'Eine leere Mehrwegflasche. Am Pfandautomaten bekommst du 0,25 € zurück.'},
  water:{name:'Mineralwasser',icon:'💧',category:'Getränke',weight:.5,stack:6,price:100,effects:{thirst:45},description:'Stilles Wasser. Füllt deinen Durstvorrat um 45 Punkte auf. Die leere Flasche bleibt im Rucksack.'},
@@ -59,7 +59,7 @@ export const HOME_POINTS={
  fridge:{name:'Kühlschrank öffnen',x:305.8,z:-3}
 };
 export const WORK={
- cleaning:[[-47,-9],[-17,9],[17,9],[45,-9],[86,9],[92,-9]],
+ cleaning:[[-47,-9],[-17,9],[17,9],[48,-9],[86,9],[92,-9]],
  crate:{x:-85,z:-73},
  shelves:[{x:-81,z:-73},{x:-74,z:-73},{x:-67,z:-73},{x:-60,z:-73}]
 };

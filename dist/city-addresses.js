@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import {LOCATIONS} from './data.js?v=0.7.3-map1';
-import {ADDRESSES,addressOf,STREETS} from './orientation.js?v=0.7.3-map1';
+import {LOCATIONS} from './data.js?v=0.8.0';
+import {ADDRESSES,addressOf,STREETS} from './orientation.js?v=0.8.0';
 export function entranceForBuilding(x,z,depth,face=1){
  return LOCATIONS.find(l=>!['recycle','park'].includes(l.id)&&Math.abs(l.x-x)<4&&Math.abs(l.z-(z+face*depth/2))<4);
 }

@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import {DISTRICT_FIXTURES,STATION_PLAZAS,STATION_YARD,STATION_STEPS,ROAD_Z,VIADUCT} from './city-layout.js?v=0.7.3-map1';
-import {surfaceMaterial} from './atmosphere.js?v=0.7.3-map1';
-import {groundHeight} from './spatial.js?v=0.7.3-map1';
+import {DISTRICT_FIXTURES,STATION_PLAZAS,STATION_YARD,STATION_STEPS,ROAD_Z,VIADUCT} from './city-layout.js?v=0.8.0';
+import {surfaceMaterial} from './atmosphere.js?v=0.8.0';
+import {groundHeight} from './spatial.js?v=0.8.0';
 
 export function buildStationDistrict(world,kit){
  const {box,cylinder,sign,sphere}=kit,s=world.scene,g=new THREE.Group();s.add(g);world.staticGroups.push(g);

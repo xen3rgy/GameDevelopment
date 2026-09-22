@@ -1,12 +1,12 @@
 import * as THREE from './vendor/three.module.js';
-import {CAFE_TABLES,TABLE_RADIUS,CHAIR_OFFSET,STAFF_HOME,STAFF_ROLES,guestSeat,guestPath,pathLength,samplePath,guestWalkDuration} from './cafe-layout.js?v=0.7.3-map1';
-import {CAFE_MENU,guestPlace} from './cafe.js?v=0.7.3-map1';
-import {createCafeMeal,resetCafeMeal,setMealConsumed,animateCafeMeal,reachCafeHand} from './cafe-food.js?v=0.7.3-map1';
-import {createCitizen} from './art.js?v=0.7.3-map1';
-import {createBread} from './food-models.js?v=0.7.3-map1';
-import {animateCitizen} from './animation.js?v=0.7.3-map1';
-import {guestServiceView,paintGuestBadge} from './cafe-service-view.js?v=0.7.3-map1';
-import {applyCafeGuestSignal,applyCafeWorkerPose,staffGesture} from './cafe-gestures.js?v=0.7.3-map1';
+import {CAFE_TABLES,TABLE_RADIUS,CHAIR_OFFSET,STAFF_HOME,STAFF_ROLES,guestSeat,guestPath,pathLength,samplePath,guestWalkDuration} from './cafe-layout.js?v=0.8.0';
+import {CAFE_MENU,guestPlace} from './cafe.js?v=0.8.0';
+import {createCafeMeal,resetCafeMeal,setMealConsumed,animateCafeMeal,reachCafeHand} from './cafe-food.js?v=0.8.0';
+import {createCitizen} from './art.js?v=0.8.0';
+import {createBread} from './food-models.js?v=0.8.0';
+import {animateCitizen} from './animation.js?v=0.8.0';
+import {guestServiceView,paintGuestBadge} from './cafe-service-view.js?v=0.8.0';
+import {applyCafeGuestSignal,applyCafeWorkerPose,staffGesture} from './cafe-gestures.js?v=0.8.0';
 const oak=0x94704c,walnut=0x513b30,cream=0xe5dcc8,green=0x23473e,brass=0xba975a,leather=0xa56545;
 function dynamic(group){group.userData.dynamicCafe=true;return group}
 function cup(parent,k,x,y,z){k.cylinder(parent,x,y+.011,z,.125,.022,0xece6d6);k.cylinder(parent,x,y+.081,z,.074,.12,0xece6d6);k.cylinder(parent,x,y+.144,z,.060,.006,0x513125);const handle=new THREE.Mesh(new THREE.TorusGeometry(.039,.012,6,12),k.mat(0xece6d6));handle.position.set(x+.082,y+.09,z);parent.add(handle)}

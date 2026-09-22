@@ -1,7 +1,7 @@
-import {HOME_POINTS,HOMES,ITEMS,RECIPES,LOCATIONS,clamp} from './data.js?v=0.7.3-map1';
-import {clockMinutes,deadlineView} from './contracts.js?v=0.7.3-map1';
-import {heldLoad,fatigue} from './player-movement.js?v=0.7.3-map1';
-import {itemCount,insertItem,removeItem,inventoryWeight} from './inventory.js?v=0.7.3-map1';
+import {HOME_POINTS,HOMES,ITEMS,RECIPES,LOCATIONS,clamp} from './data.js?v=0.8.0';
+import {clockMinutes,deadlineView} from './contracts.js?v=0.8.0';
+import {heldLoad,fatigue} from './player-movement.js?v=0.8.0';
+import {itemCount,insertItem,removeItem,inventoryWeight} from './inventory.js?v=0.8.0';
 export const SLEEP_HOURS=[2,4,6,8,10];
 export const FRIDGE_SLOTS=12,FRIDGE_WEIGHT=20;
 export const fridgeItem=id=>['Nahrung','Getränke','Zutaten'].includes(ITEMS[id]?.category);

@@ -14,6 +14,23 @@ python -m http.server 8000 --directory dist
 
 Open http://localhost:8000. No API keys, external services or package installation are required. Three.js r170 and the generated runtime assets are committed directly in `dist/`; no restore step is required. A browser with WebGL2 and hardware acceleration is required.
 
+## Version 0.8.0 · Unterwegs & Aufleben
+
+- Living meadows use the supplied ground photo and transparent 3×4 plant atlas: grass, clover and wildflowers, gentle wind, instanced spatial chunks and reduced density/range on low quality. Paths, entrances and building margins stay clear. The heavy alternative GLB is not needed.
+- Own up to six independently positioned vehicles. Each has its own trunk (bike basket), mileage, fuel, wear and optional daily accident insurance. The Mobilwerk sells new vehicles and daily used offers with disclosed condition and realistic 38,000–183,000 km mileage. Garage storage preserves contents; selling requires an empty trunk and an on-site visit.
+- Nine marked parking spaces: stop nearby and press **P**. Occupied spaces and blocked exits are rejected. Driving releases reservations; old duplicate parking data is repaired on load.
+- Bus **B1** links Westbahnhof, Stadtmitte, Westhafen and Lindenpark (20-minute schedule, €1.80). Rail **S1** links Westbahnhof and Gleishof Süd (30-minute schedule, €2.40). Service runs 06:00–23:00. Buy at the stop; a short bus arrival/boarding/departure sequence precedes arrival. Rail uses a brief train transition rather than a walkable platform interior. Waiting and travel advance needs, deadlines and business time exactly once. Saved tickets resume without another charge.
+- Smartphone → **Fahrzeuge**, **Bus & Bahn**, **Leistung**. **E/F** enters a nearby vehicle; **E** at its rear opens the trunk. The bicycle remains inexpensive with no fuel or insurance bills.
+- Full oriented vehicle-body collision checks, swept steering checks, frame-independent turning, unified vehicle/work interaction ranges and indoor camera clearance for round furniture and low camera angles.
+- Cleaning accepts sacks in any order and directs the player toward the nearest remaining one. A sack formerly embedded in a lamp has moved. Cleaning, scanning and shelf placement now have short progress feedback; duplicate inputs cannot double-pay. Warehouse shelf labels and carried-load restrictions remain authoritative.
+- Existing version-3 saves are migrated; no restart is required. Main and backup browser saves remain intact. Testing uses independent models or `/?playtest=1&at=garage` (no reads/writes of the actual saved game).
+
+### Performance / verification
+
+Use `npm run ci` for syntax/assets and regression tests. Verified on 2026-09-22: **281 tests passed**, zero failures; 83 JavaScript modules passed syntax/import/asset checks. Browser checks covered actual ticket purchase and arrival, rail arrival, new/used multi-vehicle ownership, insurance, storage/retrieval, map navigation and geometry clearance. `/__qa` provides visual inspection, a 30-second frame sampler, grass comparison, fleet/transit checks and actual-world arrival/parking checks. Smartphone → Leistung measures a rolling window of active gameplay frames (median FPS, p95 frame time, CPU submission time, draw calls and triangles); it is not a GPU timer.
+
+Local in-app-browser sample, 1280×720, high quality, Lindenhöfe, 30 seconds: with meadow **59.9 median FPS**, **16.8 ms p95**, **6.3 ms median CPU** (1,786 frames); without meadow **59.9 FPS**, **16.8 ms p95**, **6.2 ms CPU** (1,779 frames). This is one machine/scene, not a guarantee across hardware; moving residents mean draw-call totals are not a controlled GPU benchmark.
+
 ## Version 0.7.3 · Stadtbild & Wege
 
 - Closed the exposed outer edges of raised pavements and added continuous, walkable building aprons. The station's two granite steps now agree with the physical ground heights instead of protruding into the lower level.
