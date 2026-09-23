@@ -12,5 +12,10 @@ export const SERVICE_FIXTURES=[
  ...[-47,-19].map(x=>({x,z:-93,w:.16,d:.16,h:5,kind:'post'})),
  {x:-33,z:-109,w:10,d:.22,h:4.5,kind:'wall'},
  ...[-43,-23].map(x=>({x,z:-104,w:.22,d:5,h:4.5,kind:'wall'})),
- {x:-39,z:-100,w:1,d:.45,h:1.1,kind:'bench'}
+ {x:-39,z:-100,w:1,d:.45,h:1.1,kind:'bench'},
+ ...[-41.2,-26.2].map(x=>({x,z:-87,w:.78,d:1.85,h:.14,kind:'island'})),
+ ...[-41.2,-26.2].flatMap(x=>[-88.55,-85.45].map(z=>({x,z,w:.12,d:.12,h:.85,kind:'bollard'}))),
+ {x:-47,z:-80,w:.65,d:.35,h:5.5,kind:'pylon'},
+ {x:-39,z:-108,w:2.5,d:.65,h:2.6,kind:'storage'},
+ {x:-25,z:-106,w:.7,d:1.4,h:2.6,kind:'storage'}
 ];
