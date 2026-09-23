@@ -1,5 +1,5 @@
-import {recordWork} from './work-log.js?v=0.8.0';
-import {DELIVERY_SECONDS} from './delivery-routes.js?v=0.8.0';
+import {recordWork} from './work-log.js?v=0.8.1';
+import {DELIVERY_SECONDS} from './delivery-routes.js?v=0.8.1';
 // Prices are integer cents; deadlines follow the simulation clock, including midnight.
 export const CONTRACTS = [
  {id:'stationKiosk',name:'Morgenausgabe am Gleis',route:['deliveryKiosk'],base:3800,bonus:0,minutes:0,completed:0,reliability:0,description:'Eine Sendung für Yusuf am Bahnhofskiosk. Lerne das neue Viertel ohne Zeitdruck kennen.'},

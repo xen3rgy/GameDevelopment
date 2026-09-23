@@ -1,9 +1,9 @@
-import {recordWork} from './work-log.js?v=0.8.0';
-import {queueWorkshopCollection,validateWorkshopLife} from './workshop-life.js?v=0.8.0';
-import {variedWorkshopSteps} from './workshop-orders.js?v=0.8.0';
-import {supplyPlan,supplyReceipt} from './workshop-supply.js?v=0.8.0';
-import {LOCATIONS} from './data.js?v=0.8.0';
-import {WORKSHOP_POINTS,workshopWorkPoint,workshopApproach,atWorkshop,workshopClear} from './workshop-layout.js?v=0.8.0';
+import {recordWork} from './work-log.js?v=0.8.1';
+import {queueWorkshopCollection,validateWorkshopLife} from './workshop-life.js?v=0.8.1';
+import {variedWorkshopSteps} from './workshop-orders.js?v=0.8.1';
+import {supplyPlan,supplyReceipt} from './workshop-supply.js?v=0.8.1';
+import {LOCATIONS} from './data.js?v=0.8.1';
+import {WORKSHOP_POINTS,workshopWorkPoint,workshopApproach,atWorkshop,workshopClear} from './workshop-layout.js?v=0.8.1';
 export const WORKSHOP_TYPES={
  stock:{name:'Wareneingang',level:0,base:750,xp:12,description:'Lieferschein lesen, Karton kontrollieren und die passenden Teile einsortieren.'},
  check:{name:'Fahrradcheck',level:0,base:1100,xp:16,description:'Bremsen prüfen, die richtige Einstellung vornehmen und die Funktion nachweisen.'},

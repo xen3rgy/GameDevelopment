@@ -1,8 +1,8 @@
-import {HORIZON_ROADS} from './city-character-layout.js?v=0.8.0';
+import {HORIZON_ROADS} from './city-character-layout.js?v=0.8.1';
 import * as THREE from './vendor/three.module.js';
-import {entranceForBuilding,decorateAddress} from './city-addresses.js?v=0.8.0';
-import {districtMaterial,fitFacadeUV} from './district-materials.js?v=0.8.0';
-import {facadeSpans} from './public-realm-layout.js?v=0.8.0';
+import {entranceForBuilding,decorateAddress} from './city-addresses.js?v=0.8.1';
+import {districtMaterial,fitFacadeUV} from './district-materials.js?v=0.8.1';
+import {facadeSpans} from './public-realm-layout.js?v=0.8.1';
 
 export const buildingStyle=(x,z,name)=>x>0&&Math.abs(z)<125?'modern':x<-120&&Math.abs(z)<125?'heritage':name==='WESTHAFEN LOGISTIK'?'industrial':'residential';
 

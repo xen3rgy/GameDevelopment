@@ -1,9 +1,9 @@
 import * as THREE from './vendor/three.module.js';
-import {groundHeight} from './spatial.js?v=0.8.0';
-import {BUILDINGS} from './data.js?v=0.8.0';
-import {streetSurface} from './street-layout.js?v=0.8.0';
-import {onGardenPath} from './pedestrian-layout.js?v=0.8.0';
-import {frontageSurface} from './frontage-layout.js?v=0.8.0';
+import {groundHeight} from './spatial.js?v=0.8.1';
+import {BUILDINGS} from './data.js?v=0.8.1';
+import {streetSurface} from './street-layout.js?v=0.8.1';
+import {onGardenPath} from './pedestrian-layout.js?v=0.8.1';
+import {frontageSurface} from './frontage-layout.js?v=0.8.1';
 
 export function meadowPoint(x,z,colliders=[]){
  if(x<-124||x>124||Math.abs(z)>124||streetSurface(x,z)||onGardenPath(x,z)||frontageSurface(x,z))return false;

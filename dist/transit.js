@@ -1,5 +1,5 @@
-import {TRANSIT_STOPS,stopById,safeArrival} from './mobility-layout.js?v=0.8.0';
-import {inReach} from './interactions.js?v=0.8.0';
+import {TRANSIT_STOPS,stopById,safeArrival} from './mobility-layout.js?v=0.8.1';
+import {inReach} from './interactions.js?v=0.8.1';
 export const TRANSIT_DURATION=8.5;
 export function tripQuote(s,fromId,toId){
  const from=stopById(fromId),to=stopById(toId);if(!from||!to||from===to||from.mode!==to.mode)return null;
@@ -9,7 +9,7 @@ export function tripQuote(s,fromId,toId){
  const wait=Math.max(0,departure-now),ride=train?5:Math.max(3,Math.ceil(Math.hypot(from.x-to.x,from.z-to.z)/40));
  return {from:from.id,to:to.id,mode:from.mode,line:train?'S1':'B1',fare:train?240:180,departure,wait,ride,total:wait+ride,waitLabel:Math.ceil(wait),totalLabel:Math.ceil(wait+ride),interval};
 }
-export function canTravel(s,from){return !s.inside&&!s.riding&&!s.transit&&!s.dailyLife?.action&&!s.workshop?.active?.action&&!s.job?.interaction&&!s.job?.fieldAction&&!s.job?.carrying&&s.workshop?.active?.supply?.phase!=='carrying'&&inReach(s.position,from,'transit');}
+export function canTravel(s,from){return !s.vehicleService&&!s.inside&&!s.riding&&!s.transit&&!s.dailyLife?.action&&!s.workshop?.active?.action&&!s.job?.interaction&&!s.job?.fieldAction&&!s.job?.carrying&&s.workshop?.active?.supply?.phase!=='carrying'&&inReach(s.position,from,'transit');}
 export function bookTrip(model,fromId,toId){
  const s=model.s,q=tripQuote(s,fromId,toId);if(!q||!canTravel(s,stopById(fromId)))return false;
  if(q.wait>90){model.emit('Heute fährt hier in nächster Zeit nichts mehr. Nächste Abfahrt steht im Fahrplan.');return false;}

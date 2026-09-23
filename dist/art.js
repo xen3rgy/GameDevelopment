@@ -1,9 +1,9 @@
-import {buildingStyle,modernBuilding} from './district-architecture.js?v=0.8.0';
-import {entranceForBuilding,decorateAddress} from './city-addresses.js?v=0.8.0';
+import {buildingStyle,modernBuilding} from './district-architecture.js?v=0.8.1';
+import {entranceForBuilding,decorateAddress} from './city-addresses.js?v=0.8.1';
 import * as THREE from './vendor/three.module.js';
-import {groundHeight} from './spatial.js?v=0.8.0';
-import {districtMaterial,fitFacadeUV} from './district-materials.js?v=0.8.0';
-import {facadeSpans} from './public-realm-layout.js?v=0.8.0';
+import {groundHeight} from './spatial.js?v=0.8.1';
+import {districtMaterial,fitFacadeUV} from './district-materials.js?v=0.8.1';
+import {facadeSpans} from './public-realm-layout.js?v=0.8.1';
 
 const palette=[
  {wall:0xa86248,trim:0xdfcbb0,shop:0x254e45,type:'brick'},

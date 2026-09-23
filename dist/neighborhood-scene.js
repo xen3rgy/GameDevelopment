@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import {NEIGHBORHOOD_FIXTURES} from './neighborhood-layout.js?v=0.8.0';
-import {groundHeight} from './spatial.js?v=0.8.0';
+import {NEIGHBORHOOD_FIXTURES} from './neighborhood-layout.js?v=0.8.1';
+import {groundHeight} from './spatial.js?v=0.8.1';
 
 export function buildNeighborhoodDetails(world,kit){
  const {box,cylinder,sphere,sign}=kit,g=new THREE.Group();g.name='Courtyards and street life';world.scene.add(g);world.staticGroups.push(g);

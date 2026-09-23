@@ -1,14 +1,15 @@
-import {NEIGHBORHOOD_FIXTURES} from './neighborhood-layout.js?v=0.8.0';
-import {STREET_TREES,STREET_PLANTERS} from './public-realm-layout.js?v=0.8.0';
-import {STREET_LAMPS} from './lighting.js?v=0.8.0';
-import {PAVEMENTS,streetSurface} from './street-layout.js?v=0.8.0';
-import {ROADS} from './city-layout.js?v=0.8.0';
-import {CITY_CHARACTER_FIXTURES,CITY_COURTYARD_PATH} from './city-character-layout.js?v=0.8.0';
+import {NEIGHBORHOOD_FIXTURES} from './neighborhood-layout.js?v=0.8.1';
+import {SERVICE_FIXTURES} from './service-layout.js?v=0.8.1';
+import {STREET_TREES,STREET_PLANTERS} from './public-realm-layout.js?v=0.8.1';
+import {STREET_LAMPS} from './lighting.js?v=0.8.1';
+import {PAVEMENTS,streetSurface} from './street-layout.js?v=0.8.1';
+import {ROADS} from './city-layout.js?v=0.8.1';
+import {CITY_CHARACTER_FIXTURES,CITY_COURTYARD_PATH} from './city-character-layout.js?v=0.8.1';
 
 // Existing street furniture now has the same physical footprint for people and navigation.
 export const STREET_SEATS=[-81,-44,-13,21,52,92.5];
 export function streetSpawn(position,canWalk){
- if(canWalk(position.x,position.z)||![...PROMENADE_FIXTURES,...CITY_CHARACTER_FIXTURES].some(p=>Math.abs(p.x-position.x)<p.w+.35&&Math.abs(p.z-position.z)<p.d+.35))return position;
+ if(canWalk(position.x,position.z)||![...PROMENADE_FIXTURES,...CITY_CHARACTER_FIXTURES,...SERVICE_FIXTURES].some(p=>Math.abs(p.x-position.x)<p.w+.35&&Math.abs(p.z-position.z)<p.d+.35))return position;
  // Old saves could stand inside formerly decorative furniture. Relocate only during load.
  for(let radius=.25;radius<=4;radius+=.25)for(let i=0;i<32;i++){
   const angle=i*Math.PI/16,x=position.x+Math.sin(angle)*radius,z=position.z+Math.cos(angle)*radius;

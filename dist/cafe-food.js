@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import {createBread} from './food-models.js?v=0.8.0';
-import {CAFE_MENU} from './cafe.js?v=0.8.0';
+import {createBread} from './food-models.js?v=0.8.1';
+import {CAFE_MENU} from './cafe.js?v=0.8.1';
 const ceramic=new THREE.MeshStandardMaterial({color:0xf0e6d2,roughness:.26});
 const latteCeramic=new THREE.MeshStandardMaterial({color:0x567967,roughness:.3});
 const steel=new THREE.MeshStandardMaterial({color:0xbcc5bf,metalness:.75,roughness:.25});

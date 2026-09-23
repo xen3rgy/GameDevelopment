@@ -1,7 +1,7 @@
-import {streetSurface} from './street-layout.js?v=0.8.0';
-import {STATION_PLAZAS} from './city-layout.js?v=0.8.0';
-import {groundHeight} from './spatial.js?v=0.8.0';
-import {onGardenPath} from './pedestrian-layout.js?v=0.8.0';
+import {streetSurface} from './street-layout.js?v=0.8.1';
+import {STATION_PLAZAS} from './city-layout.js?v=0.8.1';
+import {groundHeight} from './spatial.js?v=0.8.1';
+import {onGardenPath} from './pedestrian-layout.js?v=0.8.1';
 export function surfaceAt(x,z,interior){
  if(interior==='shop'||interior==='workshop')return 'tile';if(interior==='home'||interior==='cafe')return 'wood';
  if(Math.abs(x-76)<19.5&&Math.abs(z-93)<18)return Math.abs(x-76)<2.5||Math.abs(z-93)<2?'gravel':'grass';

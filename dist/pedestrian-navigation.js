@@ -1,4 +1,4 @@
-import {CityNavigation} from './navigation.js?v=0.8.0';
+import {CityNavigation} from './navigation.js?v=0.8.1';
 export const PEDESTRIAN_RADIUS=.4;
 // Dense swept-body probes with a safety margin: the old 45 cm samples skipped
 // thin blocked sections at kerbs and furniture corners, despite valid endpoints.

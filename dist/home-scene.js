@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import {createCafeMeal,reachCafeHand} from './cafe-food.js?v=0.8.0';
-import {groundHeight} from './spatial.js?v=0.8.0';
+import {createCafeMeal,reachCafeHand} from './cafe-food.js?v=0.8.1';
+import {groundHeight} from './spatial.js?v=0.8.1';
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t)};
 export class HomeScene{
  constructor(world,kit){

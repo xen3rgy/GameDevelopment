@@ -1,8 +1,8 @@
 import * as THREE from './vendor/three.module.js';
-import {PROMENADE_FIXTURES,gardenPatches} from './pedestrian-layout.js?v=0.8.0';
-import {groundHeight} from './spatial.js?v=0.8.0';
-import {surfaceMaterial,surfaceTileMeters} from './atmosphere.js?v=0.8.0';
-import {CAFE_OPEN,CAFE_CLOSE,clockLabel} from './game-time.js?v=0.8.0';
+import {PROMENADE_FIXTURES,gardenPatches} from './pedestrian-layout.js?v=0.8.1';
+import {groundHeight} from './spatial.js?v=0.8.1';
+import {surfaceMaterial,surfaceTileMeters} from './atmosphere.js?v=0.8.1';
+import {CAFE_OPEN,CAFE_CLOSE,clockLabel} from './game-time.js?v=0.8.1';
 
 export function buildPromenade(world,kit){
  const {box,cylinder,sign}=kit,g=new THREE.Group();g.name='Cafe to station · public realm';world.scene.add(g);world.staticGroups.push(g);

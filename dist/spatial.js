@@ -1,12 +1,14 @@
-import {WORKSHOP_ROOM,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.8.0';
-import {frontageSurface} from './frontage-layout.js?v=0.8.0';
-import {streetSurface} from './street-layout.js?v=0.8.0';
-import {onGardenPath} from './pedestrian-layout.js?v=0.8.0';
-import {STATION_PLAZAS,STATION_YARD,STATION_STEPS,stationStepOpen} from './city-layout.js?v=0.8.0';
-import {CAFE_FIXTURES} from './cafe.js?v=0.8.0';
+import {onServiceApron} from './service-layout.js?v=0.8.1';
+import {WORKSHOP_ROOM,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.8.1';
+import {frontageSurface} from './frontage-layout.js?v=0.8.1';
+import {streetSurface} from './street-layout.js?v=0.8.1';
+import {onGardenPath} from './pedestrian-layout.js?v=0.8.1';
+import {STATION_PLAZAS,STATION_YARD,STATION_STEPS,stationStepOpen} from './city-layout.js?v=0.8.1';
+import {CAFE_FIXTURES} from './cafe.js?v=0.8.1';
 // World-space surface heights match the top faces of the rendered geometry.
 export function groundHeight(x,z,interior=null){
  if(interior||x>290)return .07;
+ if(onServiceApron(x,z))return .30;
  const street=streetSurface(x,z);if(street)return street.height;
  if(onGardenPath(x,z))return .02;
  const frontage=frontageSurface(x,z);if(frontage)return frontage.height;

@@ -1,7 +1,7 @@
-import {districtLampStyle} from './district-materials.js?v=0.8.0';
+import {districtLampStyle} from './district-materials.js?v=0.8.1';
 import * as THREE from './vendor/three.module.js';
-import {lightingAt,selectLamps} from './lighting.js?v=0.8.0';
-import {groundHeight} from './spatial.js?v=0.8.0';
+import {lightingAt,selectLamps} from './lighting.js?v=0.8.1';
+import {groundHeight} from './spatial.js?v=0.8.1';
 function random(seed){let n=seed;return()=>{n=(n*1664525+1013904223)>>>0;return n/4294967296}}
 const surfaceSources=new Map();
 export const surfaceTileMeters=kind=>kind==='asphalt'?6:kind==='cobble'?2.4:4.8;

@@ -1,7 +1,7 @@
-import {CAFE_OPEN,CAFE_CLOSE,CAFE_SHIFT} from './game-time.js?v=0.8.0';
-import {newCafeService,ensureCafeService,recordCafeService,cafeServiceSummary,validateCafeService} from './cafe-report.js?v=0.8.0';
-import {CAFE_POINTS,STAFF_HOME,staffPath,guestWalkDuration} from './cafe-layout.js?v=0.8.0';
-export {CAFE_TABLES,CAFE_POINTS,CAFE_FIXTURES,guestWalkDuration} from './cafe-layout.js?v=0.8.0';
+import {CAFE_OPEN,CAFE_CLOSE,CAFE_SHIFT} from './game-time.js?v=0.8.1';
+import {newCafeService,ensureCafeService,recordCafeService,cafeServiceSummary,validateCafeService} from './cafe-report.js?v=0.8.1';
+import {CAFE_POINTS,STAFF_HOME,staffPath,guestWalkDuration} from './cafe-layout.js?v=0.8.1';
+export {CAFE_TABLES,CAFE_POINTS,CAFE_FIXTURES,guestWalkDuration} from './cafe-layout.js?v=0.8.1';
 export const CAFE_MENU={espresso:{name:'Espresso',price:340,cost:60,seconds:4,dining:16},latte:{name:'Milchkaffee',price:450,cost:110,seconds:6,dining:24},breakfast:{name:'Frühstück',price:890,cost:260,seconds:8,dining:32}};
 export const guestPlace=g=>g.seat*2+(g.side===1?1:0);
 export function cafeGuestIntent(c,g){

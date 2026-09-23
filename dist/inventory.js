@@ -1,4 +1,4 @@
-import {ITEMS} from './data.js?v=0.8.0';
+import {ITEMS} from './data.js?v=0.8.1';
 export const inventoryWeight=slots=>slots.reduce((sum,v)=>sum+ITEMS[v.id].weight*v.count,0);
 export const itemCount=(slots,id)=>slots.filter(v=>v.id===id).reduce((sum,v)=>sum+v.count,0);
 export function insertItem(slots,id,count=1,capacity=16,maxWeight=20){

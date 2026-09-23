@@ -2,6 +2,27 @@
 
 A self-contained, browser-based 3D singleplayer life and business game in German.
 
+## Hafenenergie & Hafenwerk (0.8.1)
+
+Tankstelle mit zwei Zapfsäulen und angeschlossener Servicebucht am Westhafen,
+östlich der Logistik, südlich der Hafenstraße. Karte oder Fahrzeugflotte →
+„Hafenenergie“ / „Hafenwerk“ markieren. Fahrzeug längs in die markierte Bucht
+fahren; im Stillstand mit **P** sicher einparken und aussteigen. Am Terminal **E**.
+
+- Tagesabhängiger E5-Preis, Tankgrößen 45/70/60 Liter (Auto/Van/Sport).
+- Tanken: 8 Sekunden, Liter/Kosten/Fortschritt sichtbar. Abbruch berechnet nur
+  abgegebenen Kraftstoff und erstattet den Rest der Reservierung einmalig.
+- Reparatur: 6 Sekunden, Preis nach Fahrzeugklasse und Zustand; bestehende
+  Unfallgutschrift wird abgezogen. Abbruch erstattet alles, Schaden bleibt.
+- Keine parallele Arbeit, Fahrt, Innenraum- oder Serviceaktion. Fahrräder können
+  gewartet werden und benötigen keinen Kraftstoff. Mobilwerk bleibt Handel/Garage.
+- Laufender Service wird mit Preis und Fortschritt gespeichert. Alte Spielstände
+  bleiben kompatibel; Flotte, Kofferräume und Versicherung werden nicht ersetzt.
+
+Gezielte Prüfung: `node --test tests/vehicle-service.test.mjs tests/mobility-080.test.mjs tests/model.test.mjs`.
+Statische Prüfung: `node tools/check-static.mjs`. Keine vollständige Regression
+für dieses Update ausgeführt. `/__qa` enthält Ansichten der neuen Station.
+
 ## Run locally
 
 On Windows, double-click `Spiel-starten.cmd` and open http://127.0.0.1:8765/. Keep the server window open while playing; closing it stops the local website. Alternatively run `npm start` (Node.js, no install step). If the browser reports `ERR_CONNECTION_REFUSED`, start this server again. The launcher also recognizes the bundled Codex Node runtime on this computer.

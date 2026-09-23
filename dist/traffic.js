@@ -1,5 +1,5 @@
-import {crossingObstacles} from './street-layout.js?v=0.8.0';
-import {ROAD_X} from './city-layout.js?v=0.8.0';
+import {crossingObstacles} from './street-layout.js?v=0.8.1';
+import {ROAD_X} from './city-layout.js?v=0.8.1';
 // Deterministic lane routes and braking, independent of rendering and game time speed.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);

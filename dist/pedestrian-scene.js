@@ -1,12 +1,12 @@
-import {attachStreetProps,resetStreetArms,animateStreetIdle} from './street-idle.js?v=0.8.0';
-import {availableVehicles} from './fleet.js?v=0.8.0';
-import {vehicleBody} from './traffic.js?v=0.8.0';
+import {attachStreetProps,resetStreetArms,animateStreetIdle} from './street-idle.js?v=0.8.1';
+import {availableVehicles} from './fleet.js?v=0.8.1';
+import {vehicleBody} from './traffic.js?v=0.8.1';
 import * as THREE from './vendor/three.module.js';
-import {createCitizen} from './art.js?v=0.8.0';
-import {animateCitizen} from './animation.js?v=0.8.0';
-import {groundHeight} from './spatial.js?v=0.8.0';
-import {PedestrianLife} from './pedestrian-life.js?v=0.8.0';
-import {PEOPLE} from './data.js?v=0.8.0';
+import {createCitizen} from './art.js?v=0.8.1';
+import {animateCitizen} from './animation.js?v=0.8.1';
+import {groundHeight} from './spatial.js?v=0.8.1';
+import {PedestrianLife} from './pedestrian-life.js?v=0.8.1';
+import {PEOPLE} from './data.js?v=0.8.1';
 
 export function citizenAppearance(id){return {
  color:[0x496e79,0x936347,0x5f7053,0x344955,0xa08e74,0x754f56,0x747d85,0x8c814e][id%8],

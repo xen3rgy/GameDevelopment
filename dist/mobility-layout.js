@@ -1,9 +1,11 @@
 // Metres; interaction markers and safe pavement arrivals are deliberately separate.
+import {SERVICE_BAYS} from './service-layout.js?v=0.8.1';
 export const PARKING_SPACES=[
  ...[70,78,86].map((x,i)=>({id:'mobilwerk-'+i,name:'Mobilwerk '+(i+1),x,z:5.15,angle:Math.PI/2,exit:{x,z:8.2},garage:true})),
  ...[-188,-180].map((x,i)=>({id:'west-'+i,name:'Westbahnhof '+(i+1),x,z:5.15,angle:Math.PI/2,exit:{x,z:8.2}})),
  ...[-94,-86].map((x,i)=>({id:'hafen-'+i,name:'Westhafen '+(i+1),x,z:-70.15,angle:-Math.PI/2,exit:{x,z:-73.2}})),
- ...[60,68].map((x,i)=>({id:'kanal-'+i,name:'Am Kanal '+(i+1),x,z:70.15,angle:Math.PI/2,exit:{x,z:73.2}}))
+ ...[60,68].map((x,i)=>({id:'kanal-'+i,name:'Am Kanal '+(i+1),x,z:70.15,angle:Math.PI/2,exit:{x,z:73.2}})),
+ ...SERVICE_BAYS.map(b=>({id:'service-'+b.id,name:b.name,...b.vehicle,exit:{x:b.x,z:b.z},service:true}))
 ];
 export const TRANSIT_STOPS=[
  {id:'busWest',name:'Westbahnhof · Bus',mode:'bus',x:-168,z:-9,arrival:{x:-166,z:-10.5},vehicle:{x:-168,z:-5.1,angle:-Math.PI/2}},
