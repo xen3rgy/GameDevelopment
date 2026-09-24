@@ -6,6 +6,8 @@ export const SERVICE_BAYS=[
  {id:'autoWorkshop',kind:'repair',name:'Hafenwerk · Fahrzeugservice',x:-39,z:-98,vehicle:{x:-33,z:-103,angle:0}}
 ];
 export const serviceBay=id=>SERVICE_BAYS.find(p=>p.id===id);
+// Both longitudinal directions are valid; collision checks still gate service start.
+export const serviceAligned=(v,bay)=>!!v&&!v.stored&&Math.hypot(v.x-bay.vehicle.x,v.z-bay.vehicle.z)<=1.4&&Math.abs(Math.sin(v.angle-bay.vehicle.angle))<=.25;
 export const onServiceApron=(x,z)=>Math.abs(x-SERVICE_SITE.x)<=16&&Math.abs(z-SERVICE_SITE.z)<=16;
 export const SERVICE_FIXTURES=[
  ...[-41.2,-26.2].map(x=>({x,z:-87,w:.55,d:1.1,h:2.4,kind:'pump'})),

@@ -15,7 +15,7 @@ export function serviceNozzle({box}){
 export class ServiceGestures{
  constructor(root,kit,docked){
   this.docked=docked;this.mechanic=createCitizen(kit,0x315f57,0xc09173,2,{trousers:0x303f43,hair:'cap',accent:0xd1b677});root.add(this.mechanic);
-  this.mechanic.position.set(-38,.30,-102);this.mechanic.rotation.y=Math.PI;
+  this.home=new THREE.Vector3(-37.4,.30,-100.8);this.mechanic.position.copy(this.home);this.mechanic.rotation.y=0;
   this.tool=new THREE.Group();kit.box(this.tool,0,-.29,.04,.045,.24,.045,0xaab7b5);kit.box(this.tool,0,-.42,.04,.13,.05,.05,0xaab7b5);
   this.mechanic.userData.elbows[1].add(this.tool);this.tool.visible=false;
   this.nozzle=serviceNozzle(kit);root.add(this.nozzle);this.nozzle.visible=false;
@@ -30,33 +30,44 @@ export class ServiceGestures{
   for(const joint of [...player.userData.arms,...player.userData.elbows])joint.rotation.set(0,0,0);
   this.playerPose=false;
  }
+ updateMechanic(s,action,v,dt){
+  const mechanic=this.mechanic,repair=v&&action.kind==='repair';
+  const side=v&&Math.cos(v.angle)>=0?-1:1;
+  const at=repair?vehicleLocalPoint(v,side*1.5,-side*.8):this.home;
+  const dx=at.x-mechanic.position.x,dz=at.z-mechanic.position.z,distance=Math.hypot(dx,dz),step=distance>.025?Math.min(distance,dt*1.65):0;
+  let angle=mechanic.rotation.y;
+  if(distance>.025){
+   mechanic.position.x+=dx/distance*step;mechanic.position.z+=dz/distance*step;angle=Math.atan2(dx,dz);
+  }else if(repair)angle=Math.atan2(v.x-mechanic.position.x,v.z-mechanic.position.z);
+  else if(!s.inside&&Math.hypot(s.position.x-mechanic.position.x,s.position.z-mechanic.position.z)<10)angle=Math.atan2(s.position.x-mechanic.position.x,s.position.z-mechanic.position.z);
+  else angle=0;
+  mechanic.rotation.y+=Math.atan2(Math.sin(angle-mechanic.rotation.y),Math.cos(angle-mechanic.rotation.y))*(1-Math.exp(-dt*9));
+  // One gait update with actual distance and real dt, on both outbound and return walks.
+  animateCitizen(mechanic,dt,step,{npc:true});
+  if(repair&&distance<.10){
+   const d=mechanic.userData,pulse=Math.sin(action.elapsed*11)*.09;
+   d.upper.rotation.x=.30;d.arms[0].rotation.x=-.8;d.elbows[0].rotation.x=-.55;
+   d.arms[1].rotation.x=-.9+pulse;d.elbows[1].rotation.x=-.55-pulse;this.tool.visible=true;
+  }
+ }
  update(s,player,dt){
   this.nozzle.visible=this.hose.visible=this.tool.visible=false;
   for(const dock of this.docked.values())dock.visible=true;
-  const action=!s.inside&&s.vehicleService,v=action&&(s.fleet||[]).find(v=>v.uid===action.uid);
-  const mechanic=this.mechanic;
-  // State elapsed drives work so pause, reload, completion and cancellation agree.
-  animateCitizen(mechanic,dt,0,{npc:true});
-  if(!v||action.kind!=='repair'){
-   const home=new THREE.Vector3(-38,.30,-102),distance=mechanic.position.distanceTo(home),step=Math.min(distance,dt*2.5);
-   if(distance>.02){mechanic.rotation.y=Math.atan2(home.x-mechanic.position.x,home.z-mechanic.position.z);mechanic.position.lerp(home,distance?step/distance:1);animateCitizen(mechanic,0,step,{npc:true});}
+  const live=!s.inside&&s.vehicleService,liveVehicle=live&&(s.fleet||[]).find(v=>v.uid===live.uid);
+  this.updateMechanic(s,live,liveVehicle,dt);
+  if(live?.kind==='fuel'&&liveVehicle){this.lastFuel={action:live,v:liveVehicle};this.finish=null;}
+  else if(this.lastFuel){
+   // endService sets elapsed to duration before clearing the action. Cancellation never does.
+   if(this.lastFuel.action.elapsed>=this.lastFuel.action.duration)this.finish={...this.lastFuel,age:0};
+   this.lastFuel=null;
   }
-  if(!v)return;
-  const t=action.elapsed,remaining=action.duration-t,weight=smooth(t/.8)*smooth(remaining/.65);
-  if(action.kind==='repair'){
-   const front=(v.id==='van'?2.4:v.id==='sport'?2.05:1.9),at=vehicleLocalPoint(v,0,front+.48);
-   const travel=smooth(t/.85),old=mechanic.position.clone();
-   mechanic.position.set(-38+(at.x+38)*travel,.30,-102+(at.z+102)*travel);
-   mechanic.rotation.y=travel<1?Math.atan2(at.x+38,at.z+102):v.angle+Math.PI;
-   if(travel<1)animateCitizen(mechanic,0,old.distanceTo(mechanic.position),{npc:true});
-   else{
-    const d=mechanic.userData,pulse=Math.sin(t*11)*.09;
-    d.upper.rotation.x=.38*weight;d.arms[0].rotation.x=-.8*weight;d.elbows[0].rotation.x=-.55*weight;
-    d.arms[1].rotation.x=(-.9+pulse)*weight;d.elbows[1].rotation.x=(-.55-pulse)*weight;this.tool.visible=true;
-   }
-   return;
-  }
-  if(action.kind!=='fuel'||!player)return;
+  if(this.finish&&(live||s.inside||s.riding||s.transit||Math.hypot(s.position.x-this.finish.action.origin.x,s.position.z-this.finish.action.origin.z)>.1))this.finish=null;
+  if(this.finish){this.finish.age+=dt;if(this.finish.age>=1.25)this.finish=null;}
+  const action=live?.kind==='fuel'?live:this.finish?.action,v=live?.kind==='fuel'?liveVehicle:this.finish?.v;
+  if(!action||!v||!player)return;
+  const returning=this.finish?smooth(this.finish.age/1.25):0;
+  // Hold at the filler for every active frame, including the last fraction of a litre.
+  const weight=smooth(action.elapsed/.8)*(1-returning);
   const bay=serviceBay(action.bay);if(!bay)return;
   const side=Math.cos(v.angle)>=0?-1:1,at=vehicleLocalPoint(v,side*1.43,-.74);
   // Only the rendered actor moves. The saved position/origin used by cancellation stays untouched.
@@ -64,14 +75,15 @@ export class ServiceGestures{
   player.position.x=s.position.x+(at.x-s.position.x)*weight;player.position.z=s.position.z+(at.z-s.position.z)*weight;
   const angle=v.angle-side*Math.PI/2;player.rotation.y+=Math.atan2(Math.sin(angle-player.rotation.y),Math.cos(angle-player.rotation.y))*weight;
   player.userData.arms[0].rotation.x=-.3*weight;
-  const filler=vehicleLocalPoint(v,side*1.03,-1),target=new THREE.Vector3(filler.x,1.28,filler.z);
-  reachCafeHand(player,target,weight);
+  const filler=vehicleLocalPoint(v,side*1.03,-1),dockPoint=new THREE.Vector3(bay.x-.55,1.86,bay.z-.45);
+  const target=new THREE.Vector3(filler.x,1.28,filler.z).lerp(dockPoint,returning);
+  reachCafeHand(player,target,this.finish?1:weight);
   player.updateMatrixWorld(true);
   const hand=player.userData.elbows[1].localToWorld(new THREE.Vector3(0,-.22,.026));
-  this.nozzle.position.copy(hand);this.nozzle.rotation.y=angle;this.nozzle.visible=this.hose.visible=true;
+  this.nozzle.position.copy(hand);if(this.finish)this.nozzle.position.lerp(dockPoint,smooth((returning-.75)/.25));this.nozzle.rotation.y=angle*(1-returning);this.nozzle.visible=this.hose.visible=true;
   this.docked.get(bay.id).visible=false;
-  const start=new THREE.Vector3(bay.x-.64,2.22,bay.z),mid=start.clone().lerp(hand,.5);mid.y=.55;
-  const curve=new THREE.QuadraticBezierCurve3(start,mid,hand);
+  const start=new THREE.Vector3(bay.x-.64,2.22,bay.z),mid=start.clone().lerp(this.nozzle.position,.5);mid.y=.55;
+  const curve=new THREE.QuadraticBezierCurve3(start,mid,this.nozzle.position);
   for(let i=0;i<this.hose.children.length;i++){
    curve.getPoint(i/20,this.a);curve.getPoint((i+1)/20,this.b);const m=this.hose.children[i];
    this.direction.subVectors(this.b,this.a);m.position.copy(this.a).add(this.b).multiplyScalar(.5);m.scale.y=this.direction.length();m.quaternion.setFromUnitVectors(this.up,this.direction.normalize());

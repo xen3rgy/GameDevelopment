@@ -1,6 +1,6 @@
 import {overlaps,vehicleBody} from './traffic.js?v=0.8.1';
 import {SERVICE_FIXTURES} from './service-layout.js?v=0.8.1';
-import {serviceBay} from './service-layout.js?v=0.8.1';
+import {serviceBay,serviceAligned} from './service-layout.js?v=0.8.1';
 import {inReach} from './interactions.js?v=0.8.1';
 import {REPAIR_RATE} from './fleet.js?v=0.8.1';
 export const TANK_LITRES={car:45,van:70,sport:60};
@@ -15,7 +15,7 @@ export function serviceQuote(s,v,kind){
 export const serviceBusy=s=>!!(s.vehicleService||s.inside||s.riding||s.transit||s.job||s.workshop?.active||s.dailyLife?.action||s.cafe?.phase==='open');
 export function vehicleAtBay(s,bay){
  if(!bay)return null;
- const vehicles=(s.fleet||[]).filter(v=>!v.stored&&Math.abs(v.speed)<.01&&Math.hypot(v.x-bay.vehicle.x,v.z-bay.vehicle.z)<=1.1&&Math.abs(Math.sin(v.angle))<.18);
+ const vehicles=(s.fleet||[]).filter(v=>Math.abs(v.speed)<.01&&serviceAligned(v,bay));
  return vehicles.length===1?vehicles[0]:null;
 }
 export function beginService(model,id){

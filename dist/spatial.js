@@ -1,3 +1,5 @@
+import {homeFixtures} from './home-layout.js?v=0.8.1';
+export {homeFixtures} from './home-layout.js?v=0.8.1';
 import {onServiceApron} from './service-layout.js?v=0.8.1';
 import {WORKSHOP_ROOM,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.8.1';
 import {frontageSurface} from './frontage-layout.js?v=0.8.1';
@@ -34,18 +36,8 @@ export const SHOP_FIXTURES=[
  {id:'bakery',x:337,z:32,w:1.62,d:.57,h:2.1},
  {id:'baskets',x:341.6,z:47.45,w:.34,d:.28,h:.8}
 ];
-export const HOME_FIXTURES=[
- {id:'bed',x:296,z:-3,w:1.5,d:2,h:1.05},
- {id:'kitchen',x:303,z:-4.5,w:2,d:.55,h:1.72},
- {id:'fridge',x:305.8,z:-4.55,w:.6,d:.6,h:2.5},
- {id:'storage',x:295,z:2.3,w:.9,d:.38,h:1.4},
- {id:'table',x:299,z:1,w:1,d:.6,h:.7},
- {id:'sofa',x:298,z:3,w:1.5,d:.5,h:1.05},
- {id:'shower',x:305.8,z:2,w:.76,d:.76,h:.55},
- {id:'nightstand',x:294.1,z:-4.8,w:.375,d:.35,h:1.6}
-];
-export const homeFixtures=home=>['flat','penthouse'].includes(home)?[...HOME_FIXTURES,{id:'desk',x:302,z:1.8,w:1.3,d:.6,h:1.4},{id:'chair',x:301,z:3.2,w:.375,d:.375,h:.9}]:HOME_FIXTURES;
-export function canWalkRoom(interior,x,z,r=.35,home='room'){const b=ROOMS[interior];return !!b&&x>b.minX+r&&x<b.maxX-r&&z>b.minZ+r&&z<b.maxZ-r&&!((interior==='shop'?SHOP_FIXTURES:interior==='cafe'?CAFE_FIXTURES:interior==='home'?homeFixtures(home):interior==='workshop'?WORKSHOP_FIXTURES:[]).some(c=>c.radius!=null?Math.hypot(x-c.x,z-c.z)<c.radius+r:Math.abs(x-c.x)<c.w+r&&Math.abs(z-c.z)<c.d+r))}
+export const HOME_FIXTURES=homeFixtures('room');
+export function canWalkRoom(interior,x,z,r=.35,home='room'){const b=ROOMS[interior];return !!b&&x>b.minX+r&&x<b.maxX-r&&z>b.minZ+r&&z<b.maxZ-r&&!((interior==='shop'?SHOP_FIXTURES:interior==='cafe'?CAFE_FIXTURES:interior==='home'?homeFixtures(home):interior==='workshop'?WORKSHOP_FIXTURES:[]).some(c=>(c.minY??0)<1.85&&(c.radius!=null?Math.hypot(x-c.x,z-c.z)<c.radius+r:Math.abs(x-c.x)<c.w+r&&Math.abs(z-c.z)<c.d+r)))}
 // Slab intersection gives a continuous boom limit, without discrete ray samples.
 export function rayBox(origin,dir,b,max){let near=0,far=max;for(const axis of ['x','y','z']){const low=b['min'+axis.toUpperCase()],high=b['max'+axis.toUpperCase()];if(Math.abs(dir[axis])<1e-9){if(origin[axis]<low||origin[axis]>high)return max;continue}let a=(low-origin[axis])/dir[axis],c=(high-origin[axis])/dir[axis];if(a>c)[a,c]=[c,a];near=Math.max(near,a);far=Math.min(far,c);if(near>far)return max}return far>=0?Math.max(0,near):max}
 export class CameraRig{

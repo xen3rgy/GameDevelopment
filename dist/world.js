@@ -77,8 +77,8 @@ export class World{
  this.shelves=WORK.shelves;
  for(const n of PEOPLE){let p=person(n.color,0xc09173,2);p.position.set(n.x,groundHeight(n.x,n.z)-.05,n.z);p.rotation.y=n.z<0?0:Math.PI;s.add(p);n.mesh=p}
  for(const car of this.traffic.cars){const i=car.id,g=createCar(artKit,i===4?'van':'car',[0x4c6a79,0xb5afa0,0x934c3d,0x34534f,0xc5c4b6,0x414d67,0x977147][i%7]);g.rotation.y=car.angle;g.position.set(car.x,groundHeight(car.x,car.z)-.03,car.z);s.add(g);car.mesh=g;this.cars.push(car)}
- // A furnished, physically walkable home interior, outside the exterior bounds.
- box(s,300,-.09,0,14,.3,12,0x82725b);box(s,300,1.7,-6,14,3.6,.25,0xc2b8a5);box(s,293,1.7,0,.25,3.6,12,0xb4aa98);box(s,307,1.7,0,.25,3.6,12,0xb4aa98);box(s,296,1.7,6,6,3.6,.25,0xb4aa98);box(s,304,1.7,6,6,3.6,.25,0xb4aa98);box(s,300,3.05,6,2,1,.25,0xb4aa98);this.exitDoor(s,300,6,'AUSGANG');box(s,296,.4,-3,3,.65,4,0x55493d);box(s,296,.85,-3,3,.25,4,0xbbb7a7);box(s,296,1,-4.4,2.4,.2,.8,0xe0d9c7);box(s,303,.8,-4.5,4,1.5,1,0x76786f);box(s,303,1.6,-4.5,4,.1,1.1,0xccbfa3);box(s,299,.55,1,2,.12,1.2,0xa18c67);box(s,298,.45,3,3,.7,1,0x647677);sign(s,'DEIN ZUHAUSE',300,2.4,-5.8,4,.55);this.interiorLight=new THREE.PointLight(0xffd9a5,28,18);this.interiorLight.position.set(300,3,0);s.add(this.interiorLight);this.homeDetails();this.art.homeFinish();this.buildShop();buildCafe(this,artKit);
+ // Home furnishings are built and batched by HomeScene after world isolation.
+ this.interiorLight=new THREE.PointLight(0xffd9a5,34,18);this.interiorLight.position.set(300,3,0);s.add(this.interiorLight);this.buildShop();buildCafe(this,artKit);
  this.beacon=new THREE.Group();let beam=new THREE.Mesh(new THREE.CylinderGeometry(.15,.15,16,8),new THREE.MeshBasicMaterial({color:0xecc887,transparent:true,opacity:.4,depthWrite:false}));beam.position.y=8;this.beacon.add(beam);let diamond=new THREE.Mesh(new THREE.OctahedronGeometry(.5),new THREE.MeshBasicMaterial({color:0xf4d093}));diamond.position.y=3;this.beacon.add(diamond);s.add(this.beacon)
  }
  detailFacade(g,x,z,w,d,h,face,name){
@@ -107,14 +107,6 @@ export class World{
   if(animated){const hinge=new THREE.Group();hinge.userData.dynamicCafe=true;hinge.position.set(x-.96,0,z-.06);parent.add(hinge);for(const m of [leaf,glazing,handle,caption]){m.position.sub(hinge.position);hinge.add(m)}return hinge;}
  }
  buildShop(){buildMarket(this,artKit)}
- homeDetails(){const s=this.scene;this.homeDecor=new THREE.Group();s.add(this.homeDecor);
-  // Separate interactions have separate furnishings, avoiding overlapping hot spots.
-  box(this.homeDecor,295,.7,2.3,1.8,1.1,.75,0x766653);sign(this.homeDecor,'VORRÄTE',295,1.35,2.72,1.5,.22);
-  box(this.homeDecor,303,1.7,-4.3,1,.04,.65,0x343e40);for(let x of [302.8,303.2])for(let z of [-4.1,-4.5])cylinder(this.homeDecor,x,1.74,z,.1,.025,0x9baba4);
-  box(this.homeDecor,305.8,.45,2,1.5,.15,1.5,0xc5cfcb);box(this.homeDecor,306.5,1.55,2.6,.04,2.25,1.4,0x87a8a8);cylinder(this.homeDecor,306.4,2.6,2.4,.17,.07,0xabb5b0);
-  this.homeExtras=new THREE.Group();s.add(this.homeExtras);box(this.homeExtras,302,.7,1.8,2.6,.13,1.2,0x655a4e);box(this.homeExtras,302,1.05,1.8,.8,.5,.08,0x22323c);box(this.homeExtras,302,.83,2,.8,.04,.6,0x75827e);box(this.homeExtras,301,.5,3.2,.75,.8,.75,0x637d78);
-  this.homeLuxury=new THREE.Group();s.add(this.homeLuxury);box(this.homeLuxury,300,1.9,-5.8,4,2,.04,0x738e99);sign(this.homeLuxury,'LINDENSTADT',300,2.05,-5.74,3.5,.45,'#e2c799','#304d59');box(this.homeLuxury,298,.31,0,4,.04,3,0x647b77);
- }
  updateRoute(dt){
   this.routeAge+=dt;const s=this.model.s,t=this.target;const key=t?`${t.x},${t.z},${s.inside}`:'';
   if(!t||s.inside||s.riding){this.route=[];this.routeLine.visible=false;return}
@@ -179,7 +171,7 @@ export class World{
  }
  this.exterior.visible=!s.inside;this.homeShell.visible=s.interior==='home';
 
- this.homeExtras.visible=s.interior==='home'&&['flat','penthouse'].includes(s.home);this.homeLuxury.visible=s.interior==='home'&&s.home==='penthouse';this.homeDecor.visible=s.interior==='home';this.shop.visible=s.interior==='shop';updateCafe(this,s,active?dt*s.settings.speed:0);
+ this.shop.visible=s.interior==='shop';updateCafe(this,s,active?dt*s.settings.speed:0);
  this.bottles.forEach(b=>b.mesh.visible=!s.collected.includes(b.id)&&!s.inside);
  this.trash.forEach((mesh,i)=>{mesh.visible=s.job?.type==='cleaning'&&!(s.job.cleaned??Array.from({length:s.job.progress},(_,i)=>i)).includes(i);mesh.material=mat(i===s.job?.progress?0x5e7553:0x253331)});
  if(s.drops!==this.lastDrops){for(let d of this.drops)this.scene.remove(d.mesh);this.drops=s.drops.map((d,i)=>{let mesh=d.id==='bottle'?this.bottle(d.x,d.z):box(this.scene,d.x,groundHeight(d.x,d.z)+.25,d.z,.45,.5,.45,0xb99b64);return{...d,index:i,mesh}});this.lastDrops=s.drops}

@@ -1,6 +1,7 @@
 import * as THREE from './vendor/three.module.js';
-import {SERVICE_SITE,SERVICE_BAYS,SERVICE_FIXTURES} from './service-layout.js?v=0.8.1';
-import {fuelPrice} from './vehicle-service.js?v=0.8.1';
+import {SERVICE_SITE,SERVICE_BAYS,SERVICE_FIXTURES,serviceAligned} from './service-layout.js?v=0.8.1';
+import {fuelPrice,vehicleAtBay} from './vehicle-service.js?v=0.8.1';
+import {vehicleBody} from './traffic.js?v=0.8.1';
 import {ServiceGestures,serviceHose,serviceNozzle} from './service-gestures.js?v=0.8.1';
 export class ServiceScene{
  constructor(world,kit){
@@ -31,19 +32,23 @@ export class ServiceScene{
    box(r,x,.32,-81.3,.10,.018,1.8,cream);
    for(const side of [-1,1]){const m=box(r,x+side*.26,.32,-81.9,.08,.018,.75,cream);m.rotation.y=-side*.75;}
   }
-  this.docked=new Map();
+  this.docked=new Map();this.displays=new Map();this.guides=[];this.world=world;
+  for(const bay of SERVICE_BAYS)this.addGuide(bay,kit);
   for(const [i,b] of SERVICE_BAYS.entries()){
    const v=b.vehicle;
    for(const dx of [-2.15,2.15])box(r,v.x+dx,.322,v.z,.065,.02,6.8,cream);
    box(r,v.x,.322,v.z-3.4,4.3,.02,.065,cream);
    if(b.kind==='fuel'){
     const x=b.x-1.2;
+    const canvas=document.createElement('canvas');canvas.width=384;canvas.height=160;
+    const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
+    const display={canvas,texture,material:new THREE.MeshBasicMaterial({map:texture,toneMapped:false}),key:null,action:null};this.displays.set(b.id,display);this.drawDisplay(display,0,0);
     box(r,x,.72,b.z,1.13,.55,2.22,green);box(r,x,2.73,b.z,1.18,.09,2.26,green);
     for(const side of [-1,1]){
      const z=b.z+side*1.115,turn=side===1?0:Math.PI;
      sign(r,'SUPER E5 · 0'+(i+1),x,2.43,z+side*.008,1,.24,'#fff1c5','#315f57',turn);
      box(r,x,1.98,z,.92,.48,.035,dark);
-     sign(r,'000.00 L',x,2.04,z+side*.025,.76,.16,'#b7e7c7','#162c2c',turn);
+     const screen=new THREE.Mesh(new THREE.PlaneGeometry(.80,.35),display.material);screen.position.set(x,1.98,z+side*.025);screen.rotation.y=turn;r.add(screen);
      sign(r,'KARTE  ·  PIN',x,1.64,z+side*.025,.70,.12,'#d5daca','#293e41',turn);
      for(let k=0;k<3;k++)box(r,x-.16+k*.16,1.46,z+side*.025,.07,.055,.03,steel);
     }
@@ -54,7 +59,8 @@ export class ServiceScene{
    }else{
     for(const dx of [-1.5,1.5]){box(r,v.x+dx,.37,v.z,.35,.14,5.2,dark);box(r,v.x+dx,.45,v.z+2.4,.35,.025,.3,amber);}
     for(let x=-36;x<=-30;x+=.6){const m=box(r,x,.325,-98.7,.25,.025,.65,amber);m.rotation.y=-.5;}
-    sign(r,'ANMELDUNG · E',b.x,1.5,b.z-.8,2,.35,'#ffffff','#253d40');
+    box(r,-39,1.13,-99.53,1.86,.38,.045,dark);
+    sign(r,'ANMELDUNG · E',-39,1.13,-99.50,1.7,.26,'#ffffff','#253d40');
    }
   }
   // Roadside pylon stays outside both drive-through lanes.
@@ -95,12 +101,48 @@ export class ServiceScene{
   this.gestures=new ServiceGestures(this.root,kit,this.docked);
   this.priceRoot=new THREE.Group();this.root.add(this.priceRoot);this.sign=sign;
  }
+ addGuide(bay,{box,sign}){
+  const root=new THREE.Group();root.position.set(bay.vehicle.x,.345,bay.vehicle.z);root.rotation.y=bay.vehicle.angle;this.root.add(root);
+  const material=new THREE.MeshBasicMaterial({color:0xe7bc62,depthWrite:false});
+  const sides=[-1,1].map(side=>box(root,side,0,0,.09,.018,4,0,material));
+  const ends=[-1,1].map(side=>box(root,0,0,side*2,2,.018,.09,0,material));
+  // Opposing arrows explicitly permit either longitudinal direction.
+  for(const end of [-1,1])for(const side of [-1,1]){const m=box(root,side*.22,.01,end*2.9,.08,.018,.65,0,material);m.rotation.y=end*side*.75;}
+  const labels=['LÄNGS AUSRICHTEN','BREMSEN','BEREIT · AUSSTEIGEN'].map((text,i)=>{const label=sign(root,text,0,.015,3.8,3.8,.42,i===2?'#b6ffd0':'#ffe3a1','#253d40');label.rotation.x=-Math.PI/2;return label;});
+  this.guides.push({bay,root,material,sides,ends,labels});
+ }
+ drawDisplay(display,litres,cents){
+  const rows=[litres.toFixed(1)+' L',(cents/100).toFixed(2)+' €'],key=rows.join('|');if(key===display.key)return;
+  display.key=key;const ctx=display.canvas.getContext('2d');ctx.fillStyle='#162c2c';ctx.fillRect(0,0,384,160);ctx.fillStyle='#b7e7c7';ctx.font='600 56px monospace';ctx.textAlign='right';ctx.fillText(rows[0],365,66);ctx.fillText(rows[1],365,139);display.texture.needsUpdate=true;
+ }
+ updateDisplays(s,dt){
+  this.displayAge=(this.displayAge||0)+dt;
+  for(const [id,display] of this.displays){
+   const action=s.vehicleService?.kind==='fuel'&&s.vehicleService.bay===id?s.vehicleService:null;
+   const changed=action!==display.action;
+   if(!changed&&this.displayAge<.1)continue;
+   const a=action||display.action;
+   if(a){const fraction=Math.min(1,a.elapsed/a.duration);this.drawDisplay(display,a.litres*fraction,Math.min(a.cost,Math.ceil(a.litres*fraction*a.unitPrice)));}
+   display.action=action;
+  }
+  if(this.displayAge>=.1)this.displayAge=0;
+ }
  resetPose(player){this.gestures.resetPose(player);}
  update(s,player,dt=0){
   this.root.visible=!s.inside;
   const near=Math.hypot(s.position.x-SERVICE_SITE.x,s.position.z-SERVICE_SITE.z)<55;
   for(const light of this.lights)light.visible=!s.inside&&near&&s.settings.quality!=='low';
-  this.gestures.update(s,player,dt);
+  this.gestures.update(s,player,dt);this.updateDisplays(s,dt);
+  const vehicle=s.riding&&s.vehicle;
+  for(const g of this.guides){
+   g.root.visible=!!vehicle&&!s.inside&&Math.hypot(vehicle.x-g.bay.vehicle.x,vehicle.z-g.bay.vehicle.z)<14;if(!g.root.visible)continue;
+   const body=vehicleBody(vehicle),width=body.width+.20,length=body.length+.20;
+   g.sides.forEach((m,i)=>{m.position.x=(i?1:-1)*width/2;m.scale.z=length;});
+   g.ends.forEach((m,i)=>{m.position.z=(i?1:-1)*length/2;m.scale.x=width;});
+   const aligned=serviceAligned(vehicle,g.bay)&&this.world.canDrive(vehicle,vehicle.x,vehicle.z,vehicle.angle);
+   const ready=aligned&&vehicleAtBay(s,g.bay)===vehicle;
+   g.material.color.setHex(ready?0x6be6a0:0xe7bc62);g.labels.forEach((m,i)=>m.visible=i===(ready?2:aligned?1:0));
+  }
   const price=fuelPrice(s);if(this.price===price)return;this.price=price;
   for(const child of [...this.priceRoot.children]){child.geometry?.dispose();this.priceRoot.remove(child);}
   this.sign(this.priceRoot,(price/100).toFixed(2)+' €/L',-47,3.65,-79.64,1.16,.36,'#d6f3c8','#162c2c');
