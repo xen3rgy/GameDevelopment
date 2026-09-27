@@ -1,5 +1,5 @@
 import {buildHomeInteriors} from './home-furnishings.js?v=0.8.1';
-import {homeStyle} from './home-layout.js?v=0.8.1';
+import {homeStyle,homeFixtures,HOME_ALIGNMENT} from './home-layout.js?v=0.8.1';
 import * as THREE from './vendor/three.module.js';
 import {createCafeMeal,reachCafeHand} from './cafe-food.js?v=0.8.1';
 import {groundHeight} from './spatial.js?v=0.8.1';
@@ -8,7 +8,7 @@ export class HomeScene{
  constructor(world,kit){
   this.world=world;this.kit=kit;this.root=new THREE.Group();world.homeShell.add(this.root);this.props=new THREE.Group();world.scene.add(this.props);this.lastAction=false;
   this.variants=buildHomeInteriors(world,kit);
-  const {box,cylinder,sign}=kit,g=this.root;
+  const {box,cylinder,sign}=kit;let g=new THREE.Group();this.root.add(g);g.position.set(HOME_ALIGNMENT.fridgeX-305.8,0,HOME_ALIGNMENT.fridgeZ+4.55);
   // Open cabinet: shelves, inner lining and a real hinged door, kept out of static batching.
   box(g,305.8,1.28,-5.08,1.16,2.4,.09,0x5e7377);for(const x of [305.24,306.36])box(g,x,1.28,-4.55,.07,2.4,1.1,0xc7d3ce);
   for(const y of [.12,.62,1.18,1.76,2.46])box(g,305.8,y,-4.55,1.12,.06,1.1,0xe1e6dd);
@@ -19,6 +19,7 @@ export class HomeScene{
    const wrapper=box(pack,0,.1,0,.29,.18,.24,0xd1af62);wrapper.material=wrapper.material.clone();box(pack,0,.19,0,.27,.016,.22,0xeee3ca);
    cylinder(cup,0,.09,0,.08,.16,0x55746d);v.userData={bottle,pack,cup,wrapper};this.chilled.push(v);
   }
+  g=this.root;
   this.lamp=new THREE.PointLight(0xffc486,2.5,5);this.lamp.position.set(294.1,1.4,-4.8);g.add(this.lamp);
   this.blanket=box(g,296.5,1.08,-3.13,1.1,.04,1.35,0x6e9090);this.blanket.visible=false;
   this.privacy=new THREE.Group();g.add(this.privacy);for(const x of [305.08,306.64])box(this.privacy,x,1.8,2,.025,2.2,1.65,0xa1b5ad);box(this.privacy,305.86,1.8,2.82,1.58,2.2,.025,0xa1b5ad);box(this.privacy,305.86,1.8,1.18,1.58,2.2,.025,0xa1b5ad);this.privacy.visible=false;
@@ -37,33 +38,37 @@ export class HomeScene{
    this.styleId=s.home;const style=homeStyle(s.home),id=this.variants.has(s.home)?s.home:'room';
    for(const [key,group] of this.variants)group.visible=key===id;
    this.world.interiorLight.color.setHex(style.warm);this.world.interiorLight.intensity=style.light;this.world.interiorLight.position.y=2.75;
-   this.blanket.material=this.kit.mat(style.fabric);this.blanket.scale.x=style.bedWidth-.2;this.blanket.position.x=id==='penthouse'?296.2:296.5;
+   this.blanket.material=this.kit.mat(style.fabric);this.blanket.scale.x=style.bedWidth-.2;this.blanket.position.x=id==='penthouse'?296.2:296.5;this.blanket.position.z=-3.13+HOME_ALIGNMENT.bedShiftZ;
+   const bedside=homeFixtures(id).find(f=>f.id==='nightstand');this.lamp.position.set(bedside.x,1.4,bedside.z);
    this.lamp.color.setHex(style.warm);this.lamp.intensity=id==='stationRoom'?2.5:4;
   }
   const a=s.dailyLife?.action,p=this.world.player,d=p.userData,phase=a?a.elapsed/a.duration:0;
   // Reset only root tilt; position is restored by the world from the saved standing anchor.
   this.cameraAnchor=null;p.rotation.x=0;p.rotation.z=0;if(d.backpack)d.backpack.visible=true;
   for(const item of this.items.values())item.visible=false;this.spoon.visible=false;this.blanket.visible=false;this.privacy.visible=false;this.water.visible=false;
-  const open=s.interior==='home'&&this.world.homeScreen==='fridge';this.door.rotation.y+=((open?-1.65:0)-this.door.rotation.y)*(1-Math.exp(-dt*9));
+  this.privacy.position.x=HOME_ALIGNMENT.showerShiftX;
+  const open=s.interior==='home'&&this.world.homeScreen==='fridge';this.door.rotation.y+=((open?-1.45:0)-this.door.rotation.y)*(1-Math.exp(-dt*9));
   const stock=(s.fridge||[]).flatMap(v=>Array(Math.min(8,v.count)).fill(v.id)).slice(0,8);this.chilled.forEach((v,i)=>{const id=stock[i],d=v.userData;v.visible=!!id;d.bottle.visible=id==='water';d.cup.visible=id==='coffee';d.pack.visible=!!id&&id!=='water'&&id!=='coffee';d.wrapper.material.color.set({vegetables:0x8ca96d,cheese:0xdbbd67,pasta:0xbc895e,bread:0xc7a573,sandwich:0x789b88,meal:0xb6c9c4}[id]||0xc4b07f);});
   if(!a){if(this.lastAction){d.arms.forEach(v=>v.rotation.set(0,0,0));d.elbows.forEach(v=>v.rotation.set(0,0,0));}this.lastAction=false;return;}
   this.lastAction=true;
   const settle=smooth(Math.min(phase/.28,(1-phase)/.22));p.rotation.y=a.yaw;
   if(a.kind==='sleep'){
-   this.cameraAnchor=new THREE.Vector3(a.origin.x,.02,a.origin.z).lerp(new THREE.Vector3(296.5,.02,-3.0),settle);
-   const target=new THREE.Vector3(296.5,.88,-2.45);p.position.set(a.origin.x,.02,a.origin.z).lerp(target,settle);
+   this.cameraAnchor=new THREE.Vector3(a.origin.x,.02,a.origin.z).lerp(new THREE.Vector3(this.blanket.position.x,.02,-3.0+HOME_ALIGNMENT.bedShiftZ),settle);
+   const target=new THREE.Vector3(this.blanket.position.x,.88,-2.45+HOME_ALIGNMENT.bedShiftZ);p.position.set(a.origin.x,.02,a.origin.z).lerp(target,settle);
    const start=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,a.yaw,0)),lying=new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI/2,0,0));p.quaternion.copy(start.slerp(lying,settle));
    for(let i=0;i<2;i++){d.legs[i].rotation.x=-Math.sin(Math.PI*settle)*.7;d.knees[i].rotation.x=Math.sin(Math.PI*settle)*1.0;d.arms[i].rotation.set(-.12,0,i?-.12:.12);d.elbows[i].rotation.set(-.15,0,0);}
    d.upper.rotation.x=.12*settle;if(d.backpack)d.backpack.visible=settle<.1;this.blanket.visible=settle>.95;
   }else if(a.kind==='shower'){
    this.cameraAnchor=new THREE.Vector3(a.origin.x,.02,a.origin.z);
-   p.position.set(a.origin.x,.02,a.origin.z).lerp(new THREE.Vector3(305.85,.20,2),settle);this.privacy.visible=settle>.1;this.water.visible=settle>.8;
+   p.position.set(a.origin.x,.02,a.origin.z).lerp(new THREE.Vector3(305.85+HOME_ALIGNMENT.showerShiftX,.20,2),settle);this.privacy.visible=settle>.1;this.water.visible=settle>.8;
    d.arms[1].rotation.x=-2.5;d.elbows[1].rotation.x=-.7;d.upper.rotation.z=Math.sin(a.elapsed*3)*.025;
    if(d.backpack)d.backpack.visible=settle<.1;
-   const pos=this.water.geometry.attributes.position;for(let i=0;i<pos.count;i++){const y=2.8-((a.elapsed*2+i*.073)%2.2);pos.setXYZ(i,305.9+Math.sin(i*7)*.4,y,2+Math.cos(i*11)*.4);}pos.needsUpdate=true;
+   const pos=this.water.geometry.attributes.position;for(let i=0;i<pos.count;i++){const y=2.8-((a.elapsed*2+i*.073)%2.2);pos.setXYZ(i,305.9+HOME_ALIGNMENT.showerShiftX+Math.sin(i*7)*.4,y,2+Math.cos(i*11)*.4);}pos.needsUpdate=true;
   }else if(a.kind==='cook'){
    p.rotation.y=Math.PI;d.arms[1].rotation.x=-1.0;d.elbows[1].rotation.x=-.6;d.arms[1].rotation.z=Math.sin(a.elapsed*5)*.15;
-   const meal=this.items.get('meal');meal.visible=true;meal.position.set(303,1.12,-4.3);meal.rotation.set(0,0,0);
+   const kitchen=homeFixtures(s.home).find(f=>f.id==='kitchen'),hob=kitchen.x-kitchen.w+.62;
+   p.position.set(a.origin.x,.02,a.origin.z).lerp(new THREE.Vector3(hob,.02,-4.02),settle);
+   const meal=this.items.get('meal');meal.visible=true;meal.position.set(hob,1.12,kitchen.z+.12);meal.rotation.set(0,0,0);
   }else if(a.kind==='consume'){
    const item=this.items.get(a.item);if(!item)return;item.visible=true;p.updateMatrixWorld(true);
    const lift=Math.sin(Math.PI*smooth(phase)),food=a.item==='sandwich',drink=a.item==='water'||a.item==='coffee';

@@ -100,3 +100,24 @@ test('constructed home variants have solid ceilings and stable shower camera anc
   world.scene.traverse(o=>assert.ok(o.matrixWorld.elements.every(Number.isFinite),'non-finite scene transform'));
  }
 });
+
+test('aligned furniture groups share axes, clear walls and keep fridge door sweep clear',()=>{
+ for(const home of homes){
+  const fixtures=homeFixtures(home),f=id=>fixtures.find(v=>v.id===id),k=f('kitchen'),bed=f('bed'),night=f('nightstand');
+  assert.ok(Math.abs(k.z-f('fridge').z)<1e-8,'fridge/counter depth differs');
+  assert.ok(Math.abs(k.x+k.w-305.46)<1e-8,'kitchen end not aligned');
+  assert.ok(f('fridge').x-f('fridge').w>k.x+k.w,'fridge overlaps counter');
+  assert.equal(f('table').x,f('sofa').x,'living group not centered');
+  assert.ok(night.x+night.w<bed.x-bed.w,'nightstand overlaps bed');
+  assert.ok(Math.abs(f('storage').z+f('storage').d-5.81)<.02,'storage not wall mounted');
+  if(home==='flat')assert.equal(f('chair').z,f('desk').z,'desk chair off axis');
+  if(home==='penthouse')assert.equal(f('chair').x,f('desk').x,'dining chair off axis');
+  // Full lower-door sweep must clear the adjoining counter, including door thickness.
+  const hingeX=f('fridge').x-.6,hingeZ=-4.65;
+  for(let i=0;i<=60;i++)for(const x of [0,1.2])for(const z of [-.045,.045]){
+   const a=-1.45*i/60,px=hingeX+x*Math.cos(a)+z*Math.sin(a),pz=hingeZ-x*Math.sin(a)+z*Math.cos(a);
+   assert.ok(px>k.x+k.w||pz>k.z+.58,'fridge door clips counter');
+   assert.ok(px<306.875&&pz>-5.875,'fridge door clips wall');
+  }
+ }
+});
