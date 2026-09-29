@@ -106,31 +106,7 @@ export class CityArt{
  update(night){this.windows.forEach((m,i)=>m.emissiveIntensity=(i===3?.65:i===4?.32:.025)*night)}
 }
 
-const capsuleGeo=new Map();
-export function createCitizen(kit,color=0x344c55,skin=0xc39c7b,variant=0,style=null){
- const {box,mat}=kit,g=new THREE.Group(),upper=new THREE.Group(),backpack=new THREE.Group(),arms=[],legs=[],elbows=[],knees=[],feet=[];g.add(upper);
- const trousers=style?.trousers??0x354350,hairColor=style?.hairColor??[0x302c29,0x5b4030,0x212629][variant%3];let headRoot=null;
- const cap=(parent,x,y,z,r,l,col,sx=1,sz=1)=>{const key=r+','+l;if(!capsuleGeo.has(key))capsuleGeo.set(key,new THREE.CapsuleGeometry(r,l,4,10));const m=new THREE.Mesh(capsuleGeo.get(key),mat(col));m.position.set(x,y,z);m.scale.set(sx,1,sz);m.castShadow=true;parent.add(m);return m};
- cap(upper,0,1.15,0,.21,.30,color,1.12,.7);cap(upper,0,.91,0,.17,.05,0x303d48,1.16,.75);cap(upper,0,1.48,0,.067,.07,skin);
- const head=new THREE.Mesh(new THREE.SphereGeometry(.145,16,12),mat(skin));head.position.set(0,1.68,.015);head.scale.set(.9,1.22,.92);head.castShadow=true;upper.add(head);
- const hair=new THREE.Mesh(new THREE.SphereGeometry(.151,16,8,0,Math.PI*2,0,Math.PI*.56),mat(hairColor));hair.position.set(0,1.725,.007);hair.scale.z=.95;upper.add(hair);
- for(const x of [-.135,.135])cap(upper,x,1.68,.01,.029,.032,skin,1,.55);
- cap(upper,0,1.67,.14,.025,.035,skin,.65,1);for(const x of [-.05,.05]){box(upper,x,1.708,.143,.025,.015,.012,0x36322e);box(upper,x,1.733,.14,.042,.008,.012,0x514036)}
- if(style){
-  if(style.hair==='long')cap(upper,0,1.59,-.085,.13,.14,hairColor,1.03,.55);
-  if(style.hair==='bun')cap(upper,0,1.79,-.13,.07,.04,hairColor);
-  if(style.hair==='cap'){cap(upper,0,1.82,.005,.142,.025,style.accent,1,.92);box(upper,0,1.83,.11,.27,.022,.19,style.accent);}
-  headRoot=new THREE.Group();headRoot.position.y=1.65;for(const part of upper.children.slice(3)){part.position.y-=1.65;headRoot.add(part);}upper.add(headRoot);
- }
- for(const x of [-.26,.26]){const arm=new THREE.Group(),elbow=new THREE.Group();arm.position.set(x,1.35,0);cap(arm,0,-.13,0,.072,.17,color);elbow.position.y=-.29;cap(elbow,0,-.09,.015,.061,.15,color);cap(elbow,0,-.22,.026,.048,.035,skin);arm.add(elbow);upper.add(arm);arms.push(arm);elbows.push(elbow)}
- for(const x of [-.115,.115]){const leg=new THREE.Group(),knee=new THREE.Group(),foot=new THREE.Group();leg.position.set(x,.9,0);cap(leg,0,-.19,0,.087,.25,trousers);knee.position.y=-.38;cap(knee,0,-.18,0,.069,.25,trousers);foot.position.set(0,-.405,0);box(foot,0,0,.04,.17,.095,.30,style?.shoes??0x252c30);box(foot,0,-.05,.04,.18,.03,.32,0xb5b3a4);box(foot,0,.052,.10,.12,.018,.14,0x667277);knee.add(foot);leg.add(knee);g.add(leg);legs.push(leg);knees.push(knee);feet.push(foot)}
- box(upper,0,1.17,.158,.017,.49,.012,0xa5a58f);for(const x of [-.14,.14])box(upper,x,1.14,.15,.105,.12,.025,0x40585c);
- if(variant===0){upper.add(backpack);cap(backpack,0,1.17,-.21,.17,.18,0x827a59,1,.65);box(backpack,0,1.12,-.323,.22,.17,.055,0xa0926e);for(const x of [-.16,.16])box(backpack,x,1.24,.153,.039,.37,.024,0x8f8565)}
- else if(variant%3===0)box(upper,0,1.43,.03,.35,.08,.28,0xb49562);
- if(style?.coat){cap(upper,0,1.02,-.018,.21,.25,color,1.16,.73);box(upper,0,1.33,.165,.1,.18,.035,style.accent);}
- if(style?.bag){box(elbows[0],0,-.40,.026,.24,.31,.15,style.accent);for(const x of [-.065,.065])box(elbows[0],x,-.22,.026,.016,.17,.022,style.accent);}
- upper.position.y=.9;for(const child of upper.children)child.position.y-=.9;g.userData={arms,legs,upper,elbows,knees,feet,backpack,headRoot,style};mergeRigidParts(g);return g;
-}
+export {createCitizen} from './citizen.js?v=0.8.1';
 
 export function createCar(kit,id='car',color=0x506d78){
  const {box,cylinder,mat,sign}=kit,g=new THREE.Group(),length=id==='van'?4.8:id==='sport'?4.1:3.8,paint=new THREE.MeshStandardMaterial({color,roughness:.32,metalness:.45});
@@ -151,14 +127,4 @@ export function createCar(kit,id='car',color=0x506d78){
  for(const x of [-.6,.6]){const head=box(g,x,.8,length/2+.055,.39,.13,.025,0,headlights),tail=box(g,x,.83,-length/2-.055,.29,.13,.025,0,taillights);head.castShadow=tail.castShadow=false;}
  box(g,0,.55,length/2+.05,1.2,.18,.05,0x2b3d42);for(let y of [.5,.55,.6])box(g,0,y,length/2+.085,.9,.022,.02,0x88999b);sign(g,'LS · 204',0,.69,length/2+.09,.42,.1,'#28353b','#deddd2');sign(g,'LS · 204',0,.65,-length/2-.09,.42,.1,'#28353b','#deddd2',Math.PI);
  return g;
-}
-
-// Merge rigid parts within each animated joint; limbs remain separately movable.
-function mergeRigidParts(group){
- for(const child of [...group.children])if(child.isGroup)mergeRigidParts(child);
- const buckets=new Map();for(const m of group.children){if(!m.isMesh||Array.isArray(m.material))continue;if(!buckets.has(m.material))buckets.set(m.material,[]);buckets.get(m.material).push(m)}
- for(const [material,meshes] of buckets){if(meshes.length<2)continue;const positions=[],normals=[],uvs=[];
-  for(const m of meshes){m.updateMatrix();const geom=m.geometry.index?m.geometry.toNonIndexed():m.geometry.clone();geom.applyMatrix4(m.matrix);positions.push(...geom.attributes.position.array);normals.push(...geom.attributes.normal.array);uvs.push(...geom.attributes.uv.array);geom.dispose();group.remove(m)}
-  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));const merged=new THREE.Mesh(geo,material);merged.castShadow=true;merged.receiveShadow=true;group.add(merged);
- }
 }

@@ -1,3 +1,5 @@
+import {bottleLayout} from './scavenge.js?v=0.8.1';
+import {PUBLIC_BINS} from './scavenge-layout.js?v=0.8.1';
 import {Meadow} from './meadow.js?v=0.8.1';
 import {ServiceScene} from './service-scene.js?v=0.8.1';
 import {SERVICE_BAYS} from './service-layout.js?v=0.8.1';
@@ -14,6 +16,7 @@ import {WORKSHOP_POINTS,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.8.1';
 import {CityCharacter,buildHorizonLinks} from './city-character-scene.js?v=0.8.1';
 import {buildNeighborhoodDetails} from './neighborhood-scene.js?v=0.8.1';
 import {buildPromenade} from './promenade-scene.js?v=0.8.1';
+import {citizenAppearance} from './citizen.js?v=0.8.1';
 import {PedestrianScene} from './pedestrian-scene.js?v=0.8.1';
 import {STREET_SEATS,streetSpawn,PROMENADE_BOLLARDS} from './pedestrian-layout.js?v=0.8.1';
 import {cityBackdrop} from './district-architecture.js?v=0.8.1';
@@ -69,13 +72,13 @@ export class World{
  // Return machine is a physical interaction target.
  box(s,-23,1.2,-12,1.15,2.2,.65,0xc7cbc3);box(s,-23,1.25,-11.65,.85,1.65,.04,0x263d39);let opening=new THREE.Mesh(new THREE.TorusGeometry(.24,.055,8,20),new THREE.MeshStandardMaterial({color:0x82e2a8,emissive:0x42bf88,emissiveIntensity:1}));opening.position.set(-23,1.65,-11.59);s.add(opening);sign(s,'PFAND',-23,2.15,-11.58,.9,.25);box(s,-23,.9,-11.58,.6,.15,.07,0x86a797);
  for(const l of LOCATIONS){let ring=new THREE.Mesh(new THREE.RingGeometry(.65,.82,32),new THREE.MeshBasicMaterial({color:l.color,transparent:true,opacity:.55,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.set(l.x,groundHeight(l.x,l.z)+.03,l.z);s.add(ring);l.ring=ring}
- for(let i=0;i<64;i++){let x,z;if(i<10){x=-31+(i%5)*3;z=-7+Math.floor(i/5)*4}else{x=-95+(i*31%190);z=[-9,9,-55,55,-74,74][i%6]+Math.sin(i*3)*1.5}let g=this.bottle(x,z);this.bottles.push({id:i,x,z,mesh:g})}
+ for(let i=0;i<18;i++){const mesh=this.bottle(0,0);mesh.visible=false;this.bottles.push({id:-1,x:0,z:0,mesh});}
  this.cleanPositions=WORK.cleaning;
  for(let [x,z]of this.cleanPositions){let bag=sphere(s,x,.6,z,.42,0x253331);bag.scale.y*=1.2;this.trash.push(bag)}
  for(let i=0;i<4;i++){let x=-81+i*7;box(s,x,1.5,-75,2.5,2.6,1.5,0x696354);sign(s,['A','B','C','D'][i],x,2.9,-74.2,1,.7);for(let j=0;j<2;j++)box(s,x,1+j*.9,-74.5,2,.1,1,0xa5a393)}
  this.cratePos=WORK.crate;box(s,-85,.65,-73,1,1,1,0xab8756);sign(s,'SCAN',-85,1.5,-72.8,1.6,.4);
  this.shelves=WORK.shelves;
- for(const n of PEOPLE){let p=person(n.color,0xc09173,2);p.position.set(n.x,groundHeight(n.x,n.z)-.05,n.z);p.rotation.y=n.z<0?0:Math.PI;s.add(p);n.mesh=p}
+ for(const n of PEOPLE){const look=citizenAppearance(700+PEOPLE.indexOf(n));let p=createCitizen(artKit,n.color,look.skin,700+PEOPLE.indexOf(n),look);p.position.set(n.x,groundHeight(n.x,n.z)-.05,n.z);p.rotation.y=n.z<0?0:Math.PI;s.add(p);n.mesh=p}
  for(const car of this.traffic.cars){const i=car.id,g=createCar(artKit,i===4?'van':'car',[0x4c6a79,0xb5afa0,0x934c3d,0x34534f,0xc5c4b6,0x414d67,0x977147][i%7]);g.rotation.y=car.angle;g.position.set(car.x,groundHeight(car.x,car.z)-.03,car.z);s.add(g);car.mesh=g;this.cars.push(car)}
  // Home furnishings are built and batched by HomeScene after world isolation.
  this.interiorLight=new THREE.PointLight(0xffd9a5,34,18);this.interiorLight.position.set(300,3,0);s.add(this.interiorLight);this.buildShop();buildCafe(this,artKit);
@@ -138,7 +141,7 @@ export class World{
  update(dt,keys,active){this.serviceScene.resetPose(this.player);let s=this.model.s;this.model.findTransitArrival=origin=>safeArrival(origin,(x,z)=>this.canWalkExterior(x,z,.42)&&groundHeight(x,z)>=.02&&!this.traffic.blocks(x,z,.42)&&!availableVehicles(s).some(v=>parkedVehicleBlocks(v,x,z,.42)));if(this.stationClock){this.stationClock.hour.rotation.z=-(s.minute%720)/720*Math.PI*2;this.stationClock.minute.rotation.z=-(s.minute%60)/60*Math.PI*2;}if(active)this.elapsed+=dt;let p=this.player;const delta=s.position;if(this.lastInterior!==s.interior||Math.hypot(p.position.x-delta.x,p.position.z-delta.z)>15){this.cameraRig.reset();this.flight=null;this.jump=0;this.velocityY=0;this.lastInterior=s.interior}if(Math.hypot(p.position.x-delta.x,p.position.z-delta.z)>.0001){p.position.x=delta.x;p.position.z=delta.z}
  let moving=false,running=false;const vehicle=s.vehicle;this.player.visible=!s.riding||vehicle?.id==='bike';this.mobility.syncFleet(s);
  let movedDistance=0;
- if(active&&!this.transition&&!s.vehicleService&&!s.transit&&!s.job?.fieldAction&&!s.job?.interaction&&!s.dailyLife?.action&&!s.workshop?.active?.action){
+ if(active&&!this.transition&&!s.scavenge?.action&&!s.vehicleService&&!s.transit&&!s.job?.fieldAction&&!s.job?.interaction&&!s.dailyLife?.action&&!s.workshop?.active?.action){
   const input={forward:keys.w||keys.ArrowUp,backward:keys.s||keys.ArrowDown,left:keys.a||keys.ArrowLeft,right:keys.d||keys.ArrowRight,brake:keys[' ']};
   if(s.riding&&vehicle){
    const impactSpeed=Math.abs(vehicle.speed);const result=stepVehicle(vehicle,input,dt,(x,z,r,angle)=>this.canDrive(vehicle,x,z,angle,r),VEHICLES[vehicle.id].speed);vehicleTravel(vehicle,result.distance,result.blocked?impactSpeed:0);vehicle.angle=result.angle;vehicle.speed=result.speed;for(const wheel of this.vehicleMesh.userData.wheels||[])wheel.rotation.x+=result.distance*Math.sign(result.speed)/.37;this.vehicleMesh.userData.braking=!!input.brake;p.position.set(result.x,p.position.y,result.z);p.rotation.y=result.angle;movedDistance=result.distance;moving=movedDistance>.0001;
@@ -155,7 +158,7 @@ export class World{
   this.velocityY=this.flight?.velocity||0;this.jump=this.flight?.airborne?Math.max(.001,this.flight.y-groundHeight(p.position.x,p.position.z,s.interior)):0;
   s.position={x:p.position.x,z:p.position.z};s.angle=this.angle;
  }else{this.walkSpeed=0;this.jumpHeld=false;if(vehicle)vehicle.speed=0}
- if(s.riding&&vehicle){vehicle.x=p.position.x;vehicle.z=p.position.z;this.vehicleMesh.position.set(vehicle.x,groundHeight(vehicle.x,vehicle.z)-(vehicle.id==='bike'?.015:.03),vehicle.z);this.vehicleMesh.rotation.y=vehicle.angle??p.rotation.y}if(s.riding||this.transition||s.vehicleService||s.transit||s.job?.fieldAction||s.job?.interaction||s.dailyLife?.action||s.workshop?.active?.action){this.flight=null;this.jump=0;}p.position.y=(this.flight?.airborne?this.flight.y:groundHeight(p.position.x,p.position.z,s.interior))-.05+(s.riding&&vehicle?.id==='bike'?.55:0);
+ if(s.riding&&vehicle){vehicle.x=p.position.x;vehicle.z=p.position.z;this.vehicleMesh.position.set(vehicle.x,groundHeight(vehicle.x,vehicle.z)-(vehicle.id==='bike'?.015:.03),vehicle.z);this.vehicleMesh.rotation.y=vehicle.angle??p.rotation.y}if(s.riding||this.transition||s.scavenge?.action||s.vehicleService||s.transit||s.job?.fieldAction||s.job?.interaction||s.dailyLife?.action||s.workshop?.active?.action){this.flight=null;this.jump=0;}p.position.y=(this.flight?.airborne?this.flight.y:groundHeight(p.position.x,p.position.z,s.interior))-.05+(s.riding&&vehicle?.id==='bike'?.55:0);
  const transition=this.transition?.update(active?dt:0);if(transition){p.position.x=transition.x;p.position.z=transition.z;p.position.y=groundHeight(p.position.x,p.position.z)-.05;p.rotation.y=transition.angle;this.player.visible=transition.visible;const driverDoor=this.vehicleMesh?.userData.driverDoor||this.vehicleMesh?.userData.door;if(driverDoor)driverDoor.rotation.y=-transition.door;if(this.vehicleMesh?.userData.passengerDoor)this.vehicleMesh.userData.passengerDoor.rotation.y=0;if(transition.done){if(driverDoor)driverDoor.rotation.y=0;this.transition=null;p.position.set(s.position.x,groundHeight(s.position.x,s.position.z)-.05,s.position.z);this.player.visible=!s.riding||vehicle?.id==='bike'}}
  this.workshopScene.resetPose(p);animateCitizen(p,active?dt:0,s.transit&&s.transit.elapsed>1.5&&s.transit.elapsed<3.5?dt*1.4:movedDistance,{running,carrying:!!s.job?.carrying||!!s.cafe?.carrying||s.job?.type==='courier'&&!s.riding&&!s.inside,basket:s.interior==='shop'&&s.basket.length>0,riding:s.riding&&vehicle?.id==='bike',entering:!!transition,grounded:this.jump===0});this.shoppingBasket.visible=s.interior==='shop'&&s.basket.length>0;
 
@@ -172,14 +175,18 @@ export class World{
  this.exterior.visible=!s.inside;this.homeShell.visible=s.interior==='home';
 
  this.shop.visible=s.interior==='shop';updateCafe(this,s,active?dt*s.settings.speed:0);
- this.bottles.forEach(b=>b.mesh.visible=!s.collected.includes(b.id)&&!s.inside);
+ this.syncScavenge(s);
  this.trash.forEach((mesh,i)=>{mesh.visible=s.job?.type==='cleaning'&&!(s.job.cleaned??Array.from({length:s.job.progress},(_,i)=>i)).includes(i);mesh.material=mat(i===s.job?.progress?0x5e7553:0x253331)});
  if(s.drops!==this.lastDrops){for(let d of this.drops)this.scene.remove(d.mesh);this.drops=s.drops.map((d,i)=>{let mesh=d.id==='bottle'?this.bottle(d.x,d.z):box(this.scene,d.x,groundHeight(d.x,d.z)+.25,d.z,.45,.5,.45,0xb99b64);return{...d,index:i,mesh}});this.lastDrops=s.drops}
  const light=this.atmosphere.update(s,p.position,active?dt:0);this.moon.intensity=light.moon;this.moon.position.set(p.position.x+45,65,p.position.z+20);this.moon.target.position.set(p.position.x,0,p.position.z);this.vehicleLights.update(this.carMeshes,s.vehicle&&this.vehicleMesh?.visible?this.vehicleMesh:null,p.position,light.lamp,dt,s.inside,s.settings.quality,s.riding);this.hemi.intensity=light.hemisphere;this.hemi.color.set(s.inside?0xd8e4e6:0x9dbce3);this.sun.intensity=light.sun;this.sun.castShadow=s.settings.quality!=='low'&&light.sun>.03;this.sun.position.set(p.position.x-60,15+light.altitude*85,p.position.z-40);this.sun.target.position.set(p.position.x,0,p.position.z);this.scene.background.copy(this.scene.fog.color);this.rain.visible=s.weather==='rain'&&!s.inside;if(this.rain.visible){this.rain.position.set(p.position.x,0,p.position.z);let a=this.rain.geometry.attributes.position;for(let i=0;i<a.count;i++){a.array[i*3+1]-=dt*22;if(a.array[i*3+1]<0)a.array[i*3+1]=40}a.needsUpdate=true}
  if(this.target&&!s.inside){this.beacon.visible=true;this.beacon.position.set(this.target.x,0,this.target.z);this.beacon.children[1].rotation.y=this.elapsed;this.beacon.children[1].position.y=3+Math.sin(this.elapsed*2)*.2}else this.beacon.visible=false;
  this.courierScene.update(s,active?dt:0);this.carried.visible=!!s.job?.carrying&&!s.riding;this.focusAge+=dt;if(this.focusAge>.12){this.focusAge=0;this.focusTarget=this.nearest()}const focused=this.focusTarget;this.focusRing.visible=!!focused&&!s.riding&&!s.dailyLife?.action&&!s.workshop?.active?.action;if(focused)this.focusRing.position.set(focused.x,groundHeight(focused.x,focused.z,s.interior)+.025,focused.z);this.art.update(light.night);this.cityCharacter.update(s,active?dt:0,p.position);this.sun.color.set(0xfff0d5).lerp(new THREE.Color(0xffb778),light.dusk*.65);this.updateRoute(dt);this.shadowAge+=dt;this.renderer.shadowMap.autoUpdate=false;this.renderer.shadowMap.needsUpdate=this.shadowAge>1/30;if(this.renderer.shadowMap.needsUpdate)this.shadowAge=0;this.renderer.render(this.scene,this.camera);return {moving,running,distance:movedDistance,grounded:this.jump===0}
  }
- nearest(){const s=this.model.s,p=s.position;if(s.vehicleService||s.transit||s.job?.fieldAction)return null;let candidates=[];if(s.riding)return{type:'vehicle',name:'Aussteigen · '+VEHICLES[s.vehicle.id].name,x:p.x,z:p.z,dist:0};if(!s.inside)for(const v of availableVehicles(s)){const entry=v.id==='bike'?{x:v.x,z:v.z}:this.driverDoorPoint(v);candidates.push({type:'vehicle',uid:v.uid,name:'Einsteigen · '+VEHICLES[v.id].name,...entry});candidates.push({type:'trunk',uid:v.uid,name:v.id==='bike'?'Fahrradkorb öffnen':'Kofferraum öffnen',...trunkPoint(v)});}
+ syncScavenge(s){
+  const key=[s.scavenge.seed,s.day,s.minute>=1200,s.inside,s.collected.join(',')].join('|');if(this.scavengeKey===key)return;this.scavengeKey=key;
+  const layout=bottleLayout(s);this.bottles.forEach((b,i)=>{const p=layout[i];b.id=p?.id??-1;b.mesh.visible=!!p&&!s.inside&&!s.collected.includes(p.id);if(p){b.x=p.x;b.z=p.z;b.mesh.position.set(p.x,groundHeight(p.x,p.z)+.065,p.z);}});
+ }
+ nearest(){const s=this.model.s,p=s.position;if(s.scavenge?.action||s.vehicleService||s.transit||s.job?.fieldAction)return null;let candidates=[];if(s.riding)return{type:'vehicle',name:'Aussteigen · '+VEHICLES[s.vehicle.id].name,x:p.x,z:p.z,dist:0};if(!s.inside)for(const v of availableVehicles(s)){const entry=v.id==='bike'?{x:v.x,z:v.z}:this.driverDoorPoint(v);candidates.push({type:'vehicle',uid:v.uid,name:'Einsteigen · '+VEHICLES[v.id].name,...entry});candidates.push({type:'trunk',uid:v.uid,name:v.id==='bike'?'Fahrradkorb öffnen':'Kofferraum öffnen',...trunkPoint(v)});}
  if(s.inside){
  if(s.interior==='cafe'&&s.cafe?.phase==='open'&&this.camera&&this.cafeGuests){
   const focused=[];
@@ -194,13 +201,14 @@ export class World{
  }
  candidates=Object.entries(s.interior==='shop'?SHOP_POINTS:s.interior==='cafe'?CAFE_POINTS:s.interior==='workshop'?WORKSHOP_POINTS:HOME_POINTS).map(([type,v])=>({type,...v}));for(let d of this.drops)if(d.x>290)candidates.push({...d,type:'drop',name:'Abgelegten Gegenstand aufnehmen'});return candidates.map(v=>({...v,dist:Math.hypot(v.x-p.x,v.z-p.z)})).filter(v=>v.dist<=interactionReach(v.type,true)).sort((a,b)=>a.dist-b.dist)[0]}
 
- for(let b of this.bottles)if(!s.collected.includes(b.id))candidates.push({...b,type:'bottle',name:'Pfandflasche aufnehmen · 0,25 €'});
+ for(let b of this.bottles)if(b.mesh.visible&&b.id>=0&&!s.collected.includes(b.id))candidates.push({...b,type:'bottle',name:'Pfandflasche aufnehmen · 0,25 €'});
+ for(const bin of PUBLIC_BINS)if(s.scavenge.pending.some(p=>p.bin===bin.id)||!s.scavenge.searched.includes(bin.id))candidates.push({...bin,type:'publicBin',name:s.scavenge.pending.some(p=>p.bin===bin.id)?'Fund mitnehmen':'Mülleimer durchsuchen · 2,3 s'});
  for(let d of this.drops)candidates.push({...d,type:'drop',name:'Abgelegten Gegenstand aufnehmen'});
  for(const bay of SERVICE_BAYS)candidates.push({...bay,type:'service'});for(const stop of TRANSIT_STOPS)if(stop.id!=='station')candidates.push({...stop,type:'transit',name:stop.name+' · Fahrplan & Tickets'});for(let l of LOCATIONS)candidates.push({...deliveryTarget(l.id),type:'location',name:l.name});
  for(let n of PEOPLE)candidates.push({...n,type:'person',name:n.name+' · '+n.role});
  if(s.job?.type==='cleaning'){for(const [index,[x,z]] of this.cleanPositions.entries())if(!(s.job.cleaned??Array.from({length:s.job.progress},(_,i)=>i)).includes(index))candidates.push({x,z,index,type:'trash',name:'Abfall aufnehmen · 1,2 s'});}
  if(s.job?.type==='warehouse'){if(!s.job.carrying)candidates.push({...this.cratePos,type:'crate',name:'Kiste scannen & aufnehmen'});else candidates.push({...this.shelves[s.job.progress%4],type:'shelf',name:'Kiste im richtigen Regal ablegen'})}
- return candidates.map(v=>({...v,dist:Math.hypot(v.x-p.x,v.z-p.z)})).filter(v=>v.dist<=interactionReach(v.type,false)&&segmentClear(p,v,(x,z,r)=>this.canWalkExterior(x,z,r),.08)).sort((a,b)=>a.dist-b.dist)[0]
+ return candidates.map(v=>({...v,dist:Math.hypot(v.x-p.x,v.z-p.z)})).filter(v=>v.dist<=(v.type==='publicBin'?1.8:interactionReach(v.type,false))&&segmentClear(p,v,(x,z,r)=>this.canWalkExterior(x,z,r),.08)).sort((a,b)=>a.dist-b.dist)[0]
  }
  applyViewSettings(){this.camera.fov=this.model.s.settings.fov||55;this.camera.updateProjectionMatrix();this.renderer.toneMappingExposure=1.04*(this.model.s.settings.brightness||1)}
  setQuality(q){this.atmosphere.quality=q;this.renderer.setPixelRatio(q==='low'?1:Math.min(devicePixelRatio,1.5));this.renderer.shadowMap.enabled=q!=='low'}

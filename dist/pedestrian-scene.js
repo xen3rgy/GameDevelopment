@@ -8,14 +8,8 @@ import {groundHeight} from './spatial.js?v=0.8.1';
 import {PedestrianLife} from './pedestrian-life.js?v=0.8.1';
 import {PEOPLE} from './data.js?v=0.8.1';
 
-export function citizenAppearance(id){return {
- color:[0x496e79,0x936347,0x5f7053,0x344955,0xa08e74,0x754f56,0x747d85,0x8c814e][id%8],
- skin:[0xc39b7a,0x947158,0xd6b496,0x705043,0xb17e5d][id%5],
- trousers:[0x3a4651,0x5a5148,0x343d3e,0x657278,0x555953][id%5],
- hairColor:[0x312b27,0x6a4933,0x9c8966,0x42403a,0x858580][Math.floor(id/3)%5],
- hair:['short','long','bun','short','cap'][id%5],accent:[0xa78e63,0x566f6a,0x87564a,0x4e677b][id%4],
- shoes:id%3?0x303c40:0x8d8270,coat:id%4===2,bag:id%6===3
-};}
+import {citizenAppearance} from './citizen.js?v=0.8.1';
+export {citizenAppearance};
 
 export function streetSeatLegPose(height,s,weight){
  const endHip=.235+height/s,hip=.9+(endHip-.9)*weight,down=hip-.115;
@@ -47,6 +41,7 @@ export class PedestrianScene{
   for(const p of this.life.people){
    const m=p.mesh,ground=['enter','exit'].includes(p.phase)?groundHeight(p.portal.x,p.portal.z):groundHeight(p.x,p.z);m.visible=p.visible;m.position.set(p.x,ground-.05*p.height,p.z);m.rotation.y=p.yaw;
    if(!p.visible)continue;
+   m.userData.details.visible=Math.hypot(p.x-position.x,p.z-position.z)<18;
    if(!(dt>0)&&m.userData.animation)continue;
    if(!state.inside&&Math.hypot(p.x-position.x,p.z-position.z)<80){
     resetStreetArms(m);

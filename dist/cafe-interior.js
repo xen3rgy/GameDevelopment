@@ -101,7 +101,7 @@ export function poseCafeSeated(actor,weight=1,eating=false){
  d.upper.position.y=.9;d.upper.rotation.set(.04*weight,0,0);
  if(eating&&weight===1){const t=d.animation?.time||0;d.upper.rotation.y=Math.sin(t*.7)*.05;d.arms[1].rotation.x-=Math.max(0,Math.sin(t*.8))*.12}
 }
-function citizen(world,variant){const k=world.cafeKit,m=createCitizen(k,[0x526e79,0x9e7156,0x61735c][variant%3],[0xb98566,0xd4ad8e,0x79543e][variant%3],variant+1);dynamic(m);world.cafe.add(m);return m}
+function citizen(world,variant,staff=false){const k=world.cafeKit,m=createCitizen(k,[0x526e79,0x9e7156,0x61735c][variant%3],[0xb98566,0xd4ad8e,0x79543e][variant%3],variant+1,staff?{archetype:'employee',hair:variant%2?'bun':'part'}:null);dynamic(m);world.cafe.add(m);return m}
 function updateWalking(m,target,dt,options={}){
  const last=m.userData.last,d=last?Math.hypot(target.x-last.x,target.z-last.z):0;
  m.position.set(target.x,.02,target.z);
@@ -141,8 +141,7 @@ export function updateCafe(world,state,dt){
  updateMenu(world,c?.phase==='open'?c.config?.price||1:state.businesses?.cafe?.price||1);
  const count=c?.employees?.length||0;
  for(let i=world.cafeStaff.length;i<count;i++){
-  const m=citizen(world,10+i);m.userData.role=i;
-  world.cafeKit.box(m.userData.upper,0,.20,.165,.34,.49,.025,green);
+  const m=citizen(world,10+i,true);m.userData.role=i;
   world.cafeKit.sign(m,STAFF_ROLES[i],0,2.02,0,.65,.15,'#eddfc3','#23473e');
   m.userData.tray=tray(world.cafeKit);m.userData.tray.position.set(0,1.17,.5);m.add(m.userData.tray);attachCafeTools(world,m);world.cafeStaff.push(m);
  }

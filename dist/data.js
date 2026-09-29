@@ -1,6 +1,7 @@
 import {STATION_BUILDINGS} from './city-layout.js?v=0.8.1';
 export const ITEMS={
  bottle:{name:'Pfandflasche',icon:'🍾',category:'Wertstoffe',weight:.1,stack:20,price:25,description:'Eine leere Mehrwegflasche. Am Pfandautomaten bekommst du 0,25 € zurück.'},
+ roll:{name:'Backshop-Semmel',icon:'🍞',category:'Nahrung',weight:.08,stack:8,price:100,effects:{hunger:14},description:'Ein einfaches Brötchen. 14 Sättigung für 1,00 € – genug für den nächsten Weg, aber keine vollwertige Mahlzeit.'},
  water:{name:'Mineralwasser',icon:'💧',category:'Getränke',weight:.5,stack:6,price:100,effects:{thirst:45},description:'Stilles Wasser. Füllt deinen Durstvorrat um 45 Punkte auf. Die leere Flasche bleibt im Rucksack.'},
  sandwich:{name:'Käsesandwich',icon:'🥪',category:'Nahrung',weight:.25,stack:6,price:250,effects:{hunger:38},description:'Frisch belegt. Gibt dir 38 Punkte Sättigung.'},
  coffee:{name:'Kaffee',icon:'☕',category:'Getränke',weight:.2,stack:4,price:180,effects:{energy:22,thirst:8,stress:-5},description:'22 Energie, 8 Durstvorrat und etwas weniger Stress.'},
@@ -81,7 +82,7 @@ BUILDINGS.push(...STATION_BUILDINGS);
 export const SHOP_POINTS={
  shopExit:{name:'Markt verlassen',x:340,z:47.7},
  produce:{name:'Frisches Gemüse auswählen',x:334.8,z:45.85,items:['vegetables']},
- bakery:{name:'Backwaren auswählen',x:337,z:33.5,items:['bread']},
+ bakery:{name:'Backwaren auswählen',x:337,z:33.5,items:['roll','bread']},
  drinks:{name:'Getränke auswählen',x:335.65,z:38.5,items:['water','coffee']},
  food:{name:'Essen auswählen',x:339.65,z:38.5,items:['sandwich','meal']},
  ingredients:{name:'Zutaten auswählen',x:343.65,z:38.5,items:['pasta','vegetables','bread','cheese']},

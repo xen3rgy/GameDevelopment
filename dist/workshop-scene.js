@@ -92,10 +92,8 @@ export class WorkshopScene{
   this.cartonContents=Array.from({length:12},(_,i)=>box(this.carton,-.18+(i%3)*.18,.13,-.21+Math.floor(i/3)*.14,.15,.15,.11,0x566e62));
   this.looseWheel=wheel();this.looseWheel.position.set(338.2,1.14,74.5);this.looseWheel.rotation.x=-Math.PI/2;this.root.add(this.looseWheel);this.looseWheel.visible=false;
   this.carryRoot=new THREE.Group();this.carryRoot.name='Workshop carried parts';world.scene.add(this.carryRoot);this.carryWheel=wheel();this.carryRoot.add(this.carryWheel);this.carryBox=new THREE.Group();this.carryRoot.add(this.carryBox);box(this.carryBox,0,0,0,.56,.38,.42,0xb89765);box(this.carryBox,0,.194,0,.07,.012,.42,0xd4c099);box(this.carryBox,0,0,.215,.3,.18,.012,0xe0d9bb);this.carryRoot.visible=false;
-  this.nora=createCitizen(kit,0x365c59,0xc09173,2);this.nora.position.set(333.6,.02,87.65);this.nora.rotation.y=Math.PI;this.root.add(this.nora);
+  this.nora=createCitizen(kit,0x365c59,0xc09173,2,{archetype:'worker',hair:'bun',feminine:true,apron:true});this.nora.position.set(333.6,.02,87.65);this.nora.rotation.y=Math.PI;this.root.add(this.nora);
   this.staffBoard=new THREE.Group();this.nora.userData.elbows[1].add(this.staffBoard);this.staffBoard.position.set(0,-.22,.026);box(this.staffBoard,0,0,.05,.22,.028,.3,0x796547);box(this.staffBoard,0,.019,.05,.19,.008,.25,0xe1ddc9);
-  // Work apron, fitted to the torso instead of a floating full-size accessory.
-  box(this.nora.userData.upper,0,.30,.21,.42,.48,.04,0xb29668);box(this.nora.userData.upper,0,.24,.235,.23,.16,.018,0x8e7552);
   this.marker=new THREE.Mesh(new THREE.RingGeometry(.34,.39,40),new THREE.MeshBasicMaterial({color:0xe6bd78,transparent:true,opacity:.82,depthWrite:false,side:THREE.DoubleSide}));this.marker.rotation.x=-Math.PI/2;this.root.add(this.marker);
   this.tools=new THREE.Group();this.tools.name='Workshop hand tools';this.tools.visible=false;
   this.wrench=new THREE.Group();this.tools.add(this.wrench);box(this.wrench,0,0,.07,.035,.04,.26,0xb5c1b9);box(this.wrench,0,0,.2,.11,.04,.055,0xb5c1b9);for(const x of [-.044,.044])box(this.wrench,x,0,.235,.024,.04,.06,0xb5c1b9);

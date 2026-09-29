@@ -14,7 +14,7 @@ export function serviceNozzle({box}){
 }
 export class ServiceGestures{
  constructor(root,kit,docked){
-  this.docked=docked;this.mechanic=createCitizen(kit,0x315f57,0xc09173,2,{trousers:0x303f43,hair:'cap',accent:0xd1b677});root.add(this.mechanic);
+  this.docked=docked;this.mechanic=createCitizen(kit,0x315f57,0xc09173,2,{archetype:'worker',trousers:0x303f43,hair:'cap',accent:0xd1b677});root.add(this.mechanic);
   this.home=new THREE.Vector3(-37.4,.30,-100.8);this.mechanic.position.copy(this.home);this.mechanic.rotation.y=0;
   this.tool=new THREE.Group();kit.box(this.tool,0,-.29,.04,.045,.24,.045,0xaab7b5);kit.box(this.tool,0,-.42,.04,.13,.05,.05,0xaab7b5);
   this.mechanic.userData.elbows[1].add(this.tool);this.tool.visible=false;

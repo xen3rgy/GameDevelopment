@@ -11,4 +11,4 @@ const paths={
  bread:'M7 26V13C-1 4 10 0 16 6c6-6 17-2 9 7v13ZM10 13v6M16 11v8M22 13v6',
  cheese:'m4 18 24-9v18H4ZM4 18h24M21 14v1M12 22v1M23 23v1'
 };
-export function itemIcon(id){return `<svg class="item-symbol" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[id]||paths.parcel}"/></svg>`}
+export function itemIcon(id){return `<svg class="item-symbol" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[id==='roll'?'bread':id]||paths.parcel}"/></svg>`}

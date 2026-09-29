@@ -81,7 +81,7 @@ export class CityCharacter {
  initResidents(){
   const root=new THREE.Group();root.name='People sheltering beneath the railway';this.world.scene.add(root);this.residentRoot=root;
   CITY_CHARACTER_FIXTURES.filter(f=>f.kind==='camp').forEach((f,i)=>{
-   const m=createCitizen(this.k,i?0x65694f:0x6a7480,i?0xab8468:0xc39a7c,900+i,{hair:'cap',hairColor:0x4b443d,trousers:0x3e484a,accent:0x998366,shoes:0x484842,coat:true});
+   const m=createCitizen(this.k,i?0x65694f:0x6a7480,i?0xab8468:0xc39a7c,900+i,{archetype:'older',hair:'cap',hairColor:0x4b443d,trousers:0x3e484a,accent:0x998366,shoes:0x484842,coat:true});
    m.position.set(f.x+1.1,groundHeight(f.x,f.z)-.05,f.z-.7);m.rotation.y=0;seatedStreetPose(m,1,.46);root.add(m);this.residents.push(m);
   });
  }

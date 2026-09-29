@@ -84,7 +84,7 @@ export function buildMarket(world,k){
  part(till,.28,1.175,0,.35,.035,.57,0x242e30);part(till,.28,1.197,0,.22,.005,.41,0x904945);part(till,.90,1.5,.21,.48,.36,.09,0x203330);part(till,.90,1.48,.155,.4,.26,.016,0x91b3a2);sign(till,'MARKT 24',.90,1.49,.142,.36,.07,'#d8ebd9','#2b5145',Math.PI);
  part(till,.9,1.31,.21,.045,.3,.06,0x53645b);part(till,.68,1.24,-.44,.20,.09,.25,0x2a3b3a);part(till,.68,1.293,-.45,.14,.012,.12,0x9cbdad);part(till,1.12,1.175,0,.35,.04,1.03,0xadb5a9);
  sign(till,'HIER BEZAHLEN',0,.8,-.612,2.3,.23,'#ede7d1','#294c41',Math.PI);header('KASSE  01',344.6,45.5,2.7,Math.PI);
- const cashier=createCitizen(k,0x446d54,0xcba582,2);cashier.position.set(344.5,.02,46.75);cashier.rotation.y=Math.PI;g.add(cashier);
+ const cashier=createCitizen(k,0x446d54,0xcba582,2,{archetype:'employee',hair:'part'});cashier.position.set(344.5,.02,46.75);cashier.rotation.y=Math.PI;g.add(cashier);
  // Keep the visual fixture dimensions inspectable without relying on renderer state.
  g.userData.fixtureFootprints=SHOP_FIXTURES.map(c=>({...c}));
  return g;
