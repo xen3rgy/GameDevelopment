@@ -1,3 +1,4 @@
+import {onRoad} from '../dist/street-layout.js';
 import {ROAD_X} from '../dist/city-layout.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -8,7 +9,7 @@ import {VehicleTransition,gaitPose} from '../dist/animation.js';
 import {newGame} from '../dist/model.js';
 
 test('all traffic routes close continuously and stay on the road network',()=>{
- for(const route of TRAFFIC_ROUTES){const a=routePose(route,0),b=routePose(route,route.length-.001);assert.ok(Math.hypot(a.x-b.x,a.z-b.z)<.002);for(let d=0;d<route.length;d+=.5){const p=routePose(route,d);assert.ok(Number.isFinite(p.angle));assert.ok(Math.min(...ROAD_X.map(x=>Math.abs(x-p.x)))<6.5||Math.min(...[-65,0,65].map(z=>Math.abs(z-p.z)))<6.5)}}
+ for(const route of TRAFFIC_ROUTES){const a=routePose(route,0),b=routePose(route,route.length-.001);assert.ok(Math.hypot(a.x-b.x,a.z-b.z)<.002);for(let d=0;d<route.length;d+=.5){const p=routePose(route,d);assert.ok(Number.isFinite(p.angle));assert.ok(onRoad(p.x,p.z))}}
 });
 test('traffic lanes follow right-hand driving on every cardinal direction',()=>{
  const route=makeRoute([{x:-80,z:-50},{x:80,z:-50},{x:80,z:50},{x:-80,z:50}]),samples=[];

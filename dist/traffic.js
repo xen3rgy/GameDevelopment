@@ -1,4 +1,4 @@
-import {crossingObstacles} from './street-layout.js?v=0.8.1';
+import {crossingObstacles,ROAD_JUNCTIONS} from './street-layout.js?v=0.8.1';
 import {ROAD_X} from './city-layout.js?v=0.8.1';
 // Deterministic lane routes and braking, independent of rendering and game time speed.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -21,7 +21,7 @@ export function routePose(route,progress){
  return {x:s.a.x+(s.b.x-s.a.x)*t,z:s.a.z+(s.b.z-s.a.z)*t,angle:s.a.angle+turn*t};
 }
 const rect=(x1,x2,z1,z2)=>[{x:x1,z:z1},{x:x2,z:z1},{x:x2,z:z2},{x:x1,z:z2}];
-export const TRAFFIC_ROUTES=[rect(-110,110,-65,65),rect(-110,0,-65,0),rect(0,110,0,65),rect(-110,110,0,65).reverse(),rect(0,110,-65,0).reverse(),rect(-110,0,0,65),rect(-110,110,-65,0).reverse(),rect(-202,-110,-65,0),rect(-202,-110,0,65).reverse()].map(p=>makeRoute(p));
+export const TRAFFIC_ROUTES=[rect(-110,110,-65,65),rect(-110,0,-65,0),rect(0,110,0,65),rect(-110,110,0,65).reverse(),rect(0,110,-65,0).reverse(),rect(-110,0,0,65),rect(-110,110,-65,0).reverse(),rect(-202,-110,-65,0),rect(-202,-110,0,65).reverse(),rect(0,110,-175,-65),rect(-110,110,65,175),rect(110,220,-65,0),rect(220,400,-175,-65),rect(220,400,65,175)].map(p=>makeRoute(p));
 const bodyAxes=p=>[{x:Math.sin(p.angle||0),z:Math.cos(p.angle||0)},{x:Math.cos(p.angle||0),z:-Math.sin(p.angle||0)}];
 const projectedRadius=(p,ownAxes,axis)=>Math.abs(axis.x*ownAxes[0].x+axis.z*ownAxes[0].z)*(p.length||1)/2+Math.abs(axis.x*ownAxes[1].x+axis.z*ownAxes[1].z)*(p.width||1)/2;
 export function overlapDepth(a,b,padding=0){
@@ -51,8 +51,8 @@ export function parkedVehicleBlocks(vehicle,x,z,r=.35,from=null){
  return true;
 }
 export class Traffic {
- constructor(count=9){
-  this.time=0;this.junctions=[];for(const x of ROAD_X)for(const z of [-65,0,65])this.junctions.push({x,z,owner:null});this.cars=[];
+ constructor(count=14){
+  this.time=0;this.junctions=[];for(const {x,z} of ROAD_JUNCTIONS)this.junctions.push({x,z,owner:null});this.cars=[];
   for(let i=0;i<count;i++){
    const route=TRAFFIC_ROUTES[i%TRAFFIC_ROUTES.length],length=i===4?4.8:3.8,width=1.85;let progress=route.length*(.12+i*.137)%route.length,body={...routePose(route,progress),length,width};
    for(let attempt=0;attempt<64&&this.cars.some(c=>overlaps(body,c,.8));attempt++){progress=(progress+7)%route.length;body={...routePose(route,progress),length,width}}

@@ -1,0 +1,3 @@
+import {EXPANSION_LANDMARKS} from './expansion-layout.js?v=0.8.1';
+export function initDiscovery(s){s.discovered??=[];if(!Array.isArray(s.discovered)||s.discovered.some(id=>typeof id!=='string')||s.discovered.length>100)throw Error('Ungültige entdeckte Orte.');s.discovered=[...new Set(s.discovered)].filter(id=>EXPANSION_LANDMARKS.some(l=>l.id===id));}
+export function discoverNearby(model){const s=model.s;if(s.inside)return;for(const l of EXPANSION_LANDMARKS)if(!s.discovered.includes(l.id)&&Math.hypot(s.position.x-l.x,s.position.z-l.z)<30){s.discovered.push(l.id);model.emit('Ort entdeckt: '+l.name,'success');}}

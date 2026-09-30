@@ -1,3 +1,4 @@
+import {initDiscovery} from './exploration.js?v=0.8.1';
 import {newScavenge,initScavenge,validateScavenge,tickBinSearch,bottleLayout} from './scavenge.js?v=0.8.1';
 import {newWorkLog,recordWork,validateWorkLog} from './work-log.js?v=0.8.1';
 import {tickWorkshopLife} from './workshop-life.js?v=0.8.1';
@@ -18,9 +19,9 @@ import {tickTransit,validateTransit} from './transit.js?v=0.8.1';
 import {inReach} from './interactions.js?v=0.8.1';
 import {tickFieldWork} from './field-work.js?v=0.8.1';
 export const SAVE_KEY='zero-rise-save-v1';
-export function newGame(sandbox=false){return {version:3,scavenge:newScavenge(),mode:sandbox?'sandbox':'story',money:sandbox?2000000:0,bank:0,debt:0,day:1,minute:8*60,needs:{health:100,hunger:78,thirst:75,energy:85,hygiene:65,stress:12},inventory:[],storage:[],fridge:[],dailyLife:newDailyLife(),position:{x:-27,z:-4},angle:0,inside:false,interior:null,basket:[],riding:false,vehicle:null,home:null,rentDue:0,job:null,courier:newCourier(),workshop:newWorkshop(),workLog:newWorkLog(),skills:{fitness:0,logistics:0,business:0,tech:0},xp:0,reputation:0,relations:{},businesses:{},properties:0,quest:0,stats:{collected:0,returned:0,consumed:0,jobs:0,slept:0,homes:0,courses:0,businesses:0,hired:0,properties:0,wealth:0,earned:0,cooked:0},collected:[],drops:[],weather:'clear',economy:'Normal',history:[],dailyIncome:0,cafe:newCafe(),settings:{sound:true,quality:'high',speed:1,sensitivity:1,brightness:1,fov:55,ambienceVolume:100,vehicleVolume:100,effectsVolume:100}}}
+export function newGame(sandbox=false){return {version:3,discovered:[],scavenge:newScavenge(),mode:sandbox?'sandbox':'story',money:sandbox?2000000:0,bank:0,debt:0,day:1,minute:8*60,needs:{health:100,hunger:78,thirst:75,energy:85,hygiene:65,stress:12},inventory:[],storage:[],fridge:[],dailyLife:newDailyLife(),position:{x:-27,z:-4},angle:0,inside:false,interior:null,basket:[],riding:false,vehicle:null,home:null,rentDue:0,job:null,courier:newCourier(),workshop:newWorkshop(),workLog:newWorkLog(),skills:{fitness:0,logistics:0,business:0,tech:0},xp:0,reputation:0,relations:{},businesses:{},properties:0,quest:0,stats:{collected:0,returned:0,consumed:0,jobs:0,slept:0,homes:0,courses:0,businesses:0,hired:0,properties:0,wealth:0,earned:0,cooked:0},collected:[],drops:[],weather:'clear',economy:'Normal',history:[],dailyIncome:0,cafe:newCafe(),settings:{sound:true,quality:'high',speed:1,sensitivity:1,brightness:1,fov:55,ambienceVolume:100,vehicleVolume:100,effectsVolume:100}}}
 export class GameModel{
- constructor(state=newGame()){this.s=state.version<3?validateSave(state):state;this.s.courier??=newCourier();this.s.dailyLife??=newDailyLife();this.s.fridge??=[];this.s.workshop??=newWorkshop();this.s.workLog??=newWorkLog();initFleet(this.s);this.s.transit??=null;this.s.vehicleService??=null;initScavenge(this.s);this.events=[];this.onChange=()=>{}}
+ constructor(state=newGame()){this.s=state.version<3?validateSave(state):state;this.s.courier??=newCourier();this.s.dailyLife??=newDailyLife();this.s.fridge??=[];this.s.workshop??=newWorkshop();this.s.workLog??=newWorkLog();initFleet(this.s);this.s.transit??=null;this.s.vehicleService??=null;initScavenge(this.s);initDiscovery(this.s);this.events=[];this.onChange=()=>{}}
  emit(text,type='info'){this.events.push({text,type});this.s.history.unshift({text,day:this.s.day});this.s.history=this.s.history.slice(0,30);this.onChange()}
  get weight(){return this.s.inventory.reduce((n,v)=>n+ITEMS[v.id].weight*v.count,0)}
  get capacity(){return 16}
@@ -107,8 +108,8 @@ export class GameModel{
  collect(id){if(!bottleLayout(this.s).some(b=>b.id===id)||this.s.collected.includes(id))return false;if(!this.add('bottle')){this.emit('Dein Rucksack ist voll.');return false}this.s.collected.push(id);this.s.stats.collected++;this.s.xp+=2;this.checkQuests();return true}
  recycle(){let n=this.count('bottle');if(!n){this.emit('Du hast keine Pfandflaschen dabei.');return}this.remove('bottle',n);this.earn(n*25);this.s.stats.returned+=n;this.emit(n+' Flaschen abgegeben.','success');this.checkQuests()}
  buy(id){let item=ITEMS[id];if(!Object.hasOwn(ITEMS,id)||!item?.price||id==='bottle'||id==='parcel')return false;if(this.s.money<item.price){this.emit('Dafür reicht dein Bargeld noch nicht.');return false}if(!this.add(id)){this.emit('Kein Platz im Rucksack.');return false}this.s.money-=item.price;this.emit(item.name+' gekauft.','success');return true}
- use(index){let slot=this.s.inventory[index],item=ITEMS[slot?.id];if(!item?.effects)return;let id=slot.id;slot.count--;if(!slot.count)this.s.inventory.splice(index,1);for(let [k,v] of Object.entries(item.effects))this.s.needs[k]=clamp(this.s.needs[k]+v);if(id==='water'&&!this.add('bottle'))this.s.drops=[...this.s.drops,{id:'bottle',count:1,x:this.s.position.x,z:this.s.position.z}];this.s.stats.consumed++;this.emit(item.name+' verwendet.','success');this.checkQuests()}
- drop(index,all=false){const v=this.s.inventory[index];if(!v||v.id==='parcel')return;if(this.s.drops.length>=500){this.emit('Zu viele abgelegte Gegenstände. Nimm zuerst einige wieder auf.');return}let count=all?v.count:1;let id=v.id;v.count-=count;if(!v.count)this.s.inventory.splice(index,1);this.s.drops=[...this.s.drops,{id,count,x:this.s.position.x,z:this.s.position.z}];this.onChange()}
+ use(index){let slot=this.s.inventory[index],item=ITEMS[slot?.id];if(!item?.effects)return;let id=slot.id;slot.count--;if(!slot.count)this.s.inventory.splice(index,1);for(let [k,v] of Object.entries(item.effects))this.s.needs[k]=clamp(this.s.needs[k]+v);if(id==='water'&&!this.add('bottle'))this.s.drops=[...this.s.drops,{id:'bottle',count:1,x:this.s.position.x,z:this.s.position.z,interior:this.s.inside?this.s.interior:null}];this.s.stats.consumed++;this.emit(item.name+' verwendet.','success');this.checkQuests()}
+ drop(index,all=false){const v=this.s.inventory[index];if(!v||v.id==='parcel')return;if(this.s.drops.length>=500){this.emit('Zu viele abgelegte Gegenstände. Nimm zuerst einige wieder auf.');return}let count=all?v.count:1;let id=v.id;v.count-=count;if(!v.count)this.s.inventory.splice(index,1);this.s.drops=[...this.s.drops,{id,count,x:this.s.position.x,z:this.s.position.z,interior:this.s.inside?this.s.interior:null}];this.onChange()}
  pickupDrop(index){const d=this.s.drops[index];if(!d||!this.add(d.id,d.count))return false;this.s.drops=this.s.drops.filter((_,i)=>i!==index);this.onChange();return true}
  split(index){let slot=this.s.inventory[index];if(!slot||slot.count<2||this.s.inventory.length>=16)return;let n=Math.floor(slot.count/2);slot.count-=n;this.s.inventory.push({id:slot.id,count:n});this.onChange()}
  acceptContract(id,transport='foot'){
@@ -207,7 +208,7 @@ export class GameModel{
 }
 export function validateSave(raw){
  if(!raw||![1,2,3].includes(raw.version))throw Error('Dieser Spielstand hat ein nicht unterstütztes Format.');
- const s=structuredClone(raw),base=newGame();
+ const s=structuredClone(raw),base=newGame();initDiscovery(s);
  if(s.version===1){s.version=2;s.storage=[];s.stats={...s.stats,cooked:0};if(s.vehicle){s.vehicle.angle=Number.isFinite(s.angle)?s.angle+Math.PI:Math.PI;s.vehicle.speed=0}if(s.job)s.job.vehicleUsed=false;}
  if(s.version===2){s.version=3;s.interior=s.inside?'home':null;s.basket=[];}
  for(let k of ['money','bank','debt','day','minute','quest','properties','xp','reputation','angle','rentDue','dailyIncome'])if(!Number.isFinite(s[k])||(!['angle','dailyIncome'].includes(k)&&s[k]<0)||Math.abs(s[k])>1e12)throw Error('Ungültiger Wert: '+k);
@@ -219,7 +220,7 @@ export function validateSave(raw){
  if(inventoryWeight(s.storage)>100.00001)throw Error('Wohnungslager zu schwer.');
  if(s.inventory.reduce((n,v)=>n+ITEMS[v.id].weight*v.count,0)>20.00001)throw Error('Ungültiges Inventargewicht.');
  for(let k in base.needs)if(!Number.isFinite(s.needs?.[k])||s.needs[k]<0||s.needs[k]>100)throw Error('Ungültige Bedürfnisse.');
- if(!s.position||!Number.isFinite(s.position.x)||!Number.isFinite(s.position.z)||Math.abs(s.position.x)>350||Math.abs(s.position.z)>125)throw Error('Ungültige Position.');
+ if(!s.position||!Number.isFinite(s.position.x)||!Number.isFinite(s.position.z))throw Error('Ungültige Position.');
  if(typeof s.inside!=='boolean'||s.inside!==!!s.interior||![null,'home','shop','cafe','workshop'].includes(s.interior))throw Error('Ungültiger Aufenthaltsort.');
  if(s.inside){const room=ROOMS[s.interior];if(s.position.x<room.minX||s.position.x>room.maxX||s.position.z<room.minZ||s.position.z>room.maxZ||s.interior==='home'&&!s.home)throw Error('Ungültiger Innenraum.');if(!canWalkRoom(s.interior,s.position.x,s.position.z,.35,s.home))s.position={...room.spawn};}
  else if(!exteriorContains(s.position.x,s.position.z,-1))throw Error('Ungültige Außenposition.');
@@ -234,7 +235,8 @@ export function validateSave(raw){
  if(s.job&&!s.job.contract&&(!['courier','cleaning','warehouse'].includes(s.job.type)||!Number.isFinite(s.job.progress)||!Number.isInteger(s.job.progress)||s.job.progress<0||s.job.progress>=(s.job.type==='cleaning'?6:s.job.type==='warehouse'?4:1)||!Number.isFinite(s.job.started)||s.job.type==='courier'&&!['deliveryA','deliveryB','deliveryC'].includes(s.job.target)))throw Error('Ungültiger Auftrag.');
  if(!Array.isArray(s.collected)||s.collected.some(v=>!Number.isInteger(v)||v<0||v>=64))throw Error('Ungültiger Weltzustand.');
  if(!Array.isArray(s.drops)||s.drops.length>500)throw Error('Ungültige Weltgegenstände.');
- for(const d of s.drops)if(!Object.hasOwn(ITEMS,d.id)||d.id==='parcel'||!Number.isInteger(d.count)||d.count<1||d.count>ITEMS[d.id].stack||!Number.isFinite(d.x)||!Number.isFinite(d.z)||Math.abs(d.x)>350||Math.abs(d.z)>125)throw Error('Ungültiger Weltgegenstand.');
+ for(const d of s.drops){if(!Object.hasOwn(d,'interior'))d.interior=Object.entries(ROOMS).find(([,r])=>d.x>=r.minX&&d.x<=r.maxX&&d.z>=r.minZ&&d.z<=r.maxZ)?.[0]??null;if(d.interior!==null&&!Object.hasOwn(ROOMS,d.interior))throw Error('Ungültiger Innenraum.');}
+ for(const d of s.drops)if(!Object.hasOwn(ITEMS,d.id)||d.id==='parcel'||!Number.isInteger(d.count)||d.count<1||d.count>ITEMS[d.id].stack||!Number.isFinite(d.x)||!Number.isFinite(d.z)||!exteriorContains(d.x,d.z,-1))throw Error('Ungültiger Weltgegenstand.');
  for(let k in base.stats)if(!Number.isFinite(s.stats?.[k])||s.stats[k]<0)throw Error('Ungültige Statistik.');
  for(let k in base.skills)if(!Number.isFinite(s.skills?.[k])||s.skills[k]<0)throw Error('Ungültige Fähigkeit.');
  if(!s.relations||typeof s.relations!=='object')throw Error('Ungültige Kontakte.');

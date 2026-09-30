@@ -1,3 +1,4 @@
+import {EXPANSION_PLACES} from './expansion-layout.js?v=0.8.1';
 import {STATION_BUILDINGS} from './city-layout.js?v=0.8.1';
 export const ITEMS={
  bottle:{name:'Pfandflasche',icon:'🍾',category:'Wertstoffe',weight:.1,stack:20,price:25,description:'Eine leere Mehrwegflasche. Am Pfandautomaten bekommst du 0,25 € zurück.'},
@@ -10,6 +11,7 @@ export const ITEMS={
  parcel:{name:'Lieferpaket',icon:'📦',category:'Aufträge',weight:2,stack:1,price:0,description:'Eine versiegelte Sendung für deinen laufenden Lieferauftrag.'}
 };
 export const LOCATIONS=[
+
  {id:'recycle',name:'Pfandrückgabe',type:'recycle',x:-23,z:-12,icon:'♻',color:'#76d6a2',description:'Flaschen abgeben. Aus Kleingeld wird ein Anfang.'},
  {id:'market',name:'MARKT 24',type:'shop',x:-36,z:-12,icon:'▣',color:'#91bd91',description:'Lebensmittel, Getränke und das Nötigste. Rund um die Uhr.'},
  {id:'shelter',name:'Anlaufstelle Nord',type:'shelter',x:-68,z:-12,icon:'☾',color:'#93bde2',description:'Ein Bett für die Nacht, Wasser und eine zweite Chance.'},
@@ -29,6 +31,7 @@ export const LOCATIONS=[
  {id:'deliveryKiosk',name:'Kiosk am Gleis',type:'delivery',x:-179,z:-13,icon:'◫',color:'#dfb679'},
  {id:'deliveryWorkshop',name:'Werkstatt West',type:'delivery',x:-174,z:44,icon:'◫',color:'#c1aa87'},
  {id:'deliveryC',name:'Nordkontor',type:'delivery',x:29,z:-76,icon:'◫',color:'#d6bb93'},
+ ...EXPANSION_PLACES,
 ];
 export const HOMES=[{id:'stationRoom',location:'stationHome',name:'Zimmer in den Gleishöfen',price:8500,rent:750,energy:80,description:'Ein einfaches Zimmer am ruhigen Innenhof. Günstiger wohnen, weiter zur Arbeit gehen.'},{id:'room',name:'WG-Zimmer',price:12000,rent:1200,energy:80,description:'Ein Schlüssel. Ein Bett. Endlich dein eigener Rückzugsort.'},{id:'flat',name:'Stadtwohnung',price:65000,rent:3500,energy:100,description:'Mehr Raum, ein eigenes Bad und bessere Erholung.'},{id:'penthouse',name:'Penthouse',price:450000,rent:16000,energy:100,description:'Über den Dächern. Dein Aufstieg wird sichtbar.'}];
 export const BUSINESSES={cafe:{name:'Café Morgen',cost:85000,baseSales:18000,baseCosts:7000,stockCost:2500,description:'Kaffee, Frühstück und Stammgäste.'},agency:{name:'Studio Nord',cost:240000,baseSales:45000,baseCosts:16000,stockCost:6000,description:'Digitale Projekte für lokale Unternehmen.'}};

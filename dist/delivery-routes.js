@@ -1,27 +1,29 @@
+import {EXPANSION_FIXTURES,EXPANSION_PLACES} from './expansion-layout.js?v=0.8.1';
 import {NEIGHBORHOOD_FIXTURES} from './neighborhood-layout.js?v=0.8.1';
 import {PROMENADE_FIXTURES} from './pedestrian-layout.js?v=0.8.1';
 import {CITY_CHARACTER_FIXTURES} from './city-character-layout.js?v=0.8.1';
 import {WORLD_BOUNDS,ROAD_X,DISTRICT_FIXTURES,exteriorContains} from './city-layout.js?v=0.8.1';
 import {PARCEL_WALK_SPEED} from './player-movement.js?v=0.8.1';
 import {BUILDINGS,LOCATIONS} from './data.js?v=0.8.1';
-import {CityNavigation,routeLength} from './navigation.js?v=0.8.1';
+import {CityNavigation,routeLength,CollisionIndex} from './navigation.js?v=0.8.1';
 import {STREETS} from './orientation.js?v=0.8.1';
 export const DELIVERY_SECONDS={pickup:2.2,deliver:2.6};
 export const DELIVERY_PEOPLE={jobs:{name:'Jonas',role:'Paketausgabe',color:0x9a714d},deliveryA:{name:'Nora',role:'Buchhandlung',color:0x477166},deliveryB:{name:'Milan',role:'Atelier',color:0x976448},deliveryC:{name:'Samira',role:'Warenannahme',color:0x536c88},deliveryKiosk:{name:'Yusuf',role:'Kiosk am Gleis',color:0x9d7545},deliveryWorkshop:{name:'Tessa',role:'Werkstatt West',color:0x56717b}};
+for(const [i,p] of EXPANSION_PLACES.entries())DELIVERY_PEOPLE[p.id]={name:['Jule','Arne','Elif','Robin','Ines'][i],role:p.name,color:[0x65766a,0x76654e,0x4a6579][i%3]};
 export const deliveryLocation=id=>LOCATIONS.find(l=>l.id===id);
-export function stationFacing(id){const l=deliveryLocation(id);const b=BUILDINGS.find(([x,z,w,d,,,,face=1])=>Math.abs(l.x-x)<w/2&&Math.abs(l.z-(z+face*d/2))<4);return b?.[7]||1;}
+export function stationFacing(id){const l=deliveryLocation(id);if(EXPANSION_PLACES.some(p=>p.id===id))return id==='deliveryHoehen'?1:-1;const b=BUILDINGS.find(([x,z,w,d,,,,face=1])=>Math.abs(l.x-x)<w/2&&Math.abs(l.z-(z+face*d/2))<4);return b?.[7]||1;}
 export function deliveryTarget(id){const l=deliveryLocation(id);return l&&DELIVERY_PEOPLE[id]?{...l,z:l.z+stationFacing(id)*1.2}:l;}
 let navigation;
 const cache=new Map();
 function walkRoute(from,to){
- if(!navigation){const blocks=BUILDINGS.map(([x,z,w,d])=>({x,z,w:w/2+.35,d:d/2+.35})).concat(DISTRICT_FIXTURES,NEIGHBORHOOD_FIXTURES,PROMENADE_FIXTURES,CITY_CHARACTER_FIXTURES);for(const s of STREETS)for(const side of [-1,1])blocks.push({x:side*9,z:s.z+side*12,w:.06,d:.06});navigation=new CityNavigation((x,z,r=.45)=>exteriorContains(x,z,r)&&!blocks.some(b=>Math.abs(x-b.x)<b.w+r&&Math.abs(z-b.z)<b.d+r),4,WORLD_BOUNDS);}
+ if(!navigation){const blocks=BUILDINGS.map(([x,z,w,d])=>({x,z,w:w/2+.35,d:d/2+.35})).concat(EXPANSION_FIXTURES,DISTRICT_FIXTURES,NEIGHBORHOOD_FIXTURES,PROMENADE_FIXTURES,CITY_CHARACTER_FIXTURES);for(const s of STREETS)for(const side of [-1,1])blocks.push({x:side*9,z:s.z+side*12,w:.06,d:.06});const index=new CollisionIndex(blocks);navigation=new CityNavigation((x,z,r=.45)=>exteriorContains(x,z,r)&&!index.blocked(x,z,r),6,WORLD_BOUNDS);}
  return navigation.find(from,to);
 }
 export function deliveryLeg(fromId,toId,mode='foot'){
  const key=[fromId,toId,mode].join(':');if(cache.has(key))return cache.get(key);
  const a=deliveryLocation(fromId),b=deliveryLocation(toId);if(!a||!b)return null;
  let distance;
- if(mode==='vehicle'){
+ if(mode==='vehicle'&&(a.x>120||b.x>120||Math.abs(a.z)>119||Math.abs(b.z)>119)){const route=walkRoute(a,b);if(route.length<2)return null;distance=routeLength(route)*1.18;}else if(mode==='vehicle'){
   const road=p=>STREETS.reduce((best,s)=>Math.abs(p.z-s.z)<Math.abs(p.z-best)?s.z:best,0),az=road(a),bz=road(b);
   distance=Math.abs(a.z-az)+Math.abs(b.z-bz)+(az===bz?Math.abs(b.x-a.x):Math.min(...ROAD_X.map(x=>Math.abs(a.x-x)+Math.abs(b.x-x)))+Math.abs(az-bz));
  }else{const route=walkRoute(a,b);if(route.length<2)return null;distance=routeLength(route);}

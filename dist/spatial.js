@@ -1,3 +1,4 @@
+import {EXPANSION_PATHS} from './expansion-layout.js?v=0.8.1';
 import {homeFixtures} from './home-layout.js?v=0.8.1';
 export {homeFixtures} from './home-layout.js?v=0.8.1';
 import {onServiceApron} from './service-layout.js?v=0.8.1';
@@ -9,10 +10,10 @@ import {STATION_PLAZAS,STATION_YARD,STATION_STEPS,stationStepOpen} from './city-
 import {CAFE_FIXTURES} from './cafe.js?v=0.8.1';
 // World-space surface heights match the top faces of the rendered geometry.
 export function groundHeight(x,z,interior=null){
- if(interior||x>290)return .07;
+ if(interior)return .07;
  if(onServiceApron(x,z))return .30;
  const street=streetSurface(x,z);if(street)return street.height;
- if(onGardenPath(x,z))return .02;
+ if(onGardenPath(x,z)||EXPANSION_PATHS.some(p=>Math.abs(x-p.x)<=p.w/2&&Math.abs(z-p.z)<=p.d/2))return .02;
  const frontage=frontageSurface(x,z);if(frontage)return frontage.height;
  const inStationYard=x>=STATION_YARD.minX&&x<=STATION_YARD.maxX&&z>=STATION_YARD.minZ&&z<=STATION_YARD.maxZ;
  let y=inStationYard?STATION_YARD.height:-.05;

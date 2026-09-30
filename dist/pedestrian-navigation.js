@@ -14,8 +14,7 @@ const segmentClear=pedestrianSegmentClear;
 
 // Immutable pavement graph. Cache edges/components once, not inside each citizen's A*.
 export class PedestrianNavigation extends CityNavigation{
- constructor(canWalk){
-  const bounds={minX:-196,maxX:100,minZ:-60.5,maxZ:60.5};super(canWalk,1,bounds);this.bounds=bounds;
+ constructor(canWalk,bounds={minX:-196,maxX:100,minZ:-60.5,maxZ:60.5}){super(canWalk,1,bounds);this.bounds=bounds;
   this.edges=this.nodes.map(()=>[]);this.component=new Int32Array(this.nodes.length).fill(-1);
   for(let i=0;i<this.nodes.length;i++){
    const p=this.nodes[i];if(!p.open)continue;const x=i%this.size,z=Math.floor(i/this.size);

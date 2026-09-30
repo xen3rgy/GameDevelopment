@@ -1,3 +1,4 @@
+import {EXPANSION_ROADS,EXPANSION_PLACES,expansionDistrict} from './expansion-layout.js?v=0.8.1';
 export const ADDRESSES={
  station:['Bahnhofsplatz',1],stationHome:['Gleishof',4],deliveryKiosk:['Bahnhofsplatz',3],deliveryWorkshop:['Gleishof',8],
  shelter:['Lindenallee',2],market:['Lindenallee',6],recycle:['Lindenallee',6],jobs:['Lindenallee',12],cafe:['Lindenallee',18],
@@ -5,9 +6,11 @@ export const ADDRESSES={
  depot:['Hafenstraße',2],deliveryC:['Hafenstraße',12],agency:['Hafenstraße',18],
  deliveryB:['Am Kanal',3],deliveryA:['Am Kanal',11],park:['Am Kanal',17]
 };
+for(const p of EXPANSION_PLACES)ADDRESSES[p.id]=[p.street,p.number];
 export const addressOf=id=>ADDRESSES[id]?.join(' ')||'';
 export const STREETS=[{name:'Hafenstraße',z:-65},{name:'Lindenallee',z:0},{name:'Am Kanal',z:65}];
 export function streetAt(p){
+ if(expansionDistrict(p)){const r=EXPANSION_ROADS.reduce((a,b)=>{const d=q=>Math.hypot(Math.max(0,Math.abs(p.x-q.x)-q.w/2),Math.max(0,Math.abs(p.z-q.z)-q.d/2));return d(b)<d(a)?b:a;});return r.name;}
  if(p.x<-120){if(Math.abs(p.x+202)<15)return 'Westbogen';if(Math.abs(p.z)<14)return 'Lindenallee West';if(Math.abs(p.z+65)<14)return 'Hafenstraße West';if(Math.abs(p.z-65)<14)return 'Am Kanal West';return p.z<0?'Bahnhofsplatz':'Gleishof';}
  const street=STREETS.reduce((best,s)=>Math.abs(p.z-s.z)<Math.abs(p.z-best.z)?s:best);
  if(Math.abs(p.z-street.z)<15)return street.name;

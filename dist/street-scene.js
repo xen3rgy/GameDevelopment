@@ -1,10 +1,11 @@
+import {EXPANSION_ROADS} from './expansion-layout.js?v=0.8.1';
 import * as THREE from './vendor/three.module.js';
 import {ROAD_X,ROAD_Z} from './city-layout.js?v=0.8.1';
 import {ROAD_HEIGHT,PAVEMENT_HEIGHT,HALF_ROAD,CORNER_RADIUS,CORNERS,RAMP_WIDTH,RAMP_CORE,CROSSINGS,CROSSWALK_OFFSETS,CROSSWALK_STRIPE_WIDTH,streetPatches,rampHeight,onRoad,streetSurface} from './street-layout.js?v=0.8.1';
 import {surfaceMaterial,surfaceTileMeters} from './atmosphere.js?v=0.8.1';
 
 export function buildStreets(world,kit){
- const g=new THREE.Group();g.name='Connected streets';world.scene.add(g);world.staticGroups.push(g);
+ const g=new THREE.Group();g.name='Connected streets';g.userData.exterior=true;world.scene.add(g);world.staticGroups.push(g);
  const batches=new Map();
  const quad=(key,a,b,c,d)=>{if(!batches.has(key))batches.set(key,[]);batches.get(key).push(...a,...b,...c,...a,...c,...d);};
  const tri=(key,a,b,c)=>{let bb=b,cc=c;const area=(bb[0]-a[0])*(cc[2]-a[2])-(bb[2]-a[2])*(cc[0]-a[0]);if(area>0)[bb,cc]=[cc,bb];if(!batches.has(key))batches.set(key,[]);batches.get(key).push(...a,...bb,...cc);};
@@ -66,5 +67,6 @@ export function buildStreets(world,kit){
  for(const z of ROAD_Z)for(const x of [-182,-151,-84,-48,42,87]){
   for(const side of [-1,1]){const dz=z+side*6.13;box(g,x,y,dz,.72,.006,.4,0x3c4749);for(let n=0;n<6;n++)box(g,x-.28+n*.11,y+.005,dz,.032,.004,.33,0x6d7674);}
  }
+ for(const r of EXPANSION_ROADS){const horizontal=r.w>r.d;for(let t=-Math.max(r.w,r.d)/2+5;t<Math.max(r.w,r.d)/2-3;t+=8){const x=r.x+(horizontal?t:0),z=r.z+(horizontal?0:t);if(CROSSINGS.some(c=>Math.hypot(c.x-x,c.z-z)<13))continue;box(g,x,y,z,horizontal?3:.12,.004,horizontal?.12:3,paint);}}
  return g;
 }

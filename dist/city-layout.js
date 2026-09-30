@@ -1,12 +1,14 @@
+import {EXPANDED_BOUNDS,EXPANSION_ROADS,expansionDistrict} from './expansion-layout.js?v=0.8.1';
 // Shared exterior footprint. Detached interiors are deliberately outside this area.
-export const WORLD_BOUNDS={minX:-222,maxX:115,minZ:-119,maxZ:119};
+export const WORLD_BOUNDS=EXPANDED_BOUNDS;
 export const ROAD_X=[-202,-110,0,110];
 export const ROAD_Z=[-65,0,65];
-export const ROADS=[...ROAD_Z.map(z=>({x:-50,z,w:350,d:13})),...ROAD_X.map(x=>({x,z:0,w:13,d:x===-202?160:250}))];
+export const CORE_ROADS=[...ROAD_Z.map(z=>({x:-50,z,w:350,d:13})),...ROAD_X.map(x=>({x,z:0,w:13,d:x===-202?160:250}))];
+export const ROADS=[...CORE_ROADS,...EXPANSION_ROADS];
 export function exteriorContains(x,z,r=0){
- return Number.isFinite(x)&&Number.isFinite(z)&&x>=-222+r&&x<=115-r&&z>=-119+r&&z<=119-r&&(x>=-115+r||Math.abs(z)<=79-r);
+ return Number.isFinite(x)&&Number.isFinite(z)&&x>=WORLD_BOUNDS.minX+r&&x<=WORLD_BOUNDS.maxX-r&&z>=WORLD_BOUNDS.minZ+r&&z<=WORLD_BOUNDS.maxZ-r;
 }
-export const districtOf=p=>p.x<-120?'BAHNHOFSVIERTEL':p.z<-48?'WESTHAFEN':p.z>48?'KANALVIERTEL':p.x>15?'INNENSTADT':'LINDENHÖFE';
+export const districtOf=p=>expansionDistrict(p)?.name||(p.x<-120?'BAHNHOFSVIERTEL':p.z<-48?'WESTHAFEN':p.z>48?'KANALVIERTEL':p.x>15?'INNENSTADT':'LINDENHÖFE');
 export const STATION_PLAZAS=[{x:-174,z:-32,w:42,d:50},{x:-174,z:32.5,w:42,d:51}];
 export const STATION_YARD={minX:-225,maxX:-116.5,minZ:-80,maxZ:80,height:.04};
 export const STATION_STEPS={minX:-124.10,maxX:-123.50,midX:-123.50,low:.04,mid:.17,high:.30,roadClear:7.25};
@@ -19,9 +21,7 @@ export const DISTRICT_FIXTURES=[
  ...[-191,-159].map(x=>({x,z:-29,w:1.5,d:.5,h:1.2,kind:'bench'})),
  {x:-156,z:43,w:1.5,d:.5,h:1.2,kind:'bench'},
  // Low masonry edges finish the extension without blocking the three connecting streets.
- {x:-170,z:-79,w:52,d:.3,h:1.1,kind:'boundary'},
- {x:-170,z:79,w:52,d:.3,h:1.1,kind:'boundary'},
- {x:-222,z:0,w:.3,d:79,h:1.1,kind:'boundary'}
+
 ];
 export const STATION_BUILDINGS=[
  [-175,-42,36,18,10,'#9b7052','LINDENSTADT WEST',1],

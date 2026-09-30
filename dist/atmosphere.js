@@ -60,7 +60,7 @@ void main(){vec3 d=normalize(vPosition);float h=max(d.y,0.);vec3 color=mix(horiz
       if(slot.lamp&&wanted.has(slot.lamp))slot.power=Math.min(1,slot.power+dt*3);
       slot.light.intensity=slot.power*light.lamp*(slot.lamp?.power??260);slot.light.castShadow=this.quality!=='low'&&this.lampSlots.indexOf(slot)<2;
     }
-    for(const p of this.lightPositions){p.halo.visible=p.pool.visible=!state.inside&&light.lamp>.001;p.halo.material.opacity=light.lamp*.65;p.pool.material.opacity=light.lamp*(rain?.09:.055);if(p.bulb)p.bulb.color.copy(p.color).multiplyScalar(light.lamp*2).addScalar(.065)}
+    for(const p of this.lightPositions){p.halo.visible=p.pool.visible=!state.inside&&light.lamp>.001&&Math.hypot(p.x-position.x,p.z-position.z)<85;p.halo.material.opacity=light.lamp*.65;p.pool.material.opacity=light.lamp*(rain?.09:.055);if(p.bulb)p.bulb.color.copy(p.color).multiplyScalar(light.lamp*2).addScalar(.065)}
     for(let p of this.puddles){p.visible=!state.inside;p.material.opacity=rain?.52:.13}
     return light;
   }

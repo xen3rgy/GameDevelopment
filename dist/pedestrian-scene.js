@@ -28,10 +28,10 @@ export function seatedStreetPose(actor,weight,height){
 }
 
 export class PedestrianScene{
- constructor(world,kit){
+ constructor(world,kit,options={}){
   this.world=world;this.root=new THREE.Group();this.root.name='Residents of Lindenstadt';world.scene.add(this.root);
-  this.life=new PedestrianLife((x,z,r)=>world.canWalkExterior(x,z,r),{minute:world.model.s.minute,bystanders:PEOPLE});
-  for(const p of this.life.people){const look=citizenAppearance(p.id),m=createCitizen(kit,look.color,look.skin,p.id+1,look);m.scale.set(p.height*p.width,p.height,p.height);m.visible=p.visible;m.userData.citizenId=p.id;p.mesh=m;attachStreetProps(m,kit);this.root.add(m);}
+  this.life=new PedestrianLife((x,z,r)=>world.canWalkExterior(x,z,r),{minute:world.model.s.minute,bystanders:PEOPLE,...options});
+  for(const p of this.life.people){const look=citizenAppearance(p.id+(options.appearanceOffset||0)),m=createCitizen(kit,look.color,look.skin,p.id+1,look);m.scale.set(p.height*p.width,p.height,p.height);m.visible=p.visible;m.userData.citizenId=p.id;p.mesh=m;attachStreetProps(m,kit);this.root.add(m);}
  }
  update(state,dt,position){
   const bystanders=[...PEOPLE.map(p=>({x:p.x,z:p.z})),...(!state.inside&&!state.riding?[{...position,radius:.4}]:[])];

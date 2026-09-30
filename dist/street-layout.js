@@ -1,3 +1,4 @@
+import {EXPANSION_STOPS} from './expansion-layout.js?v=0.8.1';
 import {ROADS,ROAD_X,ROAD_Z} from './city-layout.js?v=0.8.1';
 export const ROAD_HEIGHT=.14, PAVEMENT_HEIGHT=.30, HALF_ROAD=6.5, CORNER_RADIUS=2, RAMP_WIDTH=3, RAMP_CORE=.9;
 // Centered around the road axis: equal kerb margins, including an odd center stripe.
@@ -13,12 +14,18 @@ export function cornerRoadCutout(x,z){
  return null;
 }
 export const onRoad=(x,z)=>ROADS.some(p=>inRect(p,x,z))||!!cornerRoadCutout(x,z);
-export const PAVEMENTS=ROADS.flatMap(r=>r.w>r.d?[-1,1].map(side=>({x:r.x,z:r.z+side*10,w:r.w,d:7})):[-1,1].map(side=>({x:r.x+side*10,z:r.z,w:7,d:r.d})));
+export const PAVEMENTS=ROADS.flatMap(r=>r.w>r.d?[-1,1].map(side=>({x:r.x,z:r.z+side*(r.d/2+3.5),w:r.w,d:7})):[-1,1].map(side=>({x:r.x+side*(r.w/2+3.5),z:r.z,w:7,d:r.d})));
 // Crossings are shared by road markings, dropped kerbs, map and traffic yielding.
 export const CROSSINGS=ROAD_X.flatMap(x=>ROAD_Z.flatMap(z=>[
  ...[-1,1].filter(side=>x+side*10>-214&&x+side*10<114).map(side=>({x:x+side*10,z,axis:'z'})),
  ...[-1,1].filter(side=>x!==-202||Math.abs(z+side*10)<78).map(side=>({x,z:z+side*10,axis:'x'}))
 ]));
+export const ROAD_JUNCTIONS=[];
+for(const h of ROADS.filter(r=>r.w>r.d))for(const v of ROADS.filter(r=>r.d>r.w))if(Math.abs(v.x-h.x)<=h.w/2&&Math.abs(h.z-v.z)<=v.d/2&&!ROAD_JUNCTIONS.some(p=>p.x===v.x&&p.z===h.z)){
+ const p={x:v.x,z:h.z};ROAD_JUNCTIONS.push(p);
+ if((p.x>125||Math.abs(p.z)>125)&&h.d===13&&v.w===13)for(const side of [-1,1])CROSSINGS.push({x:p.x+side*10,z:p.z,axis:'z'},{x:p.x,z:p.z+side*10,axis:'x'});
+}
+for(const p of EXPANSION_STOPS)CROSSINGS.push({x:p.x-12,z:p.roadZ,axis:'z'});
 export const RAMPS=CROSSINGS.flatMap(c=>[-1,1].map(side=>({x:c.x+(c.axis==='x'?side*7.5:0),z:c.z+(c.axis==='z'?side*7.5:0),w:c.axis==='z'?RAMP_WIDTH:2,d:c.axis==='z'?2:RAMP_WIDTH,side,axis:c.axis,crossing:c})));
 export function rampHeight(r,x,z){
  const normal=(r.axis==='z'?z-r.crossing.z:x-r.crossing.x)*r.side-HALF_ROAD;

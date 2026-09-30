@@ -18,9 +18,9 @@ const at=(m,id)=>{const p=LOCATIONS.find(l=>l.id===id);m.s.position={x:p.x,z:p.z
 const blocks=[...BUILDINGS.map(([x,z,w,d,h])=>({x,z,w:w/2+.35,d:d/2+.35,h})),...DISTRICT_FIXTURES];
 const free=(x,z,r=.35)=>exteriorContains(x,z,r)&&!blocks.some(c=>Math.abs(x-c.x)<c.w+r&&Math.abs(z-c.z)<c.d+r);
 
-test('connected western footprint supports three road links without admitting blank outer corners or interiors',()=>{
+test('connected western footprint supports three road links within the expanded city bounds',()=>{
  for(const z of [-65,0,65])for(let x=-217;x<115;x+=.5){assert.ok(exteriorContains(x,z));assert.ok(free(x,z,.35));}
- for(const p of [[-223,0],[-190,90],[-190,-90],[0,121],[300,0]])assert.equal(exteriorContains(...p),false);
+ for(const p of [[-261,0],[441,90],[-190,-256],[0,256]])assert.equal(exteriorContains(...p),false);
  assert.equal(districtOf({x:-179,z:17}),'BAHNHOFSVIERTEL');assert.equal(districtOf({x:-34,z:12}),'LINDENHÖFE');
  const nav=new CityNavigation(free,4,WORLD_BOUNDS);
  for(const id of ['station','stationHome','deliveryKiosk','deliveryWorkshop']){
@@ -36,8 +36,8 @@ test('new and old saves preserve western positions, parked vehicles, dropped ite
  assert.equal(m.enterInterior('home'),true);assert.deepEqual(outsidePosition(m.s),{x:-179,z:15});
  assert.equal(validateSave(m.s).home,'stationRoom');assert.equal(m.leaveInterior(),true);assert.deepEqual(m.s.position,{x:-179,z:15});
  assert.deepEqual(m.s.storage,[{id:'bread',count:2}]);assert.deepEqual(m.s.fridge,[{id:'water',count:2}]);
- const bad=structuredClone(m.s);bad.position={x:-190,z:105};assert.throws(()=>validateSave(bad),/Außenposition/);
- const vehicleBad=structuredClone(m.s);vehicleBad.vehicle.z=100;assert.throws(()=>validateSave(vehicleBad),/Fahrzeug/);
+ const bad=structuredClone(m.s);bad.position={x:-190,z:WORLD_BOUNDS.maxZ+2};assert.throws(()=>validateSave(bad),/Außenposition/);
+ const vehicleBad=structuredClone(m.s);vehicleBad.vehicle.z=WORLD_BOUNDS.maxZ+2;assert.throws(()=>validateSave(vehicleBad),/Fahrzeug/);
  const old=newGame(true);old.home='flat';old.rentDue=4;old.inside=true;old.interior='home';old.position={x:300,z:4};
  const prior=new GameModel(validateSave(old));assert.equal(homeLocation(prior.s).id,'home');prior.leaveInterior();assert.deepEqual(prior.s.position,{x:-34,z:10});
 });
@@ -82,7 +82,7 @@ test('new district keeps the eight-light budget and mixed tours retain achievabl
   const c=CONTRACTS.find(c=>c.id===id),s=newGame(true);s.settings.speed=10;const plan=deliveryPlan(c,s,mode);
   assert.ok(plan.distance>180);assert.ok(plan.realSeconds>plan.travelSeconds+plan.serviceSeconds);assert.equal(plan.deadlineMinutes,c.minutes?plan.realSeconds*10:0);
  }
- assert.equal(Object.keys(DELIVERY_PEOPLE).length,6);
+ assert.equal(Object.keys(DELIVERY_PEOPLE).length,11);
 });
 
 test('station geometry has finite surfaces, a separate animated clock, solid supports and covered camera volumes',()=>{

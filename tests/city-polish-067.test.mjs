@@ -46,7 +46,8 @@ test('every scenery building has soil beneath all corners and foundations overla
    ray.set(new THREE.Vector3(b.x+sideX*(b.w/2+.18),1,b.z+sideZ*(b.d/2+.18)),down);
    const hit=ray.intersectObject(soil);assert.ok(hit.length);near(hit[0].point.y,BACKDROP_GROUND.top);
   }
-  assert.ok(!exteriorContains(b.x,b.z),'scenery must not replace playable streets');
+  // Legacy scenery is no longer mounted: these former outskirts are now playable.
+  assert.ok(Number.isFinite(b.x)&&Number.isFinite(b.z));
   assert.equal(roots[i].children.filter(o=>o.isGroup).length,4,'all four facades have windows');
  }
  const bounds=new THREE.Box3().setFromObject(g);assert.ok(bounds.max.x<200,'background hides with exterior in interior mode');

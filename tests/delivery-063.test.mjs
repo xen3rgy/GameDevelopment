@@ -68,7 +68,7 @@ test('physical reception points remain walkable after adding people and parcel r
  const k=artKit(),world={scene:new THREE.Scene(),colliders:BUILDINGS.map(([x,z,w,d,h])=>({x,z,w:w/2+.35,d:d/2+.35,h})).concat(DISTRICT_FIXTURES)};world.player=createCitizen(k);const scene=new CourierScene(world,k);
  const free=(x,z,r=.35)=>exteriorContains(x,z,r)&&!world.colliders.some(b=>Math.abs(x-b.x)<b.w+r&&Math.abs(z-b.z)<b.d+r);const nav=new CityNavigation(free,4,WORLD_BOUNDS);
  for(const id of Object.keys(DELIVERY_PEOPLE)){const to=deliveryTarget(id);assert.ok(free(to.x,to.z),id);const path=nav.find(deliveryTarget('jobs'),to);assert.ok(path.length>1,id);for(let i=1;i<path.length;i++)assert.ok(segmentClear(path[i-1],path[i],free,.4),id);}
- assert.equal(scene.stations.size,6);
+ assert.equal(scene.stations.size,Object.keys(DELIVERY_PEOPLE).length);
 });
 test('handoff pose holds parcel, fixes roots and pauses with menus; receipt and cards stay coherent',()=>{
  const k=artKit(),world={scene:new THREE.Scene(),colliders:[],player:createCitizen(k)},visual=new CourierScene(world,k),m=setup();advance(m,2.2);at(m,m.s.job.target);world.player.position.set(m.s.position.x,.25,m.s.position.z);assert.ok(m.work('deliver'));

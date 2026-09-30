@@ -24,12 +24,12 @@ export function pedestrianSurface(x,z,r=0){
 
 // A small, persistent population. No per-frame pathfinding or visible street respawns.
 export class PedestrianLife{
- constructor(canWalk,{count=32,minute=720,bystanders=[]}={}){
+ constructor(canWalk,{count=32,minute=720,bystanders=[],portals=CITIZEN_PORTALS,destinations=CITIZEN_DESTINATIONS,bounds}={}){
   this.canWalk=(x,z,r=PEDESTRIAN_RADIUS)=>canWalk(x,z,r)&&pedestrianSurface(x,z,r);
-  this.nav=new PedestrianNavigation(this.canWalk);
+  this.nav=new PedestrianNavigation(this.canWalk,bounds);
   this.reserved=new Map();this.doors=new Map();this.time=0;this.minute=minute;
-  this.destinations=CITIZEN_DESTINATIONS.filter(d=>this.canWalk(d.x,d.z,.4));
-  const homes=CITIZEN_PORTALS.filter(p=>p.home);
+  this.portals=portals;this.destinations=destinations.filter(d=>this.canWalk(d.x,d.z,.4));
+  const homes=portals.filter(p=>p.home);
   this.people=Array.from({length:count},(_,id)=>{
    const home=homes[id%homes.length];return {id,home,residence:home,seed:7183+id*739,height:.94+(id%7)*.019,width:.94+(id%4)*.035,maxSpeed:1.04+(id%5)*.075,
     x:home.x,z:home.doorZ,yaw:home.angle,phase:'inside',visible:false,cooldown:id*.7,age:0,sit:0,speed:0,vx:0,vz:0,intentX:0,intentZ:0,distance:0,blocked:0,wait:0,path:[],index:1,goal:null,
@@ -59,7 +59,7 @@ export class PedestrianLife{
  }
  doorFree(portal,p,obstacles){return !this.doors.has(portal.id)&&!obstacles.some(q=>q!==p&&q.visible!==false&&dist(q,portal)<.85);}
  enter(p,obstacles){
-  const portal=CITIZEN_PORTALS.find(d=>d.id===p.goal?.portal);if(!portal)return false;
+  const portal=this.portals.find(d=>d.id===p.goal?.portal);if(!portal)return false;
   if(!this.doorFree(portal,p,obstacles))return false;
   this.doors.set(portal.id,p.id);p.portal=portal;p.entryStart={x:p.x,z:p.z};p.phase='enter';p.age=0;p.speed=0;return true;
  }

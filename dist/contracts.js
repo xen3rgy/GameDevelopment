@@ -2,6 +2,9 @@ import {recordWork} from './work-log.js?v=0.8.1';
 import {DELIVERY_SECONDS} from './delivery-routes.js?v=0.8.1';
 // Prices are integer cents; deadlines follow the simulation clock, including midnight.
 export const CONTRACTS = [
+ {id:'northParcel',name:'Nordring-Tour',route:['deliveryNord'],base:6800,bonus:0,minutes:0,completed:2,reliability:60,description:'Buchpakete für Nordstadt. Eine längere Tour ohne Zeitdruck.'},
+ {id:'outerCircuit',name:'Kontor & Campus',route:['deliveryOst','deliveryTech'],base:14500,bonus:2500,minutes:1,completed:4,reliability:70,description:'Dokumente ins Kontorhaus und zur Campus-Poststelle. Eine Tour für Rad oder Auto.'},
+ {id:'cityFreight',name:'Vom Werk zum Lindenblick',route:['deliveryWerk','deliveryHoehen'],base:19500,bonus:0,minutes:0,completed:5,reliability:70,description:'Zwei Sendungen zwischen Industrie und Stadtgarten. Mehr Strecke, mehr Lohn.'},
  {id:'stationKiosk',name:'Morgenausgabe am Gleis',route:['deliveryKiosk'],base:3800,bonus:0,minutes:0,completed:0,reliability:0,description:'Eine Sendung für Yusuf am Bahnhofskiosk. Lerne das neue Viertel ohne Zeitdruck kennen.'},
  {id:'westLoop',name:'Zwischen Kiez und Gleisen',route:['deliveryKiosk','deliveryWorkshop','deliveryB'],base:7800,bonus:0,minutes:0,completed:2,reliability:65,description:'Vom Bahnhofskiosk zur Werkstatt, dann zum Atelier am Kanal. Eine Tour durch beide Stadtteile.'},
  {id:'workshopExpress',name:'Ersatzteil-Express',route:['deliveryWorkshop'],base:4200,bonus:1200,minutes:1,completed:1,reliability:60,description:'Tessa wartet auf ein dringend benötigtes Ersatzteil. Die Bonusfrist berücksichtigt deinen Anfahrtsweg.'},
