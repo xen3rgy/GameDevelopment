@@ -1,3 +1,4 @@
+import {CLOTHING,defaultWardrobe,clothingById} from './clothing.js?v=0.8.1';
 import * as THREE from './vendor/three.module.js';
 
 // All dimensions are in the existing rig's metres. Never move the IK joints.
@@ -107,7 +108,11 @@ export function createCitizen(kit,color=0x303e4b,skin=0xc39c7b,variant=0,style=n
  if(look.bag){softBox(elbows[0],bagMat,-.044,-.435,.026,.23,.265,.09);for(const x of [-.10,.01])strap(elbows[0],bagMat,[x,-.245,.026],[x,-.35,.026],.015,.019);}
  if(role==='stylish'||sport){strap(upper,bagMat,[-.17,1.39,.14],[.17,.985,.155],.024,.02);ball(upper,bagMat,.181,.99,.108,.068,.10,.054);}
  upper.position.y=.9;for(const child of upper.children)child.position.y-=.9;
- g.userData={arms,legs,upper,elbows,knees,feet,backpack,headRoot,style:look,details};mergeRigidParts(g);return g;
+ g.userData={arms,legs,upper,elbows,knees,feet,backpack,headRoot,style:look,details};if(hero){
+  // Keep the skin, head and every animated joint. Only the original garments go.
+  for(const root of [upper,...arms,...elbows,...legs,...knees,...feet,backpack])for(const child of [...root.children])if(child.isMesh&&child.material!==skinMat)root.remove(child);
+  installPlayerClothing(g,skinMat);applyCitizenOutfit(g,defaultWardrobe().equipped);
+ }else mergeRigidParts(g);return g;
 }
 // Merge once per rigid joint/material. Articulation and detail visibility stay independent.
 function mergeRigidParts(group){
@@ -117,4 +122,63 @@ function mergeRigidParts(group){
   for(const m of meshes){m.updateMatrix();const geo=m.geometry.index?m.geometry.toNonIndexed():m.geometry.clone();geo.applyMatrix4(m.matrix);p.push(...geo.attributes.position.array);n.push(...geo.attributes.normal.array);uv.push(...geo.attributes.uv.array);geo.dispose();group.remove(m);}
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(p,3));geo.setAttribute('normal',new THREE.Float32BufferAttribute(n,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));mesh(group,geo,mat,0,0,0);
  }
+}
+
+// Modules are allocated once; outfit changes only toggle their visibility.
+function installPlayerClothing(actor,skinMat){
+ const u=actor.userData,modules=new Map();u.clothingModules=modules;
+ const root=(parent,parts,offset=0)=>{const g=new THREE.Group();g.position.y=offset;parent.add(g);parts.push(g);return g;};
+ const torso=profile('player-torso',[[.91,.16,.11],[1.02,.171,.123],[1.27,.211,.14],[1.37,.223,.12],[1.43,.09,.065]]);
+ const sleeve=profile('player-sleeve',[[.02,.063,.066],[-.04,.078,.078],[-.15,.07,.067],[-.29,.058,.059]]);
+ const forearm=profile('player-forearm',[[.02,.058,.059],[-.09,.058,.055],[-.195,.044,.044]]);
+ for(let i=0;i<2;i++){
+  mesh(u.arms[i],sleeve,skinMat,0,0,0,.85,1,.85);
+  mesh(u.elbows[i],forearm,skinMat,0,0,.01,.85,1,.85);
+ }
+ for(const item of CLOTHING){
+  const parts=[],v=item.visual,m=material(v.color,item.slot==='shoes'?'shoe':'cloth'),trim=material(0x303936,'trim');modules.set(item.id,parts);
+  if(item.slot==='top'||item.slot==='outer'){
+   const outer=item.slot==='outer',hood=v.style==='hoodie',short=v.style==='tee',bulk=outer?(v.style==='bomber'?1.22:v.style==='overshirt'?1.08:1.16):short?.98:1.07;
+   const body=root(u.upper,parts,-.9);
+   mesh(body,torso,m,0,0,0,bulk,1,bulk);
+   if(hood){ball(body,m,0,1.41,-.10,.173,.09,.125);ball(body,trim,0,1.47,-.07,.11,.017,.065);box(body,m,0,1.07,.147,.21,.095,.025);}
+   if(outer){for(const side of [-1,1]){const collar=box(body,m,side*.087,1.397,.10,.07,.13,.04);collar.rotation.z=side*.3;box(body,trim,side*.12,1.10,.163,.095,.012,.014);}box(body,trim,0,1.19,.17,.013,.40,.015);}
+   if(v.style==='overshirt')for(const side of [-1,1]){box(body,m,side*.11,1.29,.151,.09,.10,.018);box(body,trim,side*.11,1.33,.165,.015,.015,.012);}
+   if(v.style==='bomber')mesh(body,profile('bomber-hem',[[.905,.177,.136],[.957,.189,.143]]),trim,0,0,0);
+   for(let i=0;i<2;i++){
+    const shoulder=root(u.arms[i],parts);joint(shoulder,m,-.022,.079*bulk,.071,.079*bulk);
+    mesh(shoulder,sleeve,m,0,0,0,bulk,short?.48:1,bulk);
+    if(!short)mesh(root(u.elbows[i],parts),forearm,m,0,0,.01,bulk,1,bulk);
+   }
+  }else if(item.slot==='pants'){
+   mesh(root(u.upper,parts,-.9),profile('hips',[[.83,.15,.087],[.87,.182,.11],[.97,.168,.105]]),m,0,0,0);
+   const width=v.style==='work'?1.14:v.style==='chinos'?.96:1;
+   for(let i=0;i<2;i++){
+    const thigh=root(u.legs[i],parts),calf=root(u.knees[i],parts);
+    mesh(thigh,profile('thigh',[[.031,.079,.088],[-.075,.093,.10],[-.23,.078,.079],[-.385,.064,.066]]),m,0,0,0,width,1,width);
+    joint(calf,m,0,.065*width,.065,.068*width);
+    mesh(calf,profile('calf',[[.022,.066,.068],[-.1,.068,.065],[-.24,.053,.052],[-.37,.049,.05]]),m,0,0,0,width,1,width);
+    if(v.style==='work')box(thigh,m,(i===0?-1:1)*.09,-.17,0,.04,.14,.12);
+   }
+  }else if(item.slot==='shoes'){
+   for(const foot of u.feet){const g=root(foot,parts),boot=v.style==='boots';
+    ball(g,material(0xb9b6aa,'shoe'),0,-.045,.048,.085,.02,.161);
+    ball(g,m,0,-.006,.038,.078,.045,.149);ball(g,m,0,boot?.065:.018,-.015,.065,boot?.115:.052,.073);
+    for(const y of boot?[.045,.08,.115]:[.045])box(g,trim,0,y,.065,.058,.01,.05);
+   }
+  }else{
+   const g=root(u.backpack,parts),city=v.style==='city',travel=v.style==='travel',w=city?.29:travel?.39:.326,h=city?.40:travel?.53:.452;
+   softBox(g,m,0,1.185,-.24,w,h,city?.16:.21);
+   softBox(g,m,0,1.10,-.365,w*.75,city?.12:.22,.065);
+   if(travel)for(const side of [-1,1])softBox(g,m,side*.218,1.10,-.24,.085,.22,.16);
+   for(const side of [-1,1]){strap(g,m,[side*.15,1.41,-.10],[side*.16,1.29,.18],city?.027:.038,.024);strap(g,m,[side*.16,1.29,.18],[side*.14,1.0,.17],city?.026:.035,.018);}
+   box(g,trim,0,1.185,-.403,w*.65,.012,.012);box(g,m,0,1.185+h/2+.015,-.24,.12,.04,.04);
+  }
+ }
+}
+export function applyCitizenOutfit(actor,outfit){
+ const modules=actor?.userData.clothingModules;if(!modules)return;
+ const defaults=defaultWardrobe().equipped,hasOuter=clothingById(outfit?.outer)?.slot==='outer';
+ for(const [id,parts] of modules){const item=clothingById(id),chosen=clothingById(outfit?.[item.slot]);const selected=chosen?.slot===item.slot?chosen.id:defaults[item.slot];for(const part of parts)part.visible=selected===id&&!(item.slot==='top'&&hasOuter);}
+ // Deliberately leave the stable backpack root's visibility to sleep/shower logic.
 }

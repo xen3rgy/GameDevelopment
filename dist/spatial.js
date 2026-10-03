@@ -1,3 +1,4 @@
+import {CLOTHING_ROOM,CLOTHING_FIXTURES} from './clothing.js?v=0.8.1';
 import {EXPANSION_PATHS} from './expansion-layout.js?v=0.8.1';
 import {homeFixtures} from './home-layout.js?v=0.8.1';
 export {homeFixtures} from './home-layout.js?v=0.8.1';
@@ -22,6 +23,7 @@ export function groundHeight(x,z,interior=null){
  return y;
 }
 export const ROOMS={
+ clothing:CLOTHING_ROOM,
  workshop:WORKSHOP_ROOM,
  cafe:{minX:292.25,maxX:307.75,minZ:72.25,maxZ:87.75,ceiling:3.8,spawn:{x:300,z:86},outside:{x:63,z:-11},angle:0},
  home:{minX:293.25,maxX:306.75,minZ:-5.75,maxZ:5.75,ceiling:3.35,spawn:{x:300,z:4},outside:{x:-34,z:10},angle:0},
@@ -38,7 +40,7 @@ export const SHOP_FIXTURES=[
  {id:'baskets',x:341.6,z:47.45,w:.34,d:.28,h:.8}
 ];
 export const HOME_FIXTURES=homeFixtures('room');
-export function canWalkRoom(interior,x,z,r=.35,home='room'){const b=ROOMS[interior];return !!b&&x>b.minX+r&&x<b.maxX-r&&z>b.minZ+r&&z<b.maxZ-r&&!((interior==='shop'?SHOP_FIXTURES:interior==='cafe'?CAFE_FIXTURES:interior==='home'?homeFixtures(home):interior==='workshop'?WORKSHOP_FIXTURES:[]).some(c=>(c.minY??0)<1.85&&(c.radius!=null?Math.hypot(x-c.x,z-c.z)<c.radius+r:Math.abs(x-c.x)<c.w+r&&Math.abs(z-c.z)<c.d+r)))}
+export function canWalkRoom(interior,x,z,r=.35,home='room'){const b=ROOMS[interior];return !!b&&x>b.minX+r&&x<b.maxX-r&&z>b.minZ+r&&z<b.maxZ-r&&!((interior==='clothing'?CLOTHING_FIXTURES:interior==='shop'?SHOP_FIXTURES:interior==='cafe'?CAFE_FIXTURES:interior==='home'?homeFixtures(home):interior==='workshop'?WORKSHOP_FIXTURES:[]).some(c=>(c.minY??0)<1.85&&(c.radius!=null?Math.hypot(x-c.x,z-c.z)<c.radius+r:Math.abs(x-c.x)<c.w+r&&Math.abs(z-c.z)<c.d+r)))}
 // Slab intersection gives a continuous boom limit, without discrete ray samples.
 export function rayBox(origin,dir,b,max){let near=0,far=max;for(const axis of ['x','y','z']){const low=b['min'+axis.toUpperCase()],high=b['max'+axis.toUpperCase()];if(Math.abs(dir[axis])<1e-9){if(origin[axis]<low||origin[axis]>high)return max;continue}let a=(low-origin[axis])/dir[axis],c=(high-origin[axis])/dir[axis];if(a>c)[a,c]=[c,a];near=Math.max(near,a);far=Math.min(far,c);if(near>far)return max}return far>=0?Math.max(0,near):max}
 export class CameraRig{

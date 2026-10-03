@@ -1,5 +1,6 @@
 import {EXPANSION_ROADS,EXPANSION_PLACES,expansionDistrict} from './expansion-layout.js?v=0.8.1';
 export const ADDRESSES={
+ clothingStore:['Lindenallee',22],
  station:['Bahnhofsplatz',1],stationHome:['Gleishof',4],deliveryKiosk:['Bahnhofsplatz',3],deliveryWorkshop:['Gleishof',8],
  shelter:['Lindenallee',2],market:['Lindenallee',6],recycle:['Lindenallee',6],jobs:['Lindenallee',12],cafe:['Lindenallee',18],
  school:['Lindenallee',1],home:['Lindenallee',5],bank:['Lindenallee',11],garage:['Lindenallee',19],

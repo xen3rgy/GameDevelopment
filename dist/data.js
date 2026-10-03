@@ -1,3 +1,5 @@
+import {CLOTHING_LOCATION,CLOTHING_BUILDING} from './clothing.js?v=0.8.1';
+import {WARDROBE_POINT} from './home-layout.js?v=0.8.1';
 import {EXPANSION_PLACES} from './expansion-layout.js?v=0.8.1';
 import {STATION_BUILDINGS} from './city-layout.js?v=0.8.1';
 export const ITEMS={
@@ -11,6 +13,7 @@ export const ITEMS={
  parcel:{name:'Lieferpaket',icon:'📦',category:'Aufträge',weight:2,stack:1,price:0,description:'Eine versiegelte Sendung für deinen laufenden Lieferauftrag.'}
 };
 export const LOCATIONS=[
+ CLOTHING_LOCATION,
 
  {id:'recycle',name:'Pfandrückgabe',type:'recycle',x:-23,z:-12,icon:'♻',color:'#76d6a2',description:'Flaschen abgeben. Aus Kleingeld wird ein Anfang.'},
  {id:'market',name:'MARKT 24',type:'shop',x:-36,z:-12,icon:'▣',color:'#91bd91',description:'Lebensmittel, Getränke und das Nötigste. Rund um die Uhr.'},
@@ -55,6 +58,7 @@ export const clamp=(n,a=0,b=100)=>Math.max(a,Math.min(b,n));
 export const VEHICLES={bike:{name:'Stadtrad',cost:12500,speed:8.5,description:'Keine Tankkosten. Schnell und unkompliziert durch den Kiez.'},car:{name:'Alter Kleinwagen',cost:90000,speed:17,description:'Dein erstes Auto. Achte auf Tank und Zustand.'},van:{name:'Lieferwagen',cost:180000,speed:15,description:'Mehr Platz für deine Arbeit. +25 % Kurierlohn, wenn du das Paket mit dem Lieferwagen transportierst.'},sport:{name:'Sportcoupé',cost:650000,speed:24,description:'Für die Zeit, in der der Weg selbst zum Ziel wird.'}};
 
 export const HOME_POINTS={
+ wardrobe:WARDROBE_POINT,
  exit:{name:'Wohnung verlassen',x:300,z:4.6},
  bed:{name:'Schlaf planen',x:298.15,z:-2.5},
  kitchen:{name:'Kochen',x:302,z:-3},
@@ -80,7 +84,7 @@ export const RECIPES={
 
 export const BUILDINGS=[[-36,-28,24,28,15,'#7d837e','MARKT 24',1],[-70,-28,26,28,20,'#8e8171','ANLAUFSTELLE NORD',1],[27,-28,26,28,17,'#918a7b','KIEZ & KURIER',1],[65,-28,29,28,22,'#737e80','CAFÉ MORGEN',1],[-35,28,29,28,24,'#8d8a7e','LINDENHÖFE',-1],[-74,28,28,28,17,'#7e8b8e','CAMPUS WEST',-1],[33,28,31,28,27,'#999486','STADTBANK',-1],[76,29,27,29,19,'#8c7e70','MOBILWERK',-1],[-71,-91,32,26,11,'#7b8281','WESTHAFEN LOGISTIK',1],[30,-93,28,30,30,'#7d8488','NORDKONTOR',1],[68,-91,27,26,24,'#9a8e7b','STUDIO NORD',1],[-68,94,30,32,17,'#828b86','ATELIER AM KANAL',-1],[29,94,28,32,19,'#7e8686','BUCHHANDLUNG KAPITEL',-1]];
 
-BUILDINGS.push(...STATION_BUILDINGS);
+BUILDINGS.push(...STATION_BUILDINGS,CLOTHING_BUILDING);
 
 export const SHOP_POINTS={
  shopExit:{name:'Markt verlassen',x:340,z:47.7},

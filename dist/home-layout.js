@@ -7,7 +7,9 @@ export const HOME_STYLES={
 };
 export const HOME_ALIGNMENT={kitchenZ:-5.22,fridgeX:306.14,fridgeZ:-5.22,bedShiftZ:-.95,storageZ:5.43,showerShiftX:.22};
 export const homeStyle=home=>HOME_STYLES[home]||HOME_STYLES.room;
+export const WARDROBE_POINT={name:'Kleiderschrank',x:303.9,z:4.35};
 const common=[
+ {id:'wardrobe',x:303.9,z:5.43,w:.85,d:.38,h:2.35},
  {id:'fridge',x:306.14,z:-5.22,w:.6,d:.6,h:2.5},
  {id:'storage',x:295,z:5.43,w:.9,d:.38,h:1.4},
  {id:'shower',x:306.06,z:2,w:.79,d:.80,h:2.85},

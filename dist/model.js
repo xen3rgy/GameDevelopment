@@ -1,3 +1,4 @@
+import {defaultWardrobe,validateWardrobe,clothingById,atClothingDisplay} from './clothing.js?v=0.8.1';
 import {initDiscovery} from './exploration.js?v=0.8.1';
 import {newScavenge,initScavenge,validateScavenge,tickBinSearch,bottleLayout} from './scavenge.js?v=0.8.1';
 import {newWorkLog,recordWork,validateWorkLog} from './work-log.js?v=0.8.1';
@@ -19,9 +20,21 @@ import {tickTransit,validateTransit} from './transit.js?v=0.8.1';
 import {inReach} from './interactions.js?v=0.8.1';
 import {tickFieldWork} from './field-work.js?v=0.8.1';
 export const SAVE_KEY='zero-rise-save-v1';
-export function newGame(sandbox=false){return {version:3,discovered:[],scavenge:newScavenge(),mode:sandbox?'sandbox':'story',money:sandbox?2000000:0,bank:0,debt:0,day:1,minute:8*60,needs:{health:100,hunger:78,thirst:75,energy:85,hygiene:65,stress:12},inventory:[],storage:[],fridge:[],dailyLife:newDailyLife(),position:{x:-27,z:-4},angle:0,inside:false,interior:null,basket:[],riding:false,vehicle:null,home:null,rentDue:0,job:null,courier:newCourier(),workshop:newWorkshop(),workLog:newWorkLog(),skills:{fitness:0,logistics:0,business:0,tech:0},xp:0,reputation:0,relations:{},businesses:{},properties:0,quest:0,stats:{collected:0,returned:0,consumed:0,jobs:0,slept:0,homes:0,courses:0,businesses:0,hired:0,properties:0,wealth:0,earned:0,cooked:0},collected:[],drops:[],weather:'clear',economy:'Normal',history:[],dailyIncome:0,cafe:newCafe(),settings:{sound:true,quality:'high',speed:1,sensitivity:1,brightness:1,fov:55,ambienceVolume:100,vehicleVolume:100,effectsVolume:100}}}
+export function newGame(sandbox=false){return {version:3,wardrobe:defaultWardrobe(),discovered:[],scavenge:newScavenge(),mode:sandbox?'sandbox':'story',money:sandbox?2000000:0,bank:0,debt:0,day:1,minute:8*60,needs:{health:100,hunger:78,thirst:75,energy:85,hygiene:65,stress:12},inventory:[],storage:[],fridge:[],dailyLife:newDailyLife(),position:{x:-27,z:-4},angle:0,inside:false,interior:null,basket:[],riding:false,vehicle:null,home:null,rentDue:0,job:null,courier:newCourier(),workshop:newWorkshop(),workLog:newWorkLog(),skills:{fitness:0,logistics:0,business:0,tech:0},xp:0,reputation:0,relations:{},businesses:{},properties:0,quest:0,stats:{collected:0,returned:0,consumed:0,jobs:0,slept:0,homes:0,courses:0,businesses:0,hired:0,properties:0,wealth:0,earned:0,cooked:0},collected:[],drops:[],weather:'clear',economy:'Normal',history:[],dailyIncome:0,cafe:newCafe(),settings:{sound:true,quality:'high',speed:1,sensitivity:1,brightness:1,fov:55,ambienceVolume:100,vehicleVolume:100,effectsVolume:100}}}
 export class GameModel{
- constructor(state=newGame()){this.s=state.version<3?validateSave(state):state;this.s.courier??=newCourier();this.s.dailyLife??=newDailyLife();this.s.fridge??=[];this.s.workshop??=newWorkshop();this.s.workLog??=newWorkLog();initFleet(this.s);this.s.transit??=null;this.s.vehicleService??=null;initScavenge(this.s);initDiscovery(this.s);this.events=[];this.onChange=()=>{}}
+ constructor(state=newGame()){this.s=state.version<3?validateSave(state):state;this.s.wardrobe=validateWardrobe(this.s.wardrobe);this.s.courier??=newCourier();this.s.dailyLife??=newDailyLife();this.s.fridge??=[];this.s.workshop??=newWorkshop();this.s.workLog??=newWorkLog();initFleet(this.s);this.s.transit??=null;this.s.vehicleService??=null;initScavenge(this.s);initDiscovery(this.s);this.events=[];this.onChange=()=>{}}
+ buyClothing(id){
+  const item=clothingById(id),s=this.s;
+  if(!item||!atClothingDisplay(s)||s.dailyLife.action||s.wardrobe.owned.includes(id)||!this.spend(item.price))return false;
+  s.wardrobe.owned.push(id);this.emit(item.name+' gekauft.','success');return true;
+ }
+ equipClothing(id){
+  const s=this.s,item=clothingById(id);
+  if((!atClothingDisplay(s)&&(s.interior!=='home'||!s.home||!inReach(s.position,HOME_POINTS.wardrobe,'indoor')))||s.dailyLife.action)return false;
+  if(id===null)s.wardrobe.equipped.outer=null;
+  else {if(!item||!s.wardrobe.owned.includes(id))return false;s.wardrobe.equipped[item.slot]=id;}
+  this.onChange();return true;
+ }
  emit(text,type='info'){this.events.push({text,type});this.s.history.unshift({text,day:this.s.day});this.s.history=this.s.history.slice(0,30);this.onChange()}
  get weight(){return this.s.inventory.reduce((n,v)=>n+ITEMS[v.id].weight*v.count,0)}
  get capacity(){return 16}
@@ -75,7 +88,7 @@ export class GameModel{
  }
 
  enterInterior(id){
-  const s=this.s,room=ROOMS[id],location=id==='home'?homeLocation(s):LOCATIONS.find(l=>l.id===(id==='shop'?'market':id==='cafe'?'cafe':id==='workshop'?'deliveryWorkshop':'home'));
+  const s=this.s,room=ROOMS[id],location=id==='home'?homeLocation(s):LOCATIONS.find(l=>l.id===(id==='clothing'?'clothingStore':id==='shop'?'market':id==='cafe'?'cafe':id==='workshop'?'deliveryWorkshop':'home'));
   if(s.scavenge?.action||s.vehicleService||s.transit||s.job?.fieldAction||s.dailyLife.action||s.workshop?.active?.action||!Object.hasOwn(ROOMS,id)||s.inside||s.riding||id==='home'&&!s.home||!inReach(s.position,location))return false;
   if(id==='workshop'&&!workshopHours(s).open){this.emit('Werkstatt West ist von 08:00 bis 19:00 geöffnet. Neue Aufträge bis 17:00.');return false;}
   s.inside=true;s.interior=id;s.position={...room.spawn};s.angle=room.angle;s.basket=[];return true;
@@ -208,7 +221,7 @@ export class GameModel{
 }
 export function validateSave(raw){
  if(!raw||![1,2,3].includes(raw.version))throw Error('Dieser Spielstand hat ein nicht unterstütztes Format.');
- const s=structuredClone(raw),base=newGame();initDiscovery(s);
+ const s=structuredClone(raw),base=newGame();s.wardrobe=validateWardrobe(s.wardrobe);initDiscovery(s);
  if(s.version===1){s.version=2;s.storage=[];s.stats={...s.stats,cooked:0};if(s.vehicle){s.vehicle.angle=Number.isFinite(s.angle)?s.angle+Math.PI:Math.PI;s.vehicle.speed=0}if(s.job)s.job.vehicleUsed=false;}
  if(s.version===2){s.version=3;s.interior=s.inside?'home':null;s.basket=[];}
  for(let k of ['money','bank','debt','day','minute','quest','properties','xp','reputation','angle','rentDue','dailyIncome'])if(!Number.isFinite(s[k])||(!['angle','dailyIncome'].includes(k)&&s[k]<0)||Math.abs(s[k])>1e12)throw Error('Ungültiger Wert: '+k);
@@ -221,7 +234,7 @@ export function validateSave(raw){
  if(s.inventory.reduce((n,v)=>n+ITEMS[v.id].weight*v.count,0)>20.00001)throw Error('Ungültiges Inventargewicht.');
  for(let k in base.needs)if(!Number.isFinite(s.needs?.[k])||s.needs[k]<0||s.needs[k]>100)throw Error('Ungültige Bedürfnisse.');
  if(!s.position||!Number.isFinite(s.position.x)||!Number.isFinite(s.position.z))throw Error('Ungültige Position.');
- if(typeof s.inside!=='boolean'||s.inside!==!!s.interior||![null,'home','shop','cafe','workshop'].includes(s.interior))throw Error('Ungültiger Aufenthaltsort.');
+ if(typeof s.inside!=='boolean'||s.inside!==!!s.interior||![null,'home','shop','cafe','workshop','clothing'].includes(s.interior))throw Error('Ungültiger Aufenthaltsort.');
  if(s.inside){const room=ROOMS[s.interior];if(s.position.x<room.minX||s.position.x>room.maxX||s.position.z<room.minZ||s.position.z>room.maxZ||s.interior==='home'&&!s.home)throw Error('Ungültiger Innenraum.');if(!canWalkRoom(s.interior,s.position.x,s.position.z,.35,s.home))s.position={...room.spawn};}
  else if(!exteriorContains(s.position.x,s.position.z,-1))throw Error('Ungültige Außenposition.');
  if(!Array.isArray(s.basket)||s.basket.length>10||s.interior!=='shop'&&s.basket.length)throw Error('Ungültiger Einkaufskorb.');

@@ -76,6 +76,11 @@ export function buildHomeInteriors(world,kit){
   b(295,.72,2.3,1.8,1.3,.75,s.wood);for(const x of [294.58,295.42]){b(x,.72,2.69,.78,1.15,.025,modern?s.fabric:s.accent);b(x+.23,.9,2.72,.035,.18,.04,0xc3b99e);}
   if(!basic){b(295,1.87,1.95,1.78,1.8,.06,s.wood);plant(294.5,1.4,2.3,.32);art(295,2.18,2.01,1.45,.85);}
   place(295,2.3,0,HOME_ALIGNMENT.storageZ-2.3,Math.PI);
+  section('Wardrobe');
+  const wardrobe=f('wardrobe'),wx=wardrobe.x,wz=wardrobe.z;
+  b(wx,1.21,wz,1.7,2.28,.72,s.wood);
+  for(const dx of [-.42,.42]){b(wx+dx,1.23,wz-.375,.80,2.17,.035,s.accent);b(wx+dx*.25,1.16,wz-.41,.035,.26,.04,0xc3b99e);}
+  g=shell;
   // Distinct living arrangements within the established table/lounge footprints.
   section('Living table');
   const table=f('table'),tableY=modern?.48:.79;b(table.x,tableY,1,table.w*2,.09,1.18,premium?0xc5bdad:s.wood);for(const x of [table.x-table.w+.12,table.x+table.w-.12])for(const z of [.53,1.47])leg(x,z,tableY-.11,premium?0x625d50:s.wood);if(modern){b(table.x-.3,tableY+.07,.9,.48,.04,.34,s.accent);cylinder(g,table.x+.4,tableY+.13,1.1,.09,.16,0xd7d4c4);}
