@@ -1,12 +1,20 @@
 import * as THREE from './vendor/three.module.js';
 import {groundHeight} from './spatial.js?v=0.8.1';
+import {EXPANDED_BOUNDS,EXPANSION_PATHS} from './expansion-layout.js?v=0.8.1';
+import {TUNING_SITE} from './tuning-layout.js?v=0.8.1';
 import {BUILDINGS} from './data.js?v=0.8.1';
 import {streetSurface} from './street-layout.js?v=0.8.1';
 import {onGardenPath} from './pedestrian-layout.js?v=0.8.1';
 import {frontageSurface} from './frontage-layout.js?v=0.8.1';
 
+// Exact disjoint extensions of the original meadow, including the station edges.
+export const OUTER_MEADOW_TILES=[[-260,440,-255,-125],[-260,440,125,255],[125,440,-125,125],[-260,-225,-125,125],[-225,-125,-125,-80],[-225,-125,80,125]];
+export const outerMeadowPoint=(x,z)=>OUTER_MEADOW_TILES.some(([a,b,c,d])=>x>=a&&x<=b&&z>=c&&z<=d);
 export function meadowPoint(x,z,colliders=[]){
- if(x<-124||x>124||Math.abs(z)>124||streetSurface(x,z)||onGardenPath(x,z)||frontageSurface(x,z))return false;
+ if((x<-124||x>124||Math.abs(z)>124)&&!outerMeadowPoint(x,z))return false;
+ if(streetSurface(x,z)||onGardenPath(x,z)||frontageSurface(x,z))return false;
+ if(EXPANSION_PATHS.some(p=>Math.abs(x-p.x)<p.w/2+.5&&Math.abs(z-p.z)<p.d/2+.5))return false;
+ if(Math.abs(x-TUNING_SITE.x)<TUNING_SITE.w/2+.5&&Math.abs(z-TUNING_SITE.z)<TUNING_SITE.d/2+.5)return false;
  if(BUILDINGS.some(([bx,bz,w,d])=>Math.abs(x-bx)<w/2+.65&&Math.abs(z-bz)<d/2+.65))return false;
  if(colliders.some(c=>Math.abs(x-c.x)<c.w+.5&&Math.abs(z-c.z)<c.d+.5))return false;
  return groundHeight(x,z)<0||groundHeight(x,z)===.18;
@@ -18,6 +26,11 @@ export function meadowPlacements(colliders=[]){
   const key=Math.floor(px/18)+','+Math.floor(pz/18);if(!groups.has(key))groups.set(key,[]);
   groups.get(key).push({x:px,z:pz,size:.36+rand()*.32,angle:rand()*Math.PI,cell:Math.floor(rand()*12),tone:.82+rand()*.18});
  }
+ for(let x=EXPANDED_BOUNDS.minX+1;x<EXPANDED_BOUNDS.maxX;x+=1.65)for(let z=EXPANDED_BOUNDS.minZ+1;z<EXPANDED_BOUNDS.maxZ;z+=1.65){
+  const px=x+(rand()-.5)*.7,pz=z+(rand()-.5)*.7;if(!outerMeadowPoint(px,pz)||rand()<.24||!meadowPoint(px,pz,colliders))continue;
+  const key=Math.floor(px/18)+','+Math.floor(pz/18);if(!groups.has(key))groups.set(key,[]);
+  groups.get(key).push({x:px,z:pz,size:.32+rand()*.30,angle:rand()*Math.PI,cell:Math.floor(rand()*12),tone:.86+rand()*.14});
+ }
  return groups;
 }
 export class Meadow{
@@ -25,6 +38,11 @@ export class Meadow{
   this.world=world;this.root=new THREE.Group();this.root.name='Living meadow';world.scene.add(this.root);this.chunks=[];this.time={value:0};
   const loader=new THREE.TextureLoader(),ground=loader.load('./assets/meadow-ground.png');ground.colorSpace=THREE.SRGBColorSpace;ground.wrapS=ground.wrapT=THREE.RepeatWrapping;ground.repeat.set(250/3.5,250/3.5);ground.anisotropy=Math.min(8,world.renderer.capabilities.getMaxAnisotropy());
   const bed=new THREE.Mesh(new THREE.PlaneGeometry(250,250),new THREE.MeshStandardMaterial({map:ground,color:0xcbd0b7,roughness:1}));bed.rotation.x=-Math.PI/2;bed.position.y=-.044;bed.receiveShadow=true;this.root.add(bed);const park=bed.clone();park.geometry=new THREE.PlaneGeometry(39,36);park.material=bed.material.clone();park.material.map=ground.clone();park.material.map.repeat.set(39/3.5,36/3.5);park.position.set(76,.184,93);this.root.add(park);
+  for(const [a,b,c,d] of OUTER_MEADOW_TILES){
+   const tile=bed.clone();tile.geometry=new THREE.PlaneGeometry(b-a,d-c);tile.material=bed.material.clone();tile.material.map=ground.clone();tile.material.map.repeat.set((b-a)/3.5,(d-c)/3.5);
+   // Match world-space texture phase to the core meadow, without seams or stretched grass.
+   tile.material.map.offset.set((a+125)/3.5,(125-d)/3.5);tile.position.set((a+b)/2,-.044,(c+d)/2);this.root.add(tile);
+  }
   const atlas=loader.load('./assets/meadow-clumps.png');atlas.colorSpace=THREE.SRGBColorSpace;atlas.anisotropy=ground.anisotropy;
   const material=new THREE.MeshStandardMaterial({map:atlas,alphaTest:.38,side:THREE.DoubleSide,roughness:1});
   material.onBeforeCompile=shader=>{

@@ -1,3 +1,4 @@
+import {normalizeCustomization,TUNING_DEFAULTS} from './tuning.js?v=0.8.1';
 import {VEHICLES,ITEMS,LOCATIONS} from './data.js?v=0.8.1';
 import {inventoryWeight,transferItem} from './inventory.js?v=0.8.1';
 import {exteriorContains} from './city-layout.js?v=0.8.1';
@@ -14,7 +15,7 @@ export const trunkPoint=v=>({x:v.x-Math.sin(v.angle)*(v.id==='van'?2.7:v.id==='b
 export function initFleet(s){
  if(!s.fleet||(Array.isArray(s.fleet)&&s.fleet.length===0&&s.vehicle&&!s.vehicle.uid)){s.fleet=s.vehicle?[s.vehicle]:[];s.fleetSerial=0;}
  s.fleetSerial=Math.max(s.fleetSerial||0,s.fleet.length,...s.fleet.map(v=>/^v\d+$/.test(v?.uid)?Number(v.uid.slice(1)):0));s.usedPurchases??=[];
- for(const [i,v] of s.fleet.entries()){v.uid??='v'+(i+1);v.trunk??=[];v.odometer??=0;v.purchasePrice??=VEHICLES[v.id]?.cost??0;v.insured??=false;v.claimCredit??=0;v.stored??=false;v.parking??=null;}
+ for(const [i,v] of s.fleet.entries()){v.uid??='v'+(i+1);v.trunk??=[];v.odometer??=0;v.purchasePrice??=VEHICLES[v.id]?.cost??0;v.insured??=false;v.claimCredit??=0;v.stored??=false;v.parking??=null;v.customization=normalizeCustomization(v.customization);}
  if(s.vehicle){const v=s.fleet.find(v=>v.uid===s.vehicle.uid);if(v)s.vehicle=v;}
 }
 export function validateFleet(s){
@@ -40,7 +41,7 @@ export function purchaseVehicle(model,id,offerKey=null){
  if(offerKey&&(!offer||s.usedPurchases.includes(offerKey)))return false;
  const spot=freeParking(s,PARKING_SPACES.filter(p=>p.garage));if(!spot){model.emit('Abholplätze belegt. Parke ein Fahrzeug um oder lagere es in der Garage ein.');return false;}
  const price=offer?.price??VEHICLES[id].cost;if(!model.spend(price)){model.emit('Nicht genug Bargeld.');return false;}
- const v={uid:'v'+(++s.fleetSerial),id,x:spot.x,z:spot.z,angle:spot.angle,speed:0,fuel:offer?45:100,condition:offer?.condition??100,odometer:offer?.odometer??0,purchasePrice:price,insured:false,claimCredit:0,trunk:[],parking:spot.id,stored:false};
+ const v={customization:{...TUNING_DEFAULTS},uid:'v'+(++s.fleetSerial),id,x:spot.x,z:spot.z,angle:spot.angle,speed:0,fuel:offer?45:100,condition:offer?.condition??100,odometer:offer?.odometer??0,purchasePrice:price,insured:false,claimCredit:0,trunk:[],parking:spot.id,stored:false};
  s.fleet.push(v);s.vehicle=v;if(offerKey)s.usedPurchases=[...s.usedPurchases,offerKey].slice(-64);model.emit(VEHICLES[id].name+' steht auf '+spot.name+'.','success');model.checkQuests();return true;
 }
 export function fleetCommand(model,action,uid,findExit=null){

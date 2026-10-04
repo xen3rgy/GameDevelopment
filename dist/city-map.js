@@ -1,3 +1,4 @@
+import {TUNING_SITE,TUNING_BUILDING} from './tuning-layout.js?v=0.8.1';
 import {WORLD_BOUNDS,ROADS,VIADUCT,districtOf,STATION_PLAZAS} from './city-layout.js?v=0.8.1';
 import {PAVEMENTS} from './street-layout.js?v=0.8.1';
 import {BUILDINGS,LOCATIONS} from './data.js?v=0.8.1';
@@ -18,9 +19,10 @@ export function drawCityMapBase(ctx,t,s,large){
  rect((b.minX+b.maxX)/2,(b.minZ+b.maxZ)/2,b.maxX-b.minX,b.maxZ-b.minZ,'#30453e');
  for(const d of EXPANSION_DISTRICTS)rect((d.minX+d.maxX)/2,(d.minZ+d.maxZ)/2,d.maxX-d.minX,d.maxZ-d.minZ,d.color);
  for(const q of [...STATION_PLAZAS,...EXPANSION_PATHS])rect(q.x,q.z,q.w,q.d,['garden','overlook','campus'].includes(q.kind)?'#648262':'#7b8070');
+ rect(TUNING_SITE.x,TUNING_SITE.z,TUNING_SITE.w,TUNING_SITE.d,'#7b8070');
  for(const r of PAVEMENTS)rect(r.x,r.z,r.w,r.d,'#73817a');
  for(const r of ROADS)rect(r.x,r.z,r.w,r.d,r.kind==='local'?'#46595c':'#20313b');
- for(const q of [...BUILDINGS.map(([x,z,w,d])=>({x,z,w,d})),...EXPANSION_BUILDINGS]){rect(q.x+1,q.z+1,q.w,q.d,'#12262d');rect(q.x,q.z,q.w,q.d,q.style==='industrial'?'#a1967d':'#91a4a3');}
+ for(const q of [...BUILDINGS.map(([x,z,w,d])=>({x,z,w,d})),...EXPANSION_BUILDINGS,TUNING_BUILDING]){rect(q.x+1,q.z+1,q.w,q.d,'#12262d');rect(q.x,q.z,q.w,q.d,q.style==='industrial'?'#a1967d':'#91a4a3');}
  ctx.save();ctx.strokeStyle='#c3b18c';ctx.lineWidth=3*scale;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(...p(VIADUCT.x,-230));ctx.lineTo(...p(VIADUCT.x,230));ctx.stroke();ctx.restore();
  if(large){ctx.font='600 13px Arial';ctx.textAlign='center';ctx.fillStyle='#f2e8d1';for(const d of EXPANSION_DISTRICTS)ctx.fillText(d.name,...p(d.x,d.z));
   const core=new Map();for(const l of LOCATIONS.filter(l=>l.x<120&&Math.abs(l.z)<120)){const name=districtOf(l),g=core.get(name)||[];g.push(l);core.set(name,g);}for(const [name,ls] of core)ctx.fillText(name,...p(ls.reduce((n,l)=>n+l.x,0)/ls.length,ls.reduce((n,l)=>n+l.z,0)/ls.length+26));

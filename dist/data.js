@@ -1,3 +1,4 @@
+import {TUNING_LOCATION} from './tuning-layout.js?v=0.8.1';
 import {CLOTHING_LOCATION,CLOTHING_BUILDING} from './clothing.js?v=0.8.1';
 import {WARDROBE_POINT} from './home-layout.js?v=0.8.1';
 import {EXPANSION_PLACES} from './expansion-layout.js?v=0.8.1';
@@ -13,6 +14,7 @@ export const ITEMS={
  parcel:{name:'Lieferpaket',icon:'📦',category:'Aufträge',weight:2,stack:1,price:0,description:'Eine versiegelte Sendung für deinen laufenden Lieferauftrag.'}
 };
 export const LOCATIONS=[
+ TUNING_LOCATION,
  CLOTHING_LOCATION,
 
  {id:'recycle',name:'Pfandrückgabe',type:'recycle',x:-23,z:-12,icon:'♻',color:'#76d6a2',description:'Flaschen abgeben. Aus Kleingeld wird ein Anfang.'},

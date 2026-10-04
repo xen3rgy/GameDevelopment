@@ -6,26 +6,83 @@ import {facadeSpans} from './public-realm-layout.js?v=0.8.1';
 
 export const buildingStyle=(x,z,name)=>x>0&&Math.abs(z)<125?'modern':x<-120&&Math.abs(z)<125?'heritage':name==='WESTHAFEN LOGISTIK'?'industrial':'residential';
 
-// A cheaper district facade uses the same primitive/material vocabulary as the core.
-// Window groups are batched per city block by ExpansionScene, not across the whole city.
-export function expansionBuilding(root,kit,b){
- const {box,sign}=kit,{x,z,w,d,h,style,seed=0}=b,office=style==='office',industry=style==='industrial',campus=style==='campus',town=style==='townhouse';
- const palette=industry?[0x8b8270,0x726f61]:office?[0xafbbb9,0x879d9e]:campus?[0xd0c9b4,0x8b9c89]:town?[0xc6b69a,0xa6afa0]:[0xad8b72,0xc4b99f],wall=palette[seed%2],trim=0xc8c8b8,glass=office?0x3f6575:0x43565b;
- box(root,x,.26,z,w+.25,.62,d+.25,0x737870);box(root,x,h/2,z,w,h,d,wall);box(root,x,h+.14,z,w+.5,.28,d+.5,0x4c5b5d);
- if(industry){
-  for(let dx=-w/2+3;dx<w/2-2;dx+=7){box(root,x+dx,2.15,z+d/2+.06,4.4,4.3,.12,0x495b58);for(let y=.6;y<4.2;y+=.65)box(root,x+dx,y,z+d/2+.14,4.2,.04,.035,trim);box(root,x+dx,4.65,z+d/2+.3,4.8,.18,.7,wall);}
-  for(const side of [-1,1])box(root,x+side*w*.38,h+.5,z,1.1,.8,d*.6,0x6f7c77);
- }else for(const [xx,zz,width,rot] of [[x,z+d/2,w,0],[x,z-d/2,w,Math.PI],[x+w/2,z,d,Math.PI/2],[x-w/2,z,d,-Math.PI/2]]){
+// Outer districts share the core city's masonry, glazing and human-scale details.
+// Keep every footprint fixed; repeated details are instanced by ExpansionScene.
+export function expansionBuilding(root,kit,b,windows=[]){
+ const {box,sign,cylinder,mat}=kit,{x,z,w,d,h,style,seed=0}=b,office=style==='office',industry=style==='industrial',campus=style==='campus',town=style==='townhouse',modern=office||campus;
+ const tones=modern?[0xbac3be,0xd0cec0,0xaab9b7]:industry?[0xc5b39b,0xb4a28f,0xd1c1aa]:[0xdfd1bc,0xd8c7ad,0xc8baa4];
+ const wall=tones[seed%3],trim=modern?0xc7cec6:0xdfd1b8,frame=modern?0x314c57:0x384b48,roofColor=0x48575b;
+ const skin=districtMaterial(modern||(town&&seed%2===0)?'limestone':'brick',w,h,wall);
+ fitFacadeUV(box(root,x,h/2,z,w,h,d,0,skin),w,d);
+ box(root,x,.36,z,w+.22,.72,d+.22,0x747c73);
+ box(root,x,3.45,z,w+.22,.18,d+.22,trim);
+ box(root,x,h-.22,z,w+.3,.24,d+.3,trim);
+ box(root,x,h+.1,z,w+.5,.2,d+.5,roofColor);
+ const face=b.face??1;
+ for(const [xx,zz,width,rot,front] of [[x,z+d/2,w,0,face===1],[x,z-d/2,w,Math.PI,face===-1],[x+w/2,z,d,Math.PI/2,false],[x-w/2,z,d,-Math.PI/2,false]]){
   const f=new THREE.Group();f.position.set(xx,0,zz);f.rotation.y=rot;root.add(f);
-  for(let y=2.1;y<h-1;y+=3.5){
-   if(office||campus){box(f,0,y,.055,width-1,2.2,.11,glass);for(let dx=-width/2+2;dx<width/2-1;dx+=3.8)box(f,dx,y,.13,.12,2.3,.12,trim);box(f,0,y+1.24,.14,width,.16,.28,trim);}
-   else for(let dx=-width/2+2.8;dx<width/2-1.5;dx+=4.5){box(f,dx,y,.07,1.7,1.9,.14,glass);box(f,dx,y,.15,.07,1.9,.035,trim);box(f,dx,y-.99,.21,2,.12,.43,trim);if(!town&&rot===0&&y>3&&Math.round(dx)%2){box(f,dx,y-.91,.6,2.4,.14,1.1,0x66736d);box(f,dx,y-.37,1.06,2.4,.07,.07,0x43504e);}}
+  const cols=Math.max(3,Math.floor(width/(industry?5:3.7))),pitch=(width-1)/cols;
+  const rows=Math.max(1,Math.floor((h-4)/3.3)),step=(h-4)/rows;
+  for(let row=0;row<rows;row++){
+   const y=4.95+row*step;
+   if(modern)box(f,0,y+1.24,.13,width-.5,.17,.26,trim);
+   for(let col=0;col<cols;col++){
+    const cx=-width/2+.5+(col+.5)*pitch,ww=modern?pitch-.38:industry?pitch-.8:1.72,hh=industry?1.35:2.05;
+    box(f,cx,y,.06,ww+.16,hh+.18,.12,frame);
+    box(f,cx,y,.135,ww,hh,.035,0,windows[(col*3+row*7+seed)%5]||mat(0x52666b));
+    for(const side of [-1,1])box(f,cx+side*(ww/2+.1),y,.15,.09,hh+.28,.16,trim);
+    box(f,cx,y-hh/2-.12,.21,ww+.4,.12,.39,trim);
+    box(f,cx,y+hh/2+.12,.15,ww+.35,.11,.22,trim);
+    box(f,cx,y,.17,.055,hh,.05,0x89998f);
+    if(!modern)box(f,cx,y+.27,.17,ww,.045,.05,0x89998f);
+    if(!industry&&!modern&&row<2&&col%3===1){
+     box(f,cx,y-1,.54,2.25,.12,.9,0x7b8278);
+     box(f,cx,y-.36,.91,2.25,.065,.065,frame);
+     for(let n=-1;n<=1;n+=.4)box(f,cx+n,y-.65,.91,.035,.6,.035,frame);
+     for(const side of [-1,1])box(f,cx+side*1.1,y-.36,.55,.045,.065,.72,frame);
+    }
+   }
+  }
+  for(const side of [-1,1]){
+   box(f,side*(width/2-.2),h/2,.1,.23,h-.5,.22,trim);
+   cylinder(f,side*(width/2-.55),(h-.6)/2,.23,.045,h-.6,0x65726d);
+  }
+  if(industry&&front){
+   for(const cx of [-width*.28,width*.28]){
+    box(f,cx,1.64,.12,4.8,3.28,.18,frame);
+    for(let yy=.38;yy<3.1;yy+=.42)box(f,cx,yy,.23,4.5,.035,.025,0x8d9994);
+    box(f,cx,3.27,.42,5,.16,.8,0x7b8985);
+   }
+  }else{
+   for(let col=0;col<cols;col++){
+    const cx=-width/2+.5+(col+.5)*pitch;
+    if(front&&Math.abs(cx)<2.2)continue;
+    box(f,cx,1.8,.12,modern?pitch-.3:1.65,2.25,.1,frame);
+    box(f,cx,1.8,.18,modern?pitch-.5:1.43,2.02,.025,0,windows[(col+seed+2)%5]||mat(0x52666b));
+    box(f,cx,1.8,.21,.055,2.04,.04,trim);
+    box(f,cx,.64,.22,modern?pitch-.2:1.9,.13,.25,trim);
+   }
   }
  }
- if(town){for(const side of [-1,1]){const roof=box(root,x,h+1.2,z+side*d/4,w+.7,.22,d*.53,0x555c5a);roof.rotation.x=side*.23;}}
- else if(!industry)box(root,x+w*.15,h+1,z,w*.5,1.7,d*.48,wall);
- const face=b.face??1;box(root,x,1.3,z+face*(d/2+.09),1.6,2.6,.18,0x2d4549);box(root,x,2.7,z+face*(d/2+.45),2.7,.12,.95,trim);
- if(b.name)sign(root,b.name,x,3.6,z+face*(d/2+.16),Math.min(w-2,9),.55,'#e4dfc9','#354f50',face===1?0:Math.PI);
+ const entry=new THREE.Group();entry.position.set(x,0,z+face*d/2);entry.rotation.y=face===1?0:Math.PI;root.add(entry);
+ box(entry,0,1.36,.16,1.75,2.72,.25,frame);box(entry,0,1.55,.30,1.42,2.02,.025,0,windows[1]||mat(0x3c535b));
+ box(entry,.53,1.16,.36,.05,.35,.07,0xb7b8a3);box(entry,0,2.87,.5,2.7,.12,1,trim);
+ box(entry,1.2,1.8,.19,.18,.3,.05,0xb5b09b);
+ if(b.name)sign(entry,b.name,0,3.8,.2,Math.min(w-2,9),.5,'#eee2cc','#354f50');
+ if(!modern&&!industry){
+  // Closed pitched roof, contained within the existing height allowance.
+  const rise=1.6,angle=Math.atan2(rise,d/2),length=Math.hypot(d/2,rise);
+  for(const side of [-1,1]){const roof=box(root,x,h+rise/2+.15,z+side*d/4,w+.65,.16,length+.25,roofColor);roof.rotation.x=side*angle;}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute([0,0,-d/2,0,0,d/2,0,rise,0],3));geo.computeVertexNormals();
+  const material=mat(wall).clone();material.side=THREE.DoubleSide;
+  for(const side of [-1,1]){const gable=new THREE.Mesh(geo,material);gable.position.set(x+side*w/2,h+.15,z);root.add(gable);}
+  box(root,x-w*.25,h+.75,z-d*.18,.7,1.5,.9,wall);
+  box(root,x-w*.25,h+1.55,z-d*.18,.84,.12,1.04,trim);
+ }else{
+  box(root,x+w*.12,h+.7,z-d*.1,w*.46,1.2,d*.42,0x788a89);
+  box(root,x+w*.12,h+1.36,z-d*.1,w*.48,.12,d*.44,trim);
+  for(let i=0;i<3;i++)box(root,x-w*.28+i*1.3,h+.3,z+d*.24,1,.35,1.6,0x3f5964);
+ }
 }
 
 export function modernBuilding(art,x,z,w,d,h,color,name,face=1){

@@ -10,7 +10,7 @@ export class ExpansionScene{
   const {box,cylinder,sphere,sign}=kit,b=EXPANDED_BOUNDS;
   const horizon=new THREE.Group();horizon.name='Outer landscape';this.root.add(horizon);
   box(horizon,(b.minX+b.maxX)/2,-.365,0,b.maxX-b.minX+220,.6,b.maxZ-b.minZ+200,0x68775a).castShadow=false;
-  for(const side of [-1,1])for(let x=b.minX-45;x<b.maxX+60;x+=19){const z=side*(b.maxZ+20+(Math.abs(x)%3)*9);cylinder(horizon,x,2,z,.23,4,0x6a5e48);const crown=sphere(horizon,x,5.3,z,3.2,0x647e59);crown.scale.y*=1.3;}
+  for(const side of [-1,1])for(let x=b.minX-45;x<b.maxX+60;x+=19){const z=side*(b.maxZ+20+(Math.abs(x)%3)*9);world.tree(x,z,2.4,{grate:false,distant:true,seed:Math.round(x),ground:-.065});}
   world.batchStaticGroup(horizon);
   // Four disjoint ground aprons preserve every original surface elevation.
   for(const [x,X,z,Z] of [[b.minX,b.maxX,b.minZ,-125],[b.minX,b.maxX,125,b.maxZ],[125,b.maxX,-125,125],[b.minX,-225,-125,125],[-225,-125,-125,-80],[-225,-125,80,125]])box(this.root,(x+X)/2,-.35,(z+Z)/2,X-x,.6,Z-z,0x69745a).castShadow=false;
@@ -21,7 +21,7 @@ export class ExpansionScene{
    for(const x of [-147.1,-146,-144,-142.9])box(g,x,6.8,side*154.5,.12,.12,151,0x596664);
    for(let z=92;z<222;z+=23){if(Math.abs(z-175)<12)continue;for(const x of [-149,-141]){box(g,x,2.9,side*z,1.2,5.8,1.8,0x83887c);world.colliders.push({x,z:side*z,w:.6,d:.9,h:5.8});}}
   }
-  for(const building of EXPANSION_BUILDINGS)expansionBuilding(group(building.x,building.z),kit,building);
+  for(const building of EXPANSION_BUILDINGS)expansionBuilding(group(building.x,building.z),kit,building,world.art.windows);
   for(const p of EXPANSION_PATHS)box(group(p.x,p.z),p.x,-.02,p.z,p.w,.08,p.d,['yard','rail','parking','construction'].includes(p.kind)?0x838477:0xb5b09c).castShadow=false;
   for(const l of EXPANSION_LANDMARKS){const g=group(l.x,l.z),x=l.x,z=l.z;
    sign(g,l.name,x,2.5,z-l.d/2,Math.min(8,l.w*.6),.48,'#e5dfca','#38534f');
@@ -44,7 +44,7 @@ export class ExpansionScene{
    }else{
     // Public art, planting and benches create recognisable, walkable squares.
     if(['plaza','campus','overlook'].includes(l.kind)){cylinder(g,x, .35,z,3.3,.65,0x828d81);const art=box(g,x,2.6,z,.8,4.4,.8,l.kind==='campus'?0x4e7881:0xb7a98d);art.rotation.z=.23;world.colliders.push({x,z,w:3.3,d:3.3,h:5});}
-    for(const side of [-1,1]){const tx=x+side*(l.w/2-5),tz=z+5;cylinder(g,tx,1.8,tz,.19,3.6,0x706047);for(let i=0;i<3;i++){const t=sphere(g,tx+(i-1)*.9,4.1+i*.2,tz,2.1,0x657f57);t.scale.y*=1.2;}world.colliders.push({x:tx,z:tz,w:.23,d:.23,h:4});box(g,tx,.48,tz-4,3,.16,.6,0x89714e);box(g,tx,.88,tz-3.7,3,.75,.1,0x89714e);world.colliders.push({x:tx,z:tz-4,w:1.5,d:.4,h:1.3});}
+    for(const side of [-1,1]){const tx=x+side*(l.w/2-5),tz=z+5;world.tree(tx,tz,2.6,{grate:true,seed:Math.round(tx)});world.colliders.push({x:tx,z:tz,w:.23,d:.23,h:4});box(g,tx,.48,tz-4,3,.16,.6,0x89714e);box(g,tx,.88,tz-3.7,3,.75,.1,0x89714e);world.colliders.push({x:tx,z:tz-4,w:1.5,d:.4,h:1.3});}
     for(const side of [-1,1]){const px=x+side*l.w*.28,pz=z-l.d*.26;box(g,px,.27,pz,5,.5,3,0x9c9f8d);box(g,px,.54,pz,4.6,.05,2.6,0x59654c);for(let i=0;i<5;i++){const shrub=sphere(g,px-1.7+i*.85,.81,pz,.58,0x798c5b);shrub.scale.y*=.6;}world.colliders.push({x:px,z:pz,w:2.5,d:1.5,h:1.1});}
     if(l.kind==='campus')for(const side of [-1,1]){box(g,x+side*7,2.7,z+l.d/2-2,.06,5.4,.06,0x7d8d82);box(g,x+side*7+.7,4.7,z+l.d/2-2,1.4,1.9,.035,side<0?0x577d81:0xabc09d);}
    }
@@ -53,7 +53,7 @@ export class ExpansionScene{
   for(const r of EXPANSION_ROADS){const horizontal=r.w>r.d,length=Math.max(r.w,r.d);for(let n=-length/2+18;n<length/2-9;n+=30){const x=r.x+(horizontal?n:10),z=r.z+(horizontal?10:n);
    if(EXPANSION_ROADS.some(q=>q!==r&&Math.abs(x-q.x)<q.w/2+2&&Math.abs(z-q.z)<q.d/2+2))continue;
    const g=group(x,z),y=groundHeight(x,z);cylinder(g,x,y+2.5,z,.055,5,0x455551);box(g,x,y+5,z,.7,.15,.35,0xc9c6a4);world.atmosphere.registerLamp(x,z,null,{height:5,power:65,poolSize:6,distance:17});world.colliders.push({x,z,w:.08,d:.08,h:5.5});
-   if(n%60<1){const tx=x+3,tz=z+3;if(!EXPANSION_FIXTURES.some(b=>Math.abs(tx-b.x)<b.w+2&&Math.abs(tz-b.z)<b.d+2)){cylinder(g,tx,1.6,tz,.14,3.2,0x70604c);sphere(g,tx,3.8,tz,1.9,0x68835e);world.colliders.push({x:tx,z:tz,w:.18,d:.18,h:4});}}
+   if(n%60<1){const tx=x+3,tz=z+3;if(!EXPANSION_FIXTURES.some(b=>Math.abs(tx-b.x)<b.w+2&&Math.abs(tz-b.z)<b.d+2)){world.tree(tx,tz,2.1,{grate:groundHeight(tx,tz)>.1,seed:Math.round(tx+tz)});world.colliders.push({x:tx,z:tz,w:.18,d:.18,h:4});}}
   }}
   for(const g of this.blocks.values())world.batchStaticGroup(g);
 

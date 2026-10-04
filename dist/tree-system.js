@@ -48,6 +48,12 @@ export class TreeSystem{
   }catch(error){this.failed=true;console.error('Lindenstadt tree asset could not be loaded:',error)}
  }
  mount(items,geometry,material,shadows){
+  // Spatial instances let the renderer cull distant blocks instead of drawing
+  // every tree in the expanded city whenever one tree is in view.
+  const chunks=new Map();for(const item of items){const key=Math.floor(item.x/64)+':'+Math.floor(item.z/64);if(!chunks.has(key))chunks.set(key,[]);chunks.get(key).push(item);}
+  for(const chunk of chunks.values())this.mountChunk(chunk,geometry,material,shadows);
+ }
+ mountChunk(items,geometry,material,shadows){
   if(!items.length)return;const mesh=new THREE.InstancedMesh(geometry,material,items.length),dummy=new THREE.Object3D();
   for(let i=0;i<items.length;i++){const {x,z,r,options}=items[i],t=treeTransformSpec(x,z,r,options);dummy.position.set(t.x,t.y,t.z);dummy.rotation.set(0,t.yaw,0);dummy.scale.setScalar(t.scale);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix)}
   mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=shadows;mesh.receiveShadow=false;mesh.name=shadows?'Lindenstadt Trees':'Lindenstadt Distant Trees';mesh.computeBoundingSphere?.();

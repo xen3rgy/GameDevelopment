@@ -1,3 +1,4 @@
+import {ALLOY_STYLES,createAlloyRim} from './tuning-rims.js?v=0.8.1';
 import {buildingStyle,modernBuilding} from './district-architecture.js?v=0.8.1';
 import {entranceForBuilding,decorateAddress} from './city-addresses.js?v=0.8.1';
 import * as THREE from './vendor/three.module.js';
@@ -117,7 +118,7 @@ export function createCar(kit,id='car',color=0x506d78){
  const {box,mat,sign}=kit,g=new THREE.Group(),van=id==='van',sport=id==='sport',length=van?4.8:sport?4.1:3.8,L=length/2;
  const paint=new THREE.MeshStandardMaterial({color,roughness:sport?.27:.36,metalness:.45,side:THREE.DoubleSide});
  const rimMaterial=new THREE.MeshStandardMaterial({color:sport?0xc3c8c7:0x9da7a5,roughness:.31,metalness:.75});
- const trim=mat(0x293238,.83),glass=vehicleGlass,rubber=mat(0x202628,.96),chrome=mat(0x939e9e,.36);
+ const trim=mat(0x293238,.83).clone(),glass=vehicleGlass.clone(),rimDark=mat(0x20282c,.8),rubber=mat(0x202628,.96),chrome=mat(0x939e9e,.36);
  const paintParts=[],rimParts=[],trimParts=[];
  const mesh=(parent,geo,material)=>{const m=new THREE.Mesh(geo,material);m.castShadow=true;m.receiveShadow=true;parent.add(m);if(material===paint)paintParts.push(m);if(material===rimMaterial)rimParts.push(m);if(material===trim)trimParts.push(m);return m};
  const block=(parent,x,y,z,w,h,d,material)=>{const m=box(parent,x,y,z,w,h,d,0,material);if(material===paint)paintParts.push(m);if(material===trim)trimParts.push(m);return m};
@@ -146,7 +147,7 @@ export function createCar(kit,id='car',color=0x506d78){
   panel(door,[[lower,baseY+.015,end],[lower,baseY+.015,0],[upper,roofY-.035,roofFront-.68],[upper,roofY-.035,end]],glass);
   pillar([0,.56,-1.01],[0,baseY,-1.01],.019,trim,door);pillar([lower,baseY,end],[upper,roofY,end],.055,paint,door);
   block(door,side*.011,.63,-.49,.024,.055,.94,trim);block(door,side*.026,.9,-.82,.027,.035,.16,chrome);
-  block(door,side*.025,baseY+.025,-.07,.075,.045,.12,trim);block(door,side*.045,baseY+.075,-.065,.12,van?.16:.105,.21,paint);block(door,side*.045,baseY+.075,-.176,.105,van?.12:.073,.012,glass);
+  block(door,side*.025,baseY+.025,-.07,.075,.045,.12,trim);block(door,side*.045,baseY+.075,-.065,.12,van?.16:.105,.21,paint);block(door,side*.045,baseY+.075,-.176,.105,van?.12:.073,.012,vehicleGlass);
   return door;
  };
  g.userData.passengerDoor=makeFrontDoor(-1);g.userData.driverDoor=makeFrontDoor(1);g.userData.door=g.userData.driverDoor;
@@ -157,16 +158,20 @@ export function createCar(kit,id='car',color=0x506d78){
   const frontArch=arch.clone();frontArch.position.z=1.19;g.add(frontArch);(van?trimParts:paintParts).push(frontArch);
   if(van){block(g,side*.836,1.36,-1.33,.014,.019,1.52,trim);block(g,side*.838,1.39,-.53,.014,.9,.016,trim);block(g,side*.838,1.39,-2.13,.014,.9,.016,trim);block(g,side*.85,1.21,-.72,.027,.045,.22,trim);block(g,side*.854,.67,-1.27,.035,.12,1.61,trim);}
  }
- g.userData.wheels=[];
+ g.userData.wheels=[];g.userData.rimStyleGroups=Object.fromEntries(['default',...ALLOY_STYLES].map(id=>[id,[]]));
  for(const x of [-.91,.91])for(const z of [-1.19,1.19]){
-  const tire=mesh(g,vehicleGeo('tire:'+id,()=>new THREE.CylinderGeometry(van?.385:.37,van?.385:.37,sport?.23:.19,20)),rubber);tire.rotation.z=Math.PI/2;tire.position.set(x,.4,z);g.userData.wheels.push(tire);
+  const tire=mesh(g,vehicleGeo('tire:'+id,()=>{const outer=van?.385:.37,inner=(sport?.265:van?.215:.235)*.95,half=(sport?.23:.19)/2;return new THREE.LatheGeometry([[inner,-half],[outer-.035,-half],[outer,-half+.025],[outer,half-.025],[outer-.035,half],[inner,half],[inner,-half]].map(p=>new THREE.Vector2(...p)),20)}),rubber);tire.rotation.z=Math.PI/2;tire.position.set(x,.4,z);g.userData.wheels.push(tire);
   // Rim children inherit wheel rotation, so later rim swaps retain the rolling rig.
-  const side=Math.sign(x),out=side*(sport?.12:.101),radius=sport?.265:van?.215:.235;
+  const side=Math.sign(x),halfWidth=(sport?.23:.19)/2,out=side*(halfWidth-.036),radius=sport?.265:van?.215:.235;
   const rim=mesh(tire,vehicleGeo('rim:'+id,()=>new THREE.CylinderGeometry(radius,radius,.025,20)),rimMaterial);rim.position.y=-out;
-  const inset=mesh(tire,vehicleGeo('rim-inset:'+id,()=>new THREE.CylinderGeometry(radius*.78,radius*.78,.008,20)),trim);inset.position.y=-out-side*.016;
+  const inset=mesh(tire,vehicleGeo('rim-inset:'+id,()=>new THREE.CylinderGeometry(radius*.78,radius*.78,.008,20)),rimDark);inset.position.y=-out-side*.016;
   const spokes=vehicleGeo('spokes:'+id,()=>{const positions=[];const count=sport?5:van?6:8;for(let n=0;n<count;n++){const angle=n*Math.PI*2/count;const r0=.045,r1=radius*.87,w=sport?.044:.025;const v=(r,t)=>[Math.cos(angle)*r-Math.sin(angle)*t,0,Math.sin(angle)*r+Math.cos(angle)*t];for(const p of [v(r0,-w),v(r1,-w),v(r1,w),v(r0,-w),v(r1,w),v(r0,w)])positions.push(...p)}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.computeVertexNormals();return geo});
   const spoke=mesh(tire,spokes,rimMaterial);spoke.position.y=-out-side*.022;if(side===-1)spoke.rotation.z=Math.PI;
-  const hub=mesh(tire,vehicleGeo('hub',()=>new THREE.CylinderGeometry(.065,.065,.032,12)),rimMaterial);hub.position.y=-out-side*.018;
+  g.userData.rimStyleGroups.default.push(spoke);
+  // Complete alloy variants include their own lip, barrel and recessed face.
+  for(const style of ALLOY_STYLES){const variant=createAlloyRim(style,radius,rimMaterial,rimDark);variant.position.y=-side*(halfWidth-radius*.035-.003);variant.rotation.x=side*Math.PI/2;variant.visible=false;tire.add(variant);g.userData.rimStyleGroups[style].push(variant);variant.traverse(part=>{if(part.material===rimMaterial)rimParts.push(part);});}
+
+  const hub=mesh(tire,vehicleGeo('hub',()=>new THREE.CylinderGeometry(.065,.065,.032,12)),rimMaterial);hub.position.y=-out-side*.018;g.userData.rimStyleGroups.default.push(rim,inset,hub);
  }
  const headlights=new THREE.MeshStandardMaterial({color:0xf7edda,emissive:0xffedcc,emissiveIntensity:.15}),taillights=new THREE.MeshStandardMaterial({color:0xa63325,emissive:0xff2812,emissiveIntensity:.1});
  g.userData.vehicleLights={headlights,taillights,front:L+.16};
@@ -179,6 +184,12 @@ export function createCar(kit,id='car',color=0x506d78){
  }
  if(van){block(g,0,1.36,-L-.012,.022,1.05,.023,trim);for(const x of [-.39,.39]){block(g,x,1.52,-L-.024,.65,.48,.025,glass);block(g,x*.22,1.08,-L-.036,.075,.04,.03,chrome);}}
  else block(g,0,.97,-L+.1,1.5,.035,.11,paint);
- Object.assign(g.userData,{paintMaterial:paint,paintParts,rimMaterial,rimParts,trimParts});
+ const spoilerGroups={none:new THREE.Group(),lip:new THREE.Group(),touring:new THREE.Group()};
+ const rearY=van?1.97:.9875,rearZ=-L+(van?.23:.1),rearWidth=van?1.58:1.5;
+ block(spoilerGroups.lip,0,rearY+.035,rearZ,rearWidth,.07,.16,paint);
+ for(const x of [-.52,.52])block(spoilerGroups.touring,x,rearY+.075,rearZ,.09,.15,.15,trim);
+ const blade=block(spoilerGroups.touring,0,rearY+.17,rearZ-.015,rearWidth+.04,.055,.27,paint);blade.rotation.x=-.13;
+ for(const [style,group] of Object.entries(spoilerGroups)){group.name='Rear accessory '+style;group.visible=style==='none';g.add(group);}
+ Object.assign(g.userData,{paintMaterial:paint,paintParts,rimMaterial,rimParts,trimMaterial:trim,trimParts,glassMaterial:glass,spoilerGroups});
  return g;
 }

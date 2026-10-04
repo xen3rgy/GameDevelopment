@@ -1,3 +1,4 @@
+import {TUNING_SITE} from './tuning-layout.js?v=0.8.1';
 // Exterior-only data. Existing addresses and detached interior coordinates are unchanged.
 export const EXPANDED_BOUNDS={minX:-260,maxX:440,minZ:-255,maxZ:255};
 const road=(name,x,z,w,d,kind='arterial')=>({name,x,z,w,d,kind});
@@ -59,6 +60,7 @@ for(const district of EXPANSION_DISTRICTS){
   if(x-w/2<-253||x+w/2>432||z-d/2<-248||z+d/2>248)continue;
   if(EXPANSION_ROADS.some(r=>Math.abs(x-r.x)<(w+r.w)/2+6&&Math.abs(z-r.z)<(d+r.d)/2+6))continue;
   if(EXPANSION_LANDMARKS.some(l=>Math.abs(x-l.x)<(w+l.w)/2+5&&Math.abs(z-l.z)<(d+l.d)/2+5))continue;
+  if(Math.abs(x-TUNING_SITE.x)<(w+TUNING_SITE.w)/2+2&&Math.abs(z-TUNING_SITE.z)<(d+TUNING_SITE.d)/2+2)continue;
   if(EXPANSION_BUILDINGS.some(b=>Math.abs(x-b.x)<(w+b.w)/2+7&&Math.abs(z-b.z)<(d+b.d)/2+7))continue;
   if(Math.abs(x+145)<w/2+9)continue;
   if(EXPANSION_PLACES.some((l,i)=>Math.abs(x-l.x)<(w+22)/2+5&&Math.abs(z-(l.z-(i===4?1:-1)*11))<(d+17)/2+5))continue;

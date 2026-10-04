@@ -46,8 +46,8 @@ export function rayBox(origin,dir,b,max){let near=0,far=max;for(const axis of ['
 export class CameraRig{
  reset(){this.height=null;this.boom=null;this.angle=null;this.pitch=null;this.zoom=null}
  constructor(){this.reset()}
- update(position,angle,pitch,distance,dt,colliders=[],room=null){
-  dt=Number.isFinite(dt)?Math.max(0,Math.min(dt,.25)):0;const orbitEase=1-Math.exp(-dt*24),desiredPitch=room?.06+(pitch-.06)*.48:pitch,desiredDistance=room?Math.min(distance,4.3):distance;
+ update(position,angle,pitch,distance,dt,colliders=[],room=null,shelter=null){
+  dt=Number.isFinite(dt)?Math.max(0,Math.min(dt,.25)):0;const orbitEase=1-Math.exp(-dt*24),desiredPitch=shelter?Math.min(pitch,Math.atan2(shelter.ceiling-position.y-1.65,Math.max(distance,shelter.minBoom))):room?.06+(pitch-.06)*.48:pitch,desiredDistance=room?Math.min(distance,4.3):distance;
   this.angle=this.angle==null?angle:this.angle+Math.atan2(Math.sin(angle-this.angle),Math.cos(angle-this.angle))*orbitEase;
   this.pitch=this.pitch==null?desiredPitch:this.pitch+(desiredPitch-this.pitch)*orbitEase;
   this.zoom=this.zoom==null?desiredDistance:this.zoom+(desiredDistance-this.zoom)*(1-Math.exp(-dt*12));
@@ -55,12 +55,17 @@ export class CameraRig{
   const ease=1-Math.exp(-Math.max(0,dt)*12),targetY=position.y+1.4;
   this.height=this.height==null?targetY:this.height+(targetY-this.height)*ease;
   const anchor={x:position.x,y:room?Math.min(this.height,room.ceiling-.35):this.height,z:position.z};
-  const dir={x:Math.sin(angle)*Math.cos(pitch),y:Math.sin(pitch),z:Math.cos(angle)*Math.cos(pitch)};
+  let dir={x:Math.sin(angle)*Math.cos(pitch),y:Math.sin(pitch),z:Math.cos(angle)*Math.cos(pitch)};
   let limit=distance;
   for(const c of colliders)limit=Math.min(limit,rayBox(anchor,dir,{minX:c.x-(c.w??c.radius)-.22,maxX:c.x+(c.w??c.radius)+.22,minZ:c.z-(c.d??c.radius)-.22,maxZ:c.z+(c.d??c.radius)+.22,minY:c.minY??-1,maxY:c.h+.2},distance));
   if(room){for(const axis of ['X','Z']){let k=axis.toLowerCase();if(dir[k]>1e-9)limit=Math.min(limit,(room['max'+axis]-.15-anchor[k])/dir[k]);if(dir[k]<-1e-9)limit=Math.min(limit,(room['min'+axis]+.15-anchor[k])/dir[k])}if(dir.y>0)limit=Math.min(limit,(room.ceiling-.22-anchor.y)/dir.y);if(dir.y<0)limit=Math.min(limit,(.25-anchor.y)/dir.y)}
+  // Under an open workshop canopy, preserve a third-person clearance. If a
+  // wall blocks the requested orbit, slide around it to the nearest clear arc.
+  if(shelter&&limit<shelter.minBoom+.05){let best=null;for(let step=1;step<=32&&!best;step++)for(const side of [-1,1]){const yaw=angle+side*step*Math.PI/32,candidate={x:Math.sin(yaw)*Math.cos(pitch),y:Math.sin(pitch),z:Math.cos(yaw)*Math.cos(pitch)};let clear=distance;for(const c of colliders)clear=Math.min(clear,rayBox(anchor,candidate,{minX:c.x-(c.w??c.radius)-.22,maxX:c.x+(c.w??c.radius)+.22,minZ:c.z-(c.d??c.radius)-.22,maxZ:c.z+(c.d??c.radius)+.22,minY:c.minY??-1,maxY:c.h+.2},distance));if(clear>=shelter.minBoom+.05){best={dir:candidate,limit:clear};break;}}if(best){dir=best.dir;limit=best.limit;}}
   limit=Math.max(.15,limit-.05);
-  this.boom=this.boom==null?limit:Math.min(limit,this.boom+(limit-this.boom)*(1-Math.exp(-dt*7)));
+  let anticipated=limit;
+  if(shelter){for(const offset of [-.3,-.15,.15,.3]){const yaw=Math.atan2(dir.x,dir.z)+offset,probe={x:Math.sin(yaw)*Math.cos(pitch),y:dir.y,z:Math.cos(yaw)*Math.cos(pitch)};let clear=distance;for(const c of colliders)clear=Math.min(clear,rayBox(anchor,probe,{minX:c.x-(c.w??c.radius)-.22,maxX:c.x+(c.w??c.radius)+.22,minZ:c.z-(c.d??c.radius)-.22,maxZ:c.z+(c.d??c.radius)+.22,minY:c.minY??-1,maxY:c.h+.2},distance));anticipated=Math.min(anticipated,Math.max(shelter.minBoom,clear-.05));}}
+  this.boom=this.boom==null?limit:Math.min(limit,this.boom+(anticipated-this.boom)*(1-Math.exp(-dt*(shelter?12:7))));
   return {anchor,position:{x:anchor.x+dir.x*this.boom,y:anchor.y+dir.y*this.boom,z:anchor.z+dir.z*this.boom},distance:this.boom};
  }
 }
