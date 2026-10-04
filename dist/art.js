@@ -190,6 +190,13 @@ export function createCar(kit,id='car',color=0x506d78){
  for(const x of [-.52,.52])block(spoilerGroups.touring,x,rearY+.075,rearZ,.09,.15,.15,trim);
  const blade=block(spoilerGroups.touring,0,rearY+.17,rearZ-.015,rearWidth+.04,.055,.27,paint);blade.rotation.x=-.13;
  for(const [style,group] of Object.entries(spoilerGroups)){group.name='Rear accessory '+style;group.visible=style==='none';g.add(group);}
- Object.assign(g.userData,{paintMaterial:paint,paintParts,rimMaterial,rimParts,trimMaterial:trim,trimParts,glassMaterial:glass,spoilerGroups});
+ const exhaustGroups={stock:new THREE.Group(),dual:new THREE.Group(),sport:new THREE.Group()};
+ for(const [style,group] of Object.entries(exhaustGroups)){
+  const positions=style==='dual'?[-.55,-.40]:[-.5];
+  for(const x of positions){const radius=style==='stock'?.046:.059,tip=mesh(group,vehicleGeo('exhaust:'+style,()=>new THREE.CylinderGeometry(radius,radius,.20,12,true)),chrome);tip.rotation.x=Math.PI/2;tip.position.set(x,.43,-L-.04);if(style==='sport')tip.scale.x=1.55;
+   const opening=mesh(group,vehicleGeo('exhaust-opening:'+style,()=>new THREE.CircleGeometry(radius*.8,12)),rubber);opening.rotation.y=Math.PI;opening.position.set(x,.43,-L-.142);if(style==='sport')opening.scale.x=1.55;
+  }group.visible=style==='stock';group.name='Exhaust '+style;g.add(group);
+ }
+ Object.assign(g.userData,{paintMaterial:paint,paintParts,rimMaterial,rimParts,trimMaterial:trim,trimParts,glassMaterial:glass,spoilerGroups,exhaustGroups});
  return g;
 }

@@ -1,4 +1,5 @@
 import {tuningVehicle,startTuningPreview,cancelTuningPreview,applyVehicleCustomization,purchaseTuning,validCustomization,TUNING_CATEGORIES} from './tuning.js?v=0.8.1';
+import {validUpgrades,applyUpgradeVisuals} from './vehicle-upgrades.js?v=0.8.1';
 import {tuningPanel} from './tuning-ui.js?v=0.8.1';
 import {clothingThumbnail,outfitThumbnail} from './clothing-store.js?v=0.8.1';
 import {CLOTHING,CLOTHING_SLOTS,clothingById,previewOutfit,CLOTHING_POINTS} from './clothing.js?v=0.8.1';
@@ -280,10 +281,12 @@ let importCandidate=null;
 let sleepHours=8,plannedAction=null,routineView=null,routineInterrupted=null;
 function beginDaily(kind,arg){if(model.s.vehicleService||model.s.transit||model.s.job?.fieldAction||world.transition||world.jump>0){toast('Bleib zuerst kurz stehen.');return false;}if(!model.beginLifeAction(kind,arg))return false;model.s.dailyLife.action.yaw=world.player.rotation.y;keys={};world.walkSpeed=0;world.flight=null;world.jump=0;world.velocityY=0;close();save();return true;}
 async function action(a,arg=''){
+ if(a==='tuningSection'){if(tuningSession&&['power','chassis','tires','looks'].includes(arg)){tuningSession.section=arg;renderModal();}return;}
+ if(a==='tuningUpgrade'){if(!tuningSession)return;const [key,value]=arg.split('|'),draft={...tuningSession.upgrades,[key]:value};if(!validUpgrades(draft))return;tuningSession.upgrades=draft;applyUpgradeVisuals(tuningSession.mesh,tuningSession.vehicle,draft);renderModal();return;}
  if(a==='tuningTab'){if(tuningSession&&Object.hasOwn(TUNING_CATEGORIES,arg)){tuningSession.tab=arg;renderModal();}return;}
  if(a==='tuningOption'){if(!tuningSession)return;const [key,value]=arg.split('|'),draft={...tuningSession.draft,[key]:value};if(!Object.hasOwn(TUNING_CATEGORIES,key)||!validCustomization(draft))return;tuningSession.draft=draft;applyVehicleCustomization(tuningSession.mesh,tuningSession.vehicle,draft);renderModal();return;}
  if(a==='tuningPreview'){if(tuningSession){tuningSession.frontView=!tuningSession.frontView;document.body.classList.toggle('tuning-expanded');}return;}
- if(a==='tuningConfirm'){if(tuningSession&&tuningVehicle(model.s)?.uid===tuningSession.uid&&world.canDrive(tuningSession.vehicle,tuningSession.vehicle.x,tuningSession.vehicle.z,tuningSession.vehicle.angle)&&purchaseTuning(model,tuningSession.uid,tuningSession.draft)){close();save();}else{toast('Fahrzeugposition und Bargeld prüfen.');renderModal();}return;}
+ if(a==='tuningConfirm'){if(tuningSession&&tuningVehicle(model.s)?.uid===tuningSession.uid&&world.canDrive(tuningSession.vehicle,tuningSession.vehicle.x,tuningSession.vehicle.z,tuningSession.vehicle.angle)&&purchaseTuning(model,tuningSession.uid,tuningSession.draft,tuningSession.upgrades)){close();save();}else{toast('Fahrzeugposition und Bargeld prüfen.');renderModal();}return;}
 
  if(a==='cancelSearch'){cancelBinSearch(model);keys={};save();return;}
  if(model.s.scavenge?.action&&!['close','menu','help','save','export','continue'].includes(a)){toast('Beende zuerst die Suche.');return;}
