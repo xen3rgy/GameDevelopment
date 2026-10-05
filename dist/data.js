@@ -4,6 +4,7 @@ import {WARDROBE_POINT} from './home-layout.js?v=0.8.1';
 import {EXPANSION_PLACES} from './expansion-layout.js?v=0.8.1';
 import {STATION_BUILDINGS} from './city-layout.js?v=0.8.1';
 export const ITEMS={
+ toolkit:{name:'Pannen-Werkzeugset',icon:'🔧',category:'Werkzeug',weight:2,stack:2,price:3500,description:'Werkzeug und Ersatzteile für eine Notreparatur. Einmal verwendbar über Fahrzeuge → Pannenhilfe: +15 Zustand, maximal 25 %.'},
  bottle:{name:'Pfandflasche',icon:'🍾',category:'Wertstoffe',weight:.1,stack:20,price:25,description:'Eine leere Mehrwegflasche. Am Pfandautomaten bekommst du 0,25 € zurück.'},
  roll:{name:'Backshop-Semmel',icon:'🍞',category:'Nahrung',weight:.08,stack:8,price:100,effects:{hunger:14},description:'Ein einfaches Brötchen. 14 Sättigung für 1,00 € – genug für den nächsten Weg, aber keine vollwertige Mahlzeit.'},
  water:{name:'Mineralwasser',icon:'💧',category:'Getränke',weight:.5,stack:6,price:100,effects:{thirst:45},description:'Stilles Wasser. Füllt deinen Durstvorrat um 45 Punkte auf. Die leere Flasche bleibt im Rucksack.'},

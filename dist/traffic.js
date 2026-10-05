@@ -1,5 +1,8 @@
 import {crossingObstacles,ROAD_JUNCTIONS} from './street-layout.js?v=0.8.1';
 import {ROAD_X} from './city-layout.js?v=0.8.1';
+import {hasSignal,signalPhase,signalBlocks} from './traffic-signals.js?v=0.8.1';
+export const TRAFFIC_TYPES={car:{model:'car',length:3.8,width:1.85,speed:6.2},van:{model:'van',length:4.8,width:1.85,speed:5.6},sport:{model:'sport',length:4.1,width:1.85,speed:6.7},taxi:{model:'car',length:3.8,width:1.85,speed:6.2},bus:{model:'bus',length:6.6,width:2.2,speed:4.9},works:{model:'van',length:4.8,width:1.85,speed:5.1}};
+const trafficMix=['car','taxi','van','car','bus','sport','works','van','taxi','car','bus','works','van','car'];
 // Deterministic lane routes and braking, independent of rendering and game time speed.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
@@ -54,9 +57,9 @@ export class Traffic {
  constructor(count=14){
   this.time=0;this.junctions=[];for(const {x,z} of ROAD_JUNCTIONS)this.junctions.push({x,z,owner:null});this.cars=[];
   for(let i=0;i<count;i++){
-   const route=TRAFFIC_ROUTES[i%TRAFFIC_ROUTES.length],length=i===4?4.8:3.8,width=1.85;let progress=route.length*(.12+i*.137)%route.length,body={...routePose(route,progress),length,width};
+   const type=trafficMix[i%trafficMix.length],spec=TRAFFIC_TYPES[type],route=TRAFFIC_ROUTES[i%TRAFFIC_ROUTES.length],{length,width}=spec;let progress=route.length*(.12+i*.137)%route.length,body={...routePose(route,progress),length,width};
    for(let attempt=0;attempt<64&&this.cars.some(c=>overlaps(body,c,.8));attempt++){progress=(progress+7)%route.length;body={...routePose(route,progress),length,width}}
-   this.cars.push({id:i,route,progress,...body,speed:0,maxSpeed:5.2+(i%4)*.5,length,width,braking:false});
+   this.cars.push({id:i,type,route,progress,...body,speed:0,maxSpeed:spec.speed,length,width,braking:false});
   }
  }
  update(dt,pedestrians=[],owned=null){
@@ -65,8 +68,9 @@ export class Traffic {
  tick(dt,pedestrians,owned){
   this.time+=dt;const snapshot=this.cars.map(c=>({...c}));
   for(const junction of this.junctions){
-   const owner=snapshot.find(c=>c.id===junction.owner);if(owner&&distance(owner,junction)>18)junction.owner=null;
-   if(junction.owner==null){const waiting=snapshot.filter(c=>distance(c,junction)<18).sort((a,b)=>distance(a,junction)-distance(b,junction)||a.id-b.id);if(waiting.length)junction.owner=waiting[0].id}
+   const owner=snapshot.find(c=>c.id===junction.owner);
+   if(owner){const approach=(junction.x-owner.x)*Math.sin(owner.angle)+(junction.z-owner.z)*Math.cos(owner.angle),axis=Math.abs(Math.sin(owner.angle))>.7?'x':'z';if(distance(owner,junction)>18||hasSignal(junction)&&approach>12+owner.length/2&&signalPhase(junction,this.time,axis)!=='green')junction.owner=null;}
+   if(junction.owner==null){const waiting=snapshot.filter(c=>distance(c,junction)<18&&(!hasSignal(junction)||Math.abs(c.x-junction.x)<12+c.length/2&&Math.abs(c.z-junction.z)<12+c.length/2||signalPhase(junction,this.time,Math.abs(Math.sin(c.angle))>.7?'x':'z')==='green')).sort((a,b)=>distance(a,junction)-distance(b,junction)||a.id-b.id);if(waiting.length)junction.owner=waiting[0].id}
   }
   // Yield at the near lane only when someone is actually approaching the crossing.
   const crossings=crossingObstacles(pedestrians);
@@ -76,7 +80,8 @@ export class Traffic {
    const obstacles=[...snapshot.filter(c=>c.id!==car.id),...crossings.filter(c=>!overlaps(car,c,.25)),...(Array.isArray(owned)?owned:owned?[owned]:[])].filter(o=>distance(o,car)<38),people=pedestrians.filter(p=>distance(p,car)<24);
    const look=4+car.speed*car.speed/8.4+car.speed*.4;
    const closed=this.junctions.filter(j=>j.owner!=null&&j.owner!==car.id&&distance(car,j)<38);
-   let gap=look;for(let d=0;d<=look;d+=.5){const pose={...routePose(car.route,car.progress+d),length:car.length,width:car.width};if(obstacles.some(o=>overlaps(pose,o,.25))||people.some(p=>pedestrianBlocks(pose,p,d/Math.max(1,car.speed)))||closed.some(j=>Math.abs(pose.x-j.x)<12&&Math.abs(pose.z-j.z)<12)){gap=Math.max(0,d-.5);break}}
+   const signals=this.junctions.filter(j=>distance(car,j)<38&&hasSignal(j));
+   let gap=look;for(let d=0;d<=look;d+=.5){const pose={...routePose(car.route,car.progress+d),length:car.length,width:car.width};if(obstacles.some(o=>overlaps(pose,o,.25))||people.some(p=>pedestrianBlocks(pose,p,d/Math.max(1,car.speed)))||closed.some(j=>Math.abs(pose.x-j.x)<12&&Math.abs(pose.z-j.z)<12)||signals.some(j=>signalBlocks(car,pose,j,this.time))){gap=Math.max(0,d-.5);break}}
    const desired=Math.min(car.maxSpeed,Math.sqrt(8.4*Math.max(0,gap-1.1)));
    car.braking=desired<car.speed-.15||gap<1.8;
    car.speed=desired<car.speed?Math.max(desired,car.speed-dt*4.2):Math.min(desired,car.speed+dt*1.8);

@@ -1,3 +1,4 @@
+import {breakdownStatus} from './vehicle-breakdown.js?v=0.8.1';
 import {streetSurface} from './street-layout.js?v=0.8.1';
 import {STATION_PLAZAS} from './city-layout.js?v=0.8.1';
 import {groundHeight} from './spatial.js?v=0.8.1';
@@ -48,9 +49,9 @@ export class Soundscape {
   const t=this.context.currentTime,mix=soundMix(state,active),set=(node,value)=>node.gain.setTargetAtTime(value,t,.35);
   this.mixAge=(this.mixAge||0)+dt;if(this.mixAge>=.08){this.mixAge=0;
   set(this.wind,mix.city*.026);set(this.rain,mix.rain*.08);set(this.room,mix.market*.018+mix.home*.005);set(this.humGain,mix.market*.014);
-  const sources=state.inside?[]:world.cars.map(c=>({car:c.mesh,position:c.mesh.position,speed:c.speed}));if(state.riding&&state.vehicle?.id!=='bike'&&world.vehicleMesh)sources.push({car:world.vehicleMesh,position:world.vehicleMesh.position,speed:Math.abs(state.vehicle.speed)});
+  const sources=state.inside?[]:world.cars.map(c=>({car:c.mesh,position:c.mesh.position,speed:c.speed}));if(state.riding&&state.vehicle?.id!=='bike'&&world.vehicleMesh)sources.push({car:world.vehicleMesh,position:world.vehicleMesh.position,speed:Math.abs(state.vehicle.speed),vehicle:state.vehicle});
   sources.sort((a,b)=>a.position.distanceToSquared(world.player.position)-b.position.distanceToSquared(world.player.position));const nearest=sources.slice(0,3);
-  for(let i=0;i<this.voices.length;i++){const voice=this.voices[i],s=nearest[i];if(!s||!active){set(voice.gain,0);continue}const spatial=stereoAt(s.position,state.position,world.angle);voice.pan.pan.setTargetAtTime(spatial.pan,t,.12);voice.oscillator.frequency.setTargetAtTime(36+s.speed*7,t,.15);voice.filter.frequency.setTargetAtTime(110+s.speed*32,t,.2);set(voice.gain,spatial.gain*(.006+s.speed*.0025)*(state.inside?0:1))}
+  for(let i=0;i<this.voices.length;i++){const voice=this.voices[i],s=nearest[i];if(!s||!active){set(voice.gain,0);continue}const fault=breakdownStatus(s.vehicle),silent=s.vehicle&&(s.vehicle.fuel<=0||fault.level===3),rough=fault.level?Math.max(.15,.65+.35*Math.sin(t*31)*Math.sin(t*9)):1;const spatial=stereoAt(s.position,state.position,world.angle);voice.pan.pan.setTargetAtTime(spatial.pan,t,.12);voice.oscillator.frequency.setTargetAtTime((36+s.speed*7)*(fault.level?(.88+.12*Math.sin(t*19)):1),t,.08);voice.filter.frequency.setTargetAtTime(110+s.speed*32,t,.2);set(voice.gain,(silent?0:rough)*spatial.gain*(.006+s.speed*.0025)*(state.inside?0:1))}
   }
   if(!active)return;this.clock+=dt;
   if(movement.grounded&&movement.moving&&!state.riding){this.stepDistance+=movement.distance;const stride=movement.running?1.7:1.15;if(this.stepDistance>=stride){this.stepDistance%=stride;const kind=surfaceAt(state.position.x,state.position.z,state.interior),settings={tile:[1800,.09,.09],wood:[420,.13,.13],paving:[1050,.1,.10],asphalt:[650,.12,.09],grass:[2600,.18,.04],gravel:[2100,.15,.08]}[kind];this.burst(settings[0]*(.9+Math.random()*.2),settings[1],settings[2]*(movement.running?1.15:1));if(kind==='wood'||kind==='tile')this.tone(kind==='wood'?100:180,.045,.012)}}else this.stepDistance=0;

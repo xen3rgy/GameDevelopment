@@ -104,7 +104,7 @@ export class CityArt{
   // Shop-specific street signs stay close to facades, leaving the main footway free.
   for(const [x,z,title,sub] of [[61,-12.3,'CAFÉ MORGEN','KAFFEE · KUCHEN'],[-39,-12.3,'MARKT 24','FRISCH IM KIEZ'],[29,-12.3,'KIEZ & KURIER','DEIN NÄCHSTER JOB']]){box(g,x,.9,z,.8,1.15,.10,0x715f46);box(g,x,.93,z+.065,.66,.92,.018,0x29413e);sign(g,title,x,1.18,z+.08,.59,.15,'#e8dfc4','#29413e');sign(g,sub,x,.92,z+.08,.61,.12,'#c4d4b8','#29413e');for(const dx of [-.34,.34])box(g,x+dx,.4,z+.05,.06,.7,.08,0x715f46)}
  }
- update(night){this.windows.forEach((m,i)=>m.emissiveIntensity=(i===3?.65:i===4?.32:.025)*night)}
+ update(night){this.windows.forEach((m,i)=>m.emissiveIntensity=(i===3?1.25:i===4?.62:i===0?.38:.025)*night)}
 }
 
 export {createCitizen,applyCitizenOutfit} from './citizen.js?v=0.8.1';

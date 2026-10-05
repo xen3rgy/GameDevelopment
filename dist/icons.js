@@ -1,4 +1,5 @@
 const paths={
+ toolkit:'M20 4a7 7 0 0 0-8 9L4 23a3 3 0 0 0 5 4l10-10a7 7 0 0 0 9-8l-5 5-5-5Z',
  bottle:'M9 3h6M10 3v5l-3 5v15h10V13l-3-5V3M7 16h10M7 24h10',
  water:'M9 3h6M10 3v5l-3 5v15h10V13l-3-5V3M7 17c3-3 7 3 10 0',
  coffee:'M5 10h16v11a6 6 0 0 1-6 6h-4a6 6 0 0 1-6-6ZM21 12h3a4 4 0 0 1 0 8h-3M10 3v3M16 3v3',

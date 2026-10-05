@@ -1,5 +1,6 @@
 import {districtLampStyle} from './district-materials.js?v=0.8.1';
 import * as THREE from './vendor/three.module.js';
+import {blendWeather} from './weather.js?v=0.8.1';
 import {lightingAt,selectLamps} from './lighting.js?v=0.8.1';
 import {groundHeight} from './spatial.js?v=0.8.1';
 function random(seed){let n=seed;return()=>{n=(n*1664525+1013904223)>>>0;return n/4294967296}}
@@ -44,13 +45,14 @@ void main(){vec3 d=normalize(vPosition);float h=max(d.y,0.);vec3 color=mix(horiz
   addPuddle(x,z,w,d){const mesh=new THREE.Mesh(new THREE.CircleGeometry(1,24),new THREE.MeshStandardMaterial({color:0x697c89,roughness:.09,metalness:.72,transparent:true,opacity:.48,depthWrite:false}));mesh.rotation.x=-Math.PI/2;mesh.scale.set(w,d,1);mesh.position.set(x,groundHeight(x,z)+.009,z);mesh.receiveShadow=true;this.scene.add(mesh);this.puddles.push(mesh)}
   update(state,position,dt=0){
     this.time+=dt;this.uniforms.time.value=this.time;
-    const light=lightingAt(state.minute,state.inside),{day,night,dusk,dawn}=light,rain=state.weather==='rain';
-    const top=new THREE.Color(rain?'#647d8a':'#75a3bc').lerp(new THREE.Color('#030810'),night),horizon=new THREE.Color(rain?'#a8b8bb':'#cedde0').lerp(new THREE.Color('#d99468'),Math.max(dawn,dusk)*.48*(1-night*.7)).lerp(new THREE.Color('#0b1625'),night);
+    this.weather=blendWeather(this.weather,state.weather,dt);const {rain,cloud,fog,wet}=this.weather;
+    const light=lightingAt(state.minute,state.inside),{day,night,dusk,dawn}=light;if(!state.inside){light.sun*=1-cloud*.58-fog*.18;light.lamp=Math.max(light.lamp,rain*.45,fog*.6);}
+    const top=new THREE.Color('#75a3bc').lerp(new THREE.Color('#647780'),cloud).lerp(new THREE.Color('#030810'),night),horizon=new THREE.Color('#cedde0').lerp(new THREE.Color('#a8b8bb'),cloud).lerp(new THREE.Color('#d99468'),Math.max(dawn,dusk)*.48*(1-night*.7)).lerp(new THREE.Color('#0b1625'),night);
     this.scene.environmentIntensity=light.environment;
-    this.uniforms.zenith.value.copy(top);this.uniforms.horizon.value.copy(horizon);this.uniforms.night.value=night;
+    this.uniforms.zenith.value.copy(top);this.uniforms.horizon.value.copy(horizon);this.uniforms.night.value=night*(1-fog*.8);this.uniforms.sunColor.value.set('#f9d3a0').multiplyScalar(1-cloud*.9);
     this.uniforms.sunDirection.value.set(-.8,Math.max(.035,light.altitude),-.5).normalize();this.sky.position.set(position.x,0,position.z);
-    this.scene.fog.color.copy(horizon);this.scene.fog.density=rain?.007:.0033;
-    for(let m of this.materials)m.roughness=rain?.28:.86;
+    this.scene.fog.color.copy(horizon);this.scene.fog.density=.0033+rain*.0037+fog*.019;
+    for(const m of this.materials){m.userData.dryColor??=m.color.clone();m.color.copy(m.userData.dryColor).multiplyScalar(1-wet*.28);m.roughness=.86-wet*.64;m.metalness=.04+wet*.14;}
     this.selectionAge+=dt;if(this.selectionAge>.15||!this.selected.length){this.selectionAge=0;this.selected=selectLamps(this.lightPositions,position,this.lampSlots.map(s=>s.lamp).filter(Boolean),this.quality==='low'?4:8)}const selected=this.selected,wanted=new Set(selected);
     const occupied=new Set(this.lampSlots.map(s=>s.lamp).filter(Boolean));
     for(const slot of this.lampSlots){
@@ -60,8 +62,8 @@ void main(){vec3 d=normalize(vPosition);float h=max(d.y,0.);vec3 color=mix(horiz
       if(slot.lamp&&wanted.has(slot.lamp))slot.power=Math.min(1,slot.power+dt*3);
       slot.light.intensity=slot.power*light.lamp*(slot.lamp?.power??260);slot.light.castShadow=this.quality!=='low'&&this.lampSlots.indexOf(slot)<2;
     }
-    for(const p of this.lightPositions){p.halo.visible=p.pool.visible=!state.inside&&light.lamp>.001&&Math.hypot(p.x-position.x,p.z-position.z)<85;p.halo.material.opacity=light.lamp*.65;p.pool.material.opacity=light.lamp*(rain?.09:.055);if(p.bulb)p.bulb.color.copy(p.color).multiplyScalar(light.lamp*2).addScalar(.065)}
-    for(let p of this.puddles){p.visible=!state.inside;p.material.opacity=rain?.52:.13}
+    for(const p of this.lightPositions){p.halo.visible=p.pool.visible=!state.inside&&light.lamp>.001&&Math.hypot(p.x-position.x,p.z-position.z)<85;p.halo.material.opacity=light.lamp*.65;p.pool.material.opacity=light.lamp*(.055+wet*.035);if(p.bulb)p.bulb.color.copy(p.color).multiplyScalar(light.lamp*2).addScalar(.065)}
+    for(let p of this.puddles){p.visible=!state.inside;p.material.opacity=.02+wet*.5}
     return light;
   }
 }

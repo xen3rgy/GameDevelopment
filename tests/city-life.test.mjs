@@ -21,7 +21,8 @@ test('traffic lanes follow right-hand driving on every cardinal direction',()=>{
 });
 
 test('traffic circulates through junctions without collisions or permanent deadlocks',()=>{
- const traffic=new Traffic(),travel=traffic.cars.map(()=>0);for(let i=0;i<6000;i++){const before=traffic.cars.map(c=>c.progress);traffic.update(1/30);traffic.cars.forEach((c,j)=>travel[j]+=(c.progress-before[j]+c.route.length)%c.route.length);for(let a=0;a<traffic.cars.length;a++)for(let b=a+1;b<traffic.cars.length;b++)assert.equal(overlaps(traffic.cars[a],traffic.cars[b],-.05),false)}assert.ok(travel.every(d=>d>650));
+ // Signal waits reduce throughput; verify continued circulation after multiple full cycles.
+ const traffic=new Traffic(),travel=traffic.cars.map(()=>0),late=traffic.cars.map(()=>0);for(let i=0;i<12000;i++){const before=traffic.cars.map(c=>c.progress);traffic.update(1/30);traffic.cars.forEach((c,j)=>{const d=(c.progress-before[j]+c.route.length)%c.route.length;travel[j]+=d;if(i>=9000)late[j]+=d;});for(let a=0;a<traffic.cars.length;a++)for(let b=a+1;b<traffic.cars.length;b++)assert.equal(overlaps(traffic.cars[a],traffic.cars[b],-.05),false)}assert.ok(travel.every(d=>d>650));assert.ok(late.every(d=>d>100));
 });
 test('a car brakes before an occupied crossing, waits, and resumes after the pedestrian leaves',()=>{
  for(const fps of [20,60]){const traffic=new Traffic(1),car=traffic.cars[0];car.route=makeRoute([{x:-100,z:0},{x:100,z:0},{x:100,z:65},{x:-100,z:65}]);
