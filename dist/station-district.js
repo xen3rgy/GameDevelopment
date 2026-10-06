@@ -72,6 +72,21 @@ export function buildStationDistrict(world,kit){
  world.overheadColliders=[{x:v.x,z:v.z,w:v.w/2,d:v.d/2,minY:5.5,h:v.top+.25},{x:-175,z:-31.8,w:15,d:1.05,minY:4.3,h:4.5}];
  // A covered arrival area and a working clock make the station a recognizable landmark.
  box(g,-175,4.4,-31.8,30,.18,2.1,0x354c4b);
+ // Riveted canopy ribs and tied girders make the transit frontage read at street level.
+ for(let x=-188;x<=-162;x+=3.25){
+  box(g,x,4.29,-31.8,.10,.12,2.02,0x718076);
+  for(const z of [-32.6,-31])box(g,x,4.19,z,.19,.11,.15,0x9d967d);
+ }
+ for(const x of [-188,-162]){const bracket=box(g,x+(x<-175?.48:-.48),3.98,-32.1,1.35,.08,.09,0x64766b);bracket.rotation.z=x<-175?.6:-.6;}
+ for(const z of [-53,-32,-11,11,32,53]){
+  box(g,-145,5.66,z,8,.16,.28,0x34474a);
+  for(const x of [-148.5,-141.5]){box(g,x,5.73,z,.46,.12,.43,0x7b8273);}
+ }
+ // Service conduits stay against the bridge soffit, clear of the camera passage.
+ for(const x of [-148.4,-148.1])box(g,x,5.83,0,.09,.09,156,0x5d665d);
+ // Inlaid plaza border follows the existing support height, never a second curb.
+ for(const x of [-191,-159])box(g,x,STATION_YARD.height+.007,-26,.13,.006,8,0x817563).castShadow=false;
+ for(const z of [-30,-22])box(g,-175,STATION_YARD.height+.007,z,32,.006,.13,0x817563).castShadow=false;
  for(const x of [-188,-162]){box(g,x,4.2,-32.1,.5,.2,.5,0xbda781);}
  sign(g,'BAHNHOFSPLATZ',-175,4.65,-30.72,12,.44,'#efe3c5','#344947');
  sign(g,'LINDENSTADT WEST · SEIT 1898',-175,7.1,-32.8,17,.46,'#e7d3ae','#6d5540');

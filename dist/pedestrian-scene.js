@@ -9,6 +9,7 @@ import {PedestrianLife} from './pedestrian-life.js?v=0.8.1';
 import {PEOPLE} from './data.js?v=0.8.1';
 
 import {citizenAppearance} from './citizen.js?v=0.8.1';
+import {districtAppearance,DISTRICT_POPULATION} from './district-identity.js?v=0.8.1';
 export {citizenAppearance};
 
 export function streetSeatLegPose(height,s,weight){
@@ -29,9 +30,11 @@ export function seatedStreetPose(actor,weight,height){
 
 export class PedestrianScene{
  constructor(world,kit,options={}){
+  const district=options.portals?.[0]?.district;
+  if(options.count===4&&DISTRICT_POPULATION[district])options={...options,count:DISTRICT_POPULATION[district]};
   this.world=world;this.root=new THREE.Group();this.root.name='Residents of Lindenstadt';world.scene.add(this.root);
   this.life=new PedestrianLife((x,z,r)=>world.canWalkExterior(x,z,r),{minute:world.model.s.minute,bystanders:PEOPLE,...options});
-  for(const p of this.life.people){const look=citizenAppearance(p.id+(options.appearanceOffset||0)),m=createCitizen(kit,look.color,look.skin,p.id+1,look);m.scale.set(p.height*p.width,p.height,p.height);m.visible=p.visible;m.userData.citizenId=p.id;p.mesh=m;attachStreetProps(m,kit);this.root.add(m);}
+  for(const p of this.life.people){const id=p.id+(options.appearanceOffset||0),look=districtAppearance(citizenAppearance(id),p.residence,id),m=createCitizen(kit,look.color,look.skin,p.id+1,look);m.scale.set(p.height*p.width,p.height,p.height);m.visible=p.visible;m.userData.citizenId=p.id;p.mesh=m;attachStreetProps(m,kit);this.root.add(m);}
  }
  update(state,dt,position){
   const bystanders=[...PEOPLE.map(p=>({x:p.x,z:p.z})),...(!state.inside&&!state.riding?[{...position,radius:.4}]:[])];

@@ -37,7 +37,7 @@ void main(){vec3 d=normalize(vPosition);float h=max(d.y,0.);vec3 color=mix(horiz
     const halo=document.createElement('canvas');halo.width=halo.height=128;const h=halo.getContext('2d'),glow=h.createRadialGradient(64,64,0,64,64,64);glow.addColorStop(0,'rgba(255,245,220,1)');glow.addColorStop(.08,'rgba(255,221,163,.85)');glow.addColorStop(.3,'rgba(255,184,97,.18)');glow.addColorStop(1,'rgba(255,170,74,0)');h.fillStyle=glow;h.fillRect(0,0,128,128);this.haloTexture=new THREE.CanvasTexture(halo);this.haloTexture.colorSpace=THREE.SRGBColorSpace;
   }
   registerLamp(x,z,bulb,options={}){
-    const style=districtLampStyle(x),height=options.height??5,color=style.color,power=options.power??style.power,poolSize=options.poolSize??15;
+    const style=districtLampStyle(x,z),height=options.height??5,color=style.color,power=options.power??style.power,poolSize=options.poolSize??15;
     const halo=new THREE.Sprite(new THREE.SpriteMaterial({map:this.haloTexture,color,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));halo.position.set(x,height,z);halo.scale.set(1.8,1.8,1);this.scene.add(halo);
     const pool=new THREE.Mesh(new THREE.PlaneGeometry(poolSize,poolSize),new THREE.MeshBasicMaterial({map:this.haloTexture,color,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}));pool.rotation.x=-Math.PI/2;pool.position.set(x,groundHeight(x,z)+.019,z);this.scene.add(pool);
     this.lightPositions.push({x,z,bulb,halo,pool,height,color,power,kind:options.height?'accent':'street',distance:options.distance??30});

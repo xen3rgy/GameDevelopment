@@ -30,6 +30,8 @@ export const PROMENADE_FIXTURES=[
  ...[57,69].flatMap(x=>[{kind:'terraceTable',x,z:-11,w:.7,d:.7,h:1},...[-1.1,1.1].map(dx=>({kind:'terraceChair',x:x+dx,z:-11,w:.27,d:.33,h:1.25}))])
 ];
 export const CITIZEN_PORTALS=[
+ {id:'harborCrew',x:-70,z:-76,doorZ:-78.6,angle:0,label:'WESTHAFEN · PERSONAL',home:true},
+ {id:'cityResidents',x:65,z:-12.6,doorZ:-14.6,angle:0,label:'CAFÉ MORGEN · OBERGESCHOSSE',home:true},
  {id:'linden',x:-34,z:12.6,doorZ:14.6,angle:Math.PI,label:'LINDENHÖFE',home:true},
  {id:'north',x:-68,z:-12.6,doorZ:-14.6,angle:0,label:'ANLAUFSTELLE NORD',home:true},
  {id:'west',x:-179,z:17.1,doorZ:19.6,angle:Math.PI,label:'GLEISHÖFE',home:true},
@@ -42,6 +44,8 @@ export const COURTYARD_SEATS=CITY_CHARACTER_FIXTURES.filter(p=>p.kind==='courtSe
  return {id:`${p.id}-${i}`,cluster:'lichthof',kind:'seat',x:x+Math.sin(p.angle)*1.12,z:z+Math.cos(p.angle)*1.12,angle:p.angle,seat:{x,z,height:.5575},open:450,close:1260};
 }));
 export const CITIZEN_DESTINATIONS=[
+ {id:'harbor-shift',cluster:'harbor',kind:'wait',x:-70,z:-76,angle:Math.PI,open:330,close:1110},
+ {id:'harbor-dispatch',cluster:'harbor',kind:'wait',x:-60,z:-76,angle:Math.PI,open:330,close:1110},
  ...COURTYARD_SEATS,
  ...CITIZEN_PORTALS.filter(p=>!p.home).map(p=>({...p,kind:'visit',portal:p.id,cluster:p.id})),
  ...STREET_SEATS.flatMap(x=>seats(`lindenbank${x}`,x,10,.52,Math.PI)),

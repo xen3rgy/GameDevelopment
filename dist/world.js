@@ -19,6 +19,7 @@ import {overlapDepth} from './traffic.js?v=0.8.1';
 import {WorkshopScene} from './workshop-scene.js?v=0.8.1';
 import {sign} from './signage.js?v=0.8.1';
 import {buildFrontages} from './frontage-scene.js?v=0.8.1';
+import {buildCoreFrontages} from './district-frontages.js?v=0.8.1';
 import {STREET_TREES,STREET_PLANTERS} from './public-realm-layout.js?v=0.8.1';
 import {WORKSHOP_POINTS,WORKSHOP_FIXTURES} from './workshop-layout.js?v=0.8.1';
 import {CityCharacter,buildHorizonLinks} from './city-character-scene.js?v=0.8.1';
@@ -70,7 +71,7 @@ export class World{
  building(...args){return this.art.building(...args)}
  buildCity(){let s=this.scene;box(s,0,-.3,0,250,.5,250,0,surfaceMaterial('grass',250,250));buildStreets(this,artKit);buildFrontages(this);
  const buildings=BUILDINGS;
- for(let b of buildings)this.building(...b);decorateClothingStore(this,artKit);
+ for(let b of buildings)this.building(...b);decorateClothingStore(this,artKit);buildCoreFrontages(this,artKit);
 
  // Trees and furnished pavements form distinct walkable blocks.
  for(const {x,z,r} of STREET_TREES)this.tree(x,z,r);

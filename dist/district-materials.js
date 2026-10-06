@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.js';
+import {districtBlendAt,districtIdentityAt} from './district-identity.js?v=0.8.1';
 
 const textures=new Map(),materials=new Map(),sources=new Map();
 export const DISTRICT_TEXTURES={brick:'./assets/station-brick-069.png',limestone:'./assets/civic-limestone-069.png'};
@@ -28,7 +29,21 @@ export function districtMaterial(kind,width=1,height=1,tint=0xffffff){
  materials.set(key,m);return m;
 }
 
-export function districtLampStyle(x){
- const t=Math.max(0,Math.min(1,(x+145)/175));
- return {color:new THREE.Color(0xffbe79).lerp(new THREE.Color(0xffe8ca),t),power:250+t*20};
+export function districtLampStyle(x,z=0){
+ const color=new THREE.Color(0);let power=0;
+ for(const entry of districtBlendAt({x,z})){color.add(new THREE.Color(entry.profile.light.color).multiplyScalar(entry.weight));power+=entry.profile.light.power*entry.weight;}
+ return {color,power};
+}
+const windowSets=new WeakMap();
+const windowStyles={brick:[0xffcf99,.65],civic:[0xffe4bd,.65],residential:[0xffd9ad,.6],industrial:[0xf0debe,.36],office:[0xf0eadd,.42],campus:[0xe7eddf,.46],townhouse:[0xffdfb5,.48]};
+export function districtWindowSet(windows,x,z){
+ if(windows.length<5)return windows;
+ const style=districtIdentityAt({x,z}).style,key=style==='townhouse'?'residential':style;
+ let sets=windowSets.get(windows);if(!sets){sets=new Map();windowSets.set(windows,sets);}
+ if(!sets.has(key)){const [color,strength]=windowStyles[key]||windowStyles.residential;sets.set(key,windows.slice(0,5).map((base,i)=>{const m=base.clone();m.name='District glazing · '+key+' '+i;m.emissive.set(color);m.userData.districtGlow=strength;m.emissiveIntensity=0;return m;}));}
+ return sets.get(key);
+}
+export function updateDistrictWindows(windows,night){
+ const sets=windowSets.get(windows);if(!sets)return;
+ for(const materials of sets.values())for(let i=0;i<materials.length;i++)materials[i].emissiveIntensity=(i===3?1.25:i===4?.62:i===0?.38:.025)*night*materials[i].userData.districtGlow;
 }

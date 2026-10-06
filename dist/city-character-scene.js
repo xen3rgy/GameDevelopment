@@ -55,6 +55,17 @@ export class CityCharacter {
   for(let z=18.8;z<24.3;z+=.45)box(g,55.15,3.06,z,8.25,.10,.08,0xa09274);
   box(g,55.15,2.68,18.8,2.6,.28,.08,0x375750);sign(g,'LICHTHOF',55.15,2.68,18.748,2.2,.18,'#ece3c5','#375750',Math.PI);
   for(const x of [51.3,59])for(let n=0;n<7;n++){const leaf=sphere(g,x,2.91,19+n*.6,.28,0x547154);leaf.scale.multiply(new THREE.Vector3(.8,.45,1.1));}
+  // A planted pergola and domestic paving turn the Lichthof into a quiet garden room.
+  // Everything occupies existing posts/overhead volume or lies flush with the path.
+  for(const x of [51.3,59])for(const z of [19,24]){
+   for(let n=0;n<5;n++){const leaf=sphere(g,x,1.5+n*.27,z,.12,0x63835e);leaf.scale.set(.55,1.25,.55);}
+  }
+  for(const x of [50.4,60])box(g,x,groundHeight(x,28)+.006,28,.09,.004,25,0x918c78).castShadow=false;
+  for(const z of [26.5,31])box(g,55.2,groundHeight(55.2,z)+.006,z,9.6,.004,.09,0x918c78).castShadow=false;
+  for(let n=0;n<5;n++){
+   const z=35+n*.65,y=groundHeight(55.2,z)+.009,w=n%2?1.05:.52;
+   for(const side of [-1,1]){box(g,55.2+side*w/2,y,z,.025,.003,.6,0xbbbaa5).castShadow=false;box(g,55.2,y,z+side*.3,w,.003,.025,0xbbbaa5).castShadow=false;}
+  }
   let seed=69069;const rand=()=>((seed=(Math.imul(seed,1664525)+1013904223)>>>0)/4294967296);
   for(const area of LITTER_ZONES)for(let i=0;i<area.count;i++){
    const x=area.x+(rand()-.5)*area.w,z=area.z+(rand()-.5)*area.d,y=groundHeight(x,z);

@@ -1,10 +1,11 @@
 import {routeLength} from './navigation.js?v=0.8.1';
+import {districtCitizenAwake,districtDestinationScore} from './district-identity.js?v=0.8.1';
 import {PedestrianNavigation,PEDESTRIAN_RADIUS,pedestrianSegmentClear as segmentClear} from './pedestrian-navigation.js?v=0.8.1';
 import {approach} from './movement.js?v=0.8.1';
 import {PAVEMENTS,onRoad,CROSSINGS} from './street-layout.js?v=0.8.1';
 import {STATION_PLAZAS} from './city-layout.js?v=0.8.1';
 import {pedestrianBlocks,routePose} from './traffic.js?v=0.8.1';
-import {CITIZEN_PORTALS,CITIZEN_DESTINATIONS,GARDEN_PATHS,citizenAwake,daytime} from './pedestrian-layout.js?v=0.8.1';
+import {CITIZEN_PORTALS,CITIZEN_DESTINATIONS,GARDEN_PATHS,daytime} from './pedestrian-layout.js?v=0.8.1';
 
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 const rect=(p,x,z)=>Math.abs(x-p.x)<=p.w/2&&Math.abs(z-p.z)<=p.d/2;
@@ -37,7 +38,7 @@ export class PedestrianLife{
   });
   // On first load only, distribute awake residents along valid routes, never into traffic.
   for(const p of this.people){
-   if(!citizenAwake(p.id,minute)||!this.plan(p,bystanders))continue;
+   if(!districtCitizenAwake(p.id,minute,p.residence)||!this.plan(p,bystanders))continue;
    const length=routeLength(p.path);let left=length*(.12+random(p)*.65),index=1;
    while(index<p.path.length-1&&left>dist(p.path[index-1],p.path[index])){left-=dist(p.path[index-1],p.path[index]);index++;}
    const a=p.path[index-1],b=p.path[index],len=dist(a,b),t=Math.min(1,left/Math.max(.001,len)),x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t;
@@ -49,9 +50,9 @@ export class PedestrianLife{
  release(p){if(p.goal&&this.reserved.get(p.goal.id)===p.id)this.reserved.delete(p.goal.id);}
  route(p,goal,obstacles=[]){const path=this.nav.find(p.phase==='inside'?{x:p.home.x,z:p.home.z}:p,goal,obstacles);if(path.length<2)return false;this.release(p);p.goal=goal;p.path=path;p.index=1;p.blocked=0;p.progress=null;p.passing=null;if(goal.kind!=='home')this.reserved.set(goal.id,p.id);return true;}
  plan(p,bystanders=[],obstacles=[]){
-  if(!citizenAwake(p.id,this.minute))return this.route(p,{...p.residence,kind:'home',portal:p.residence.id},obstacles);
+  if(!districtCitizenAwake(p.id,this.minute,p.residence))return this.route(p,{...p.residence,kind:'home',portal:p.residence.id},obstacles);
   const buddy=this.people[p.buddy],pool=this.destinations.filter(d=>d.id!==p.goal?.id&&!this.reserved.has(d.id)&&daytime(this.minute,d.open,d.close)&&!bystanders.some(o=>dist(o,d)<.85));
-  const ranked=pool.map(d=>({d,score:random(p)*100+(d.cluster===buddy?.goal?.cluster?100:0)-(dist(p,d)<5?60:0)})).sort((a,b)=>b.score-a.score);
+  const ranked=pool.map(d=>({d,score:random(p)*100+districtDestinationScore(p.residence,d,this.minute)+(d.cluster===buddy?.goal?.cluster?100:0)-(dist(p,d)<5?60:0)})).sort((a,b)=>b.score-a.score);
   for(const {d} of ranked.slice(0,8))if(this.route(p,d,obstacles))return true;
   // All activity slots can be occupied. Going home releases the current slot;
   // waiting forever at a finished activity used to exhaust the entire population.
@@ -77,7 +78,7 @@ export class PedestrianLife{
   while(remaining>1e-8){const step=Math.min(remaining,1/30);remaining-=step;this.time+=step;
    for(const p of this.people){
     p.age+=step;const others=[...this.people.filter(q=>q!==p&&q.visible),...bystanders];
-    const awake=citizenAwake(p.id,this.minute);
+    const awake=districtCitizenAwake(p.id,this.minute,p.residence);
     if(p.phase==='inside'){
      p.cooldown=Math.max(0,p.cooldown-step*speed);
      if((!awake&&p.home.id===p.residence.id)||p.cooldown>0||!this.doorFree(p.home,p,others))continue;

@@ -1,4 +1,5 @@
 import {breakdownStatus} from './vehicle-breakdown.js?v=0.8.1';
+import {districtSoundMix} from './district-identity.js?v=0.8.1';
 import {streetSurface} from './street-layout.js?v=0.8.1';
 import {STATION_PLAZAS} from './city-layout.js?v=0.8.1';
 import {groundHeight} from './spatial.js?v=0.8.1';
@@ -21,7 +22,7 @@ export function stereoAt(source,listener,angle){
  return {gain:1/(1+(d/12)**2),pan:Math.max(-1,Math.min(1,(dx*Math.cos(angle)-dz*Math.sin(angle))/Math.max(3,d)))};
 }
 export class Soundscape {
- constructor(){this.context=null;this.stepDistance=0;this.nextBird=4;this.clock=0;this.enabled=true;this.running=false;this.lastInterior=null;this.voices=[];this.volumes={ambienceVolume:100,vehicleVolume:100,effectsVolume:100}}
+ constructor(){this.context=null;this.stepDistance=0;this.nextBird=4;this.nextDistrict=11;this.clock=0;this.enabled=true;this.running=false;this.lastInterior=null;this.voices=[];this.volumes={ambienceVolume:100,vehicleVolume:100,effectsVolume:100}}
  unlock(){
   try{if(!this.context){const C=globalThis.AudioContext||globalThis.webkitAudioContext;if(!C)return;this.init(new C())}if(this.context.state==='suspended')this.context.resume().catch(()=>{})}catch{/* Audio must never prevent playing. */}
  }
@@ -30,6 +31,8 @@ export class Soundscape {
   this.ambient=ctx.createGain();this.ambient.gain.value=0;this.ambient.connect(this.master);for(const [key,bus] of [['ambienceVolume','environmentBus'],['vehicleVolume','vehicleBus'],['effectsVolume','effectsBus']]){this[bus]=ctx.createGain();this[bus].gain.value=this.volumes[key]/100;this[bus].connect(bus==='effectsBus'?this.master:this.ambient)}
   this.noise=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);const samples=this.noise.getChannelData(0);let low=0;for(let i=0;i<samples.length;i++){low=.97*low+.03*(Math.random()*2-1);samples[i]=(Math.random()*2-1)*.6+low*3}
   this.wind=this.loopNoise(480,.6);this.rain=this.loopNoise(2300,.4);this.room=this.loopNoise(180,.7);
+  // Two shared, very quiet beds; district borders crossfade instead of restarting loops.
+  this.railBed=this.loopNoise(145,.65);this.workBed=this.loopNoise(82,.85);
   this.hum=ctx.createOscillator();this.hum.frequency.value=100;this.humGain=ctx.createGain();this.humGain.gain.value=0;this.hum.connect(this.humGain).connect(this.environmentBus);this.hum.start();
   for(let i=0;i<3;i++){const oscillator=ctx.createOscillator(),filter=ctx.createBiquadFilter(),gain=ctx.createGain(),pan=ctx.createStereoPanner();oscillator.type='sawtooth';oscillator.frequency.value=45;filter.type='lowpass';filter.frequency.value=180;gain.gain.value=0;oscillator.connect(filter).connect(gain).connect(pan).connect(this.vehicleBus);oscillator.start();this.voices.push({oscillator,filter,gain,pan,car:null})}
  }
@@ -46,15 +49,23 @@ export class Soundscape {
  effect(kind){if(kind==='checkout'){this.tone(1250,.085,.035);this.burst(1800,.25,.025)}else if(kind==='door'){this.burst(220,.15,.12,0,'lowpass')}else if(kind==='shop'){this.burst(1900,.2,.04)}else if(kind==='pickup')this.burst(1250,.12,.025)}
  update(dt,state,world,movement,active){
   this.setVolumes(state.settings);this.setEnabled(state.settings.sound);if(this.running!==active)this.setActive(active);if(!this.context)return;
-  const t=this.context.currentTime,mix=soundMix(state,active),set=(node,value)=>node.gain.setTargetAtTime(value,t,.35);
+  const t=this.context.currentTime,mix=soundMix(state,active),local=districtSoundMix(state),set=(node,value)=>node.gain.setTargetAtTime(value,t,.35);
   this.mixAge=(this.mixAge||0)+dt;if(this.mixAge>=.08){this.mixAge=0;
-  set(this.wind,mix.city*.026);set(this.rain,mix.rain*.08);set(this.room,mix.market*.018+mix.home*.005);set(this.humGain,mix.market*.014);
+  const districtLevel=local.street+local.rail+local.industry*.7+local.office*.65+local.campus*.48+local.garden*.35;
+  set(this.wind,mix.city*.026*districtLevel);set(this.rain,mix.rain*.08);set(this.room,mix.market*.018+mix.home*.005);set(this.humGain,mix.market*.014);
+  this.railBed.gain.setTargetAtTime(active?local.rail*.018:0,t,1.4);this.workBed.gain.setTargetAtTime(active?local.industry*.020+local.office*.002:0,t,1.4);
   const sources=state.inside?[]:world.cars.map(c=>({car:c.mesh,position:c.mesh.position,speed:c.speed}));if(state.riding&&state.vehicle?.id!=='bike'&&world.vehicleMesh)sources.push({car:world.vehicleMesh,position:world.vehicleMesh.position,speed:Math.abs(state.vehicle.speed),vehicle:state.vehicle});
   sources.sort((a,b)=>a.position.distanceToSquared(world.player.position)-b.position.distanceToSquared(world.player.position));const nearest=sources.slice(0,3);
   for(let i=0;i<this.voices.length;i++){const voice=this.voices[i],s=nearest[i];if(!s||!active){set(voice.gain,0);continue}const fault=breakdownStatus(s.vehicle),silent=s.vehicle&&(s.vehicle.fuel<=0||fault.level===3),rough=fault.level?Math.max(.15,.65+.35*Math.sin(t*31)*Math.sin(t*9)):1;const spatial=stereoAt(s.position,state.position,world.angle);voice.pan.pan.setTargetAtTime(spatial.pan,t,.12);voice.oscillator.frequency.setTargetAtTime((36+s.speed*7)*(fault.level?(.88+.12*Math.sin(t*19)):1),t,.08);voice.filter.frequency.setTargetAtTime(110+s.speed*32,t,.2);set(voice.gain,(silent?0:rough)*spatial.gain*(.006+s.speed*.0025)*(state.inside?0:1))}
   }
   if(!active)return;this.clock+=dt;
   if(movement.grounded&&movement.moving&&!state.riding){this.stepDistance+=movement.distance;const stride=movement.running?1.7:1.15;if(this.stepDistance>=stride){this.stepDistance%=stride;const kind=surfaceAt(state.position.x,state.position.z,state.interior),settings={tile:[1800,.09,.09],wood:[420,.13,.13],paving:[1050,.1,.10],asphalt:[650,.12,.09],grass:[2600,.18,.04],gravel:[2100,.15,.08]}[kind];this.burst(settings[0]*(.9+Math.random()*.2),settings[1],settings[2]*(movement.running?1.15:1));if(kind==='wood'||kind==='tile')this.tone(kind==='wood'?100:180,.045,.012)}}else this.stepDistance=0;
-  if(this.clock>this.nextBird){this.nextBird=this.clock+5+Math.random()*9;if(mix.city>.5&&state.weather!=='rain'){const pan=Math.random()*1.6-.8;this.tone(1800+Math.random()*1100,.13,.008,pan,'environmentBus')}else if(mix.market){this.burst(1400,.35,.014,Math.random()-.5,'bandpass','environmentBus')}}
+  if(this.clock>this.nextDistrict){this.nextDistrict=this.clock+20+Math.random()*27;
+   const pan=Math.random()*1.2-.6;
+   if(local.rail>.15){this.burst(310,2.4,.012*local.rail,pan,'lowpass','environmentBus');this.burst(1600,.32,.0025*local.rail,pan,'bandpass','environmentBus');}
+   if(local.industry>.15)this.burst(740,.24,.006*local.industry,pan,'bandpass','environmentBus');
+   if(local.street>.15)this.burst(690,.85,.0035*local.street,pan,'bandpass','environmentBus');
+  }
+  if(this.clock>this.nextBird){this.nextBird=this.clock+7+Math.random()*14;if(mix.city>.5&&local.birds>.1){const pan=Math.random()*1.6-.8;this.tone(1800+Math.random()*1100,.13,.008*local.birds,pan,'environmentBus')}else if(mix.market){this.burst(1400,.35,.014,Math.random()-.5,'bandpass','environmentBus')}}
  }
 }

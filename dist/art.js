@@ -1,9 +1,10 @@
 import {ALLOY_STYLES,createAlloyRim} from './tuning-rims.js?v=0.8.1';
+import {portBuilding} from './district-frontages.js?v=0.8.1';
 import {buildingStyle,modernBuilding} from './district-architecture.js?v=0.8.1';
 import {entranceForBuilding,decorateAddress} from './city-addresses.js?v=0.8.1';
 import * as THREE from './vendor/three.module.js';
 import {groundHeight} from './spatial.js?v=0.8.1';
-import {districtMaterial,fitFacadeUV} from './district-materials.js?v=0.8.1';
+import {districtMaterial,fitFacadeUV,districtWindowSet,updateDistrictWindows} from './district-materials.js?v=0.8.1';
 import {facadeSpans} from './public-realm-layout.js?v=0.8.1';
 
 const palette=[
@@ -32,11 +33,13 @@ export class CityArt{
   for(let i=0;i<5;i++)this.windows.push(new THREE.MeshStandardMaterial({color:[0x283c48,0x394f58,0x687777,0x454a41,0x84775d][i],roughness:.24,metalness:.32,emissive:0xffca7c,emissiveIntensity:0}));
  }
  building(x,z,w,d,h,color,name,face=1){
+  if(name==='WESTHAFEN LOGISTIK')return portBuilding(this,x,z,w,d,h,color,name,face);
   if(buildingStyle(x,z,name)==='modern'){this.index++;return modernBuilding(this,x,z,w,d,h,color,name,face);}
   const {box,sign,mat,cylinder}=this.k,scene=this.w.scene,g=new THREE.Group();scene.add(g);this.w.staticGroups.push(g);
   const index=this.index++,p=x<-120&&Math.abs(z)<125?{wall:color,trim:0xc2b095,shop:0x3d5953,type:'brick'}:palette[index%palette.length];
+  const glazing=districtWindowSet(this.windows,x,z);
   let texture;if(x>=-120||Math.abs(z)>=125){texture=wallTexture(p.type).clone();texture.needsUpdate=true;texture.repeat.set(w/6,h/6);}
-  const wall=x<-120&&Math.abs(z)<125?districtMaterial('brick',w,h,index%2?0xd8c7ad:0xdfd1bc):new THREE.MeshStandardMaterial({color:name?p.wall:color,map:texture,bumpMap:texture,bumpScale:p.type==='plaster'?.024:.065,roughness:.94});
+  const wall=x<-120&&Math.abs(z)<125?districtMaterial('brick',w,h,x>-138?0xd2bda3:index%2?0xb7937b:0xc49b81):new THREE.MeshStandardMaterial({color:name?p.wall:color,map:texture,bumpMap:texture,bumpScale:p.type==='plaster'?.024:.065,roughness:.94});
   fitFacadeUV(box(g,x,h/2,z,w,h,d,0,wall),w,d);box(g,x,.58,z,w+.16,1.15,d+.16,p.trim);box(g,x,3.65,z,w+.28,.22,d+.28,p.trim);
   box(g,x,h+.12,z,w+.6,.25,d+.6,p.trim);box(g,x,h+.42,z,w+.32,.35,d+.32,0x424e51);box(g,x,h+.64,z,w-.4,.1,d-.4,0x5e6461);
   this.w.colliders.push({x,z,w:w/2+.35,d:d/2+.35,h:h+2.8});
@@ -48,7 +51,7 @@ export class CityArt{
    for(let row=0;row<floors;row++){const y=5.35+row*(h-4.3)/floors;
     if(index%3!==0)box(f,0,y-1.22,.08,width,.085,.16,p.trim);
     for(let col=0;col<cols;col++){const wx=-width/2+spacing*(col+.5);if(index===0&&rot===-Math.PI/2&&Math.abs(wx-1)<6&&y<12.5)continue;const lit=(col*7+row*13+index)%5;
-     box(f,wx,y,.04,1.72,2.18,.09,0x273337);box(f,wx,y,.10,1.43,1.92,.055,0,this.windows[lit]);
+     box(f,wx,y,.04,1.72,2.18,.09,0x273337);box(f,wx,y,.10,1.43,1.92,.055,0,glazing[lit]);
      for(const dx of [-.81,.81])box(f,wx+dx,y,.13,.10,2.18,.13,p.trim);
      box(f,wx,y+1.05,.15,1.83,.13,.18,p.trim);box(f,wx,y-1.1,.22,1.92,.16,.4,p.trim);
      box(f,wx,y,.145,.055,1.95,.045,0x94988a);box(f,wx,y+.26,.145,1.46,.045,.045,0x94988a);
@@ -104,7 +107,7 @@ export class CityArt{
   // Shop-specific street signs stay close to facades, leaving the main footway free.
   for(const [x,z,title,sub] of [[61,-12.3,'CAFÉ MORGEN','KAFFEE · KUCHEN'],[-39,-12.3,'MARKT 24','FRISCH IM KIEZ'],[29,-12.3,'KIEZ & KURIER','DEIN NÄCHSTER JOB']]){box(g,x,.9,z,.8,1.15,.10,0x715f46);box(g,x,.93,z+.065,.66,.92,.018,0x29413e);sign(g,title,x,1.18,z+.08,.59,.15,'#e8dfc4','#29413e');sign(g,sub,x,.92,z+.08,.61,.12,'#c4d4b8','#29413e');for(const dx of [-.34,.34])box(g,x+dx,.4,z+.05,.06,.7,.08,0x715f46)}
  }
- update(night){this.windows.forEach((m,i)=>m.emissiveIntensity=(i===3?1.25:i===4?.62:i===0?.38:.025)*night)}
+ update(night){this.windows.forEach((m,i)=>m.emissiveIntensity=(i===3?1.25:i===4?.62:i===0?.38:.025)*night);updateDistrictWindows(this.windows,night)}
 }
 
 export {createCitizen,applyCitizenOutfit} from './citizen.js?v=0.8.1';
