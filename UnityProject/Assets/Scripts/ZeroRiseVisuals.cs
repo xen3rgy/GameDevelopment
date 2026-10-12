@@ -7,7 +7,7 @@ namespace ZeroRise
     public static class Art
     {
         private static readonly Dictionary<string, Material> Cache = new Dictionary<string, Material>();
-        public static Material Material(Color color, float smoothness = .12f, float metallic = 0)
+        public static Material MaterialFor(Color color, float smoothness = .12f, float metallic = 0)
         {
             var key = ColorUtility.ToHtmlStringRGBA(color) + ":" + smoothness.ToString("F2") + ":" + metallic.ToString("F2");
             if (Cache.TryGetValue(key, out var material)) return material;
@@ -20,6 +20,20 @@ namespace ZeroRise
             Cache[key] = material;
             return material;
         }
+        public static Material Surface(string resourcePath, float tileX, float tileY, Color tint)
+        {
+            string key = "surface:" + resourcePath + ":" + tileX.ToString("F1") + ":" + tileY.ToString("F1")
+                + ":" + ColorUtility.ToHtmlStringRGBA(tint);
+            if (Cache.TryGetValue(key,out var cached)) return cached;
+            var texture=Resources.Load<Texture2D>(resourcePath);
+            if(texture==null) return MaterialFor(tint,.08f);
+            Shader shader=Shader.Find("Standard");
+            if(shader==null) shader=Shader.Find("Universal Render Pipeline/Lit");
+            var material=new Material(shader) { mainTexture=texture, color=tint, mainTextureScale=new Vector2(tileX,tileY) };
+            if(material.HasProperty("_Glossiness"))material.SetFloat("_Glossiness",.08f);
+            Cache[key]=material;
+            return material;
+        }
         public static Color Hex(uint hex) => new Color32((byte)(hex>>16), (byte)(hex>>8), (byte)hex, 255);
         public static GameObject Part(Transform parent, PrimitiveType type, string name,
             Vector3 position, Vector3 scale, Color color, bool collision=false, float smoothness=.13f, float metallic=0)
@@ -27,7 +41,7 @@ namespace ZeroRise
             var go = GameObject.CreatePrimitive(type);
             go.name = name; go.transform.SetParent(parent, false);
             go.transform.localPosition = position; go.transform.localScale = scale;
-            go.GetComponent<Renderer>().sharedMaterial = Material(color, smoothness, metallic);
+            go.GetComponent<Renderer>().sharedMaterial = MaterialFor(color, smoothness, metallic);
             if (!collision && go.TryGetComponent<Collider>(out var col)) UnityEngine.Object.Destroy(col);
             return go;
         }

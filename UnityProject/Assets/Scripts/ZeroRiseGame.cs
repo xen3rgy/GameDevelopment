@@ -312,6 +312,7 @@ namespace ZeroRise
             // 24 minutes of real-time = one in-game day, matching browser time scaling.
             state.playedSeconds+=dt;
             state.minute+=dt;
+            view.UpdateDaylight(state.minute);
             if(state.minute>=1440)
             {state.minute-=1440;state.day++;Status("Neuer Spieltag: "+state.day);Save();}
             state.needs.hunger=Mathf.Max(0,state.needs.hunger-dt*.011f);

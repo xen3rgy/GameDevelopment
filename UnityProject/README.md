@@ -58,7 +58,7 @@ Use Unity Game view at 16:9 if possible. Inputs currently use Unity's legacy Inp
 - Complete browser save migration. Unity stores its own save **separately**; no browser localStorage is touched.
 - Verified Unity Editor compilation and a successful Unity Player build: a Unity Editor is **not available in the generation environment**.
 
-The port uses **proxy geometry**. It is meant to establish a testable Unity architecture and coordinate system, not yet to improve visual quality above the browser game.
+The port reuses the browser project's existing brick, limestone and meadow PNG textures. It still uses **proxy geometry**. It is meant to establish a testable Unity architecture and coordinate system, not yet to improve visual quality above the browser game.
 
 ## Browser save import â€” LIMITED
 
@@ -66,7 +66,7 @@ Export your old JavaScript save JSON manually. In Unity choose **ZERO // RISE â†
 
 Native Unity saves live under `Application.persistentDataPath/zero-rise-unity-v1.json`, not in `dist/` or browser localStorage.
 
-## Recommended next development order
+See [MIGRATION_MATRIX.md](MIGRATION_MATRIX.md) for the exact source modules, implemented/native features and remaining parity gates.\n\n## Recommended next development order
 
 1. Open in Unity 6, fix any Editor-version compile or import errors; capture Console logs.
 2. Verify 10-minute manual gameplay smoke test (walk, interact, camera, save/reload, drive, map).

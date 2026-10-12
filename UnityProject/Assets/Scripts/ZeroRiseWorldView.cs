@@ -60,6 +60,7 @@ namespace ZeroRise
         public GameObject Vehicle { get; private set; }
         public CarVisual VehicleVisual { get; private set; }
         public Camera Camera { get; private set; }
+        private Light sunLight;
         public Transform WorldRoot { get; private set; }
         public Transform ContentRoot { get; private set; }
 
@@ -79,10 +80,11 @@ namespace ZeroRise
             Camera.tag="MainCamera";Camera.fieldOfView=60;Camera.nearClipPlane=.08f;Camera.farClipPlane=310;
             Camera.backgroundColor=Art.Hex(0x93aab9);Camera.clearFlags=CameraClearFlags.Skybox;
             Camera.gameObject.AddComponent<AudioListener>();
-            var sun=new GameObject("Directional daylight").AddComponent<Light>();
-            sun.type=LightType.Directional;sun.color=Art.Hex(0xffe4ba);
-            sun.intensity=1.15f;sun.shadows=LightShadows.Soft;
-            sun.transform.rotation=Quaternion.Euler(52,-34,0);
+            sunLight=new GameObject("Directional daylight").AddComponent<Light>();
+            sunLight.type=LightType.Directional;sunLight.color=Art.Hex(0xffe4ba);
+            sunLight.intensity=1.15f;sunLight.shadows=LightShadows.Soft;
+            sunLight.transform.rotation=Quaternion.Euler(52,-34,0);
+            UpdateDaylight(state.minute);
             MakeGround();
             MakeStreets();
             MakeCoreBuildings();
@@ -96,9 +98,25 @@ namespace ZeroRise
             if(state.hasVehicle) MakeVehicle(state);
         }
 
+        public void UpdateDaylight(float minute)
+        {
+            if(sunLight==null)return;
+            float angle=(minute-360f)/1440f*360f;
+            float altitude=Mathf.Sin(angle*Mathf.Deg2Rad);
+            float daylight=Mathf.SmoothStep(0,1,Mathf.Clamp01((altitude+.12f)/.40f));
+            sunLight.transform.rotation=Quaternion.Euler(Mathf.Lerp(12f,85f,daylight),-35+angle*.33f,0);
+            sunLight.intensity=Mathf.Lerp(.08f,1.3f,daylight);
+            RenderSettings.ambientLight=Color.Lerp(Art.Hex(0x586977),Art.Hex(0xadb5a9),daylight);
+            RenderSettings.fogColor=Color.Lerp(Art.Hex(0x3e5665),Art.Hex(0x9baab5),daylight);
+            if(Camera!=null)Camera.backgroundColor=RenderSettings.fogColor;
+        }
+
         private void MakeGround()
         {
-            Art.Block(WorldRoot,"Terrain",90,-.6f,0,735,1.2f,540,Grass,true);
+            var ground=Art.Block(WorldRoot,"Terrain",90,-.6f,0,735,1.2f,540,Grass,true);
+            ground.GetComponent<Renderer>().sharedMaterial=
+                Art.Surface("Surface/meadow-ground",210f,150f,Color.white);
+            ground.GetComponent<Renderer>().shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
         }
         private void MakeStreets()
         {
@@ -139,7 +157,14 @@ namespace ZeroRise
         {
             var g=Parent(string.IsNullOrEmpty(b.name)?"Residential block":b.name,root);
             Color baseColor=Art.Hex(WallColor(b.district,index));
-            Art.Block(g,"Walls",b.x,b.height/2+.17f,b.z,b.width,b.height,b.depth,baseColor,true);
+            var walls=Art.Block(g,"Walls",b.x,b.height/2+.17f,b.z,b.width,b.height,b.depth,baseColor,true);
+            string surface=(b.district=="Bahnhofsviertel"||b.district=="Nordstadt")
+                ?"Surface/station-brick-069":
+                (b.district=="Ostkontor"||b.district=="Techpark"||b.district=="Lindenhöfe")
+                    ?"Surface/civic-limestone-069":"";
+            if(surface.Length>0)
+                walls.GetComponent<Renderer>().sharedMaterial=
+                    Art.Surface(surface,Mathf.Max(1,b.width/4f),Mathf.Max(1,b.height/3f),Color.white);
             Art.Block(g,"Roof edge",b.x,b.height+.25f,b.z,b.width+.4f,.23f,b.depth+.4f,Art.Hex(0x535f5d));
             Art.Block(g,"Street-facing plinth",b.x,.43f,b.z+b.depth*.5f+.04f,b.width,.55f,.12f,Art.Hex(0x68706b));
             int floors=Mathf.Min(7,Mathf.Max(1,Mathf.FloorToInt((b.height-3)/3.6f)));
