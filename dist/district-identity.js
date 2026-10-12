@@ -1,9 +1,13 @@
 import {expansionDistrict,EXPANSION_DISTRICTS} from './expansion-layout.js?v=0.8.1';
+import {WEST_DISTRICTS,westDistrict} from './west-edge-layout.js?v=0.8.1';
 
-// Presentation only. Redistribute the same twenty outer residents; no new save data.
-export const DISTRICT_POPULATION={nordstadt:5,suedwerk:4,ostkontor:5,techpark:4,hoehen:2};
+// Presentation only. Keep twenty existing outer residents and add seven western residents; no new save data.
+export const DISTRICT_POPULATION={nordstadt:5,suedwerk:4,ostkontor:5,techpark:4,hoehen:2,bruchfeld:1,altgleis:2,westbruch:4};
 const profile=(id,name,style,color,power,roles,sound,activity)=>({id,name,style,light:{color,power},roles,sound,activity});
 export const DISTRICT_IDENTITIES={
+ bruchfeld:profile('bruchfeld','Bruchfeld','townhouse',0xffc183,170,['older','casual','worker'],'garden','quiet'),
+ altgleis:profile('altgleis','Altgleis','industrial',0xffcb8e,195,['worker','casual','commuter'],'rail','shift'),
+ westbruch:profile('westbruch','Westbruch','residential',0xffce94,210,['casual','worker','older','commuter'],'street','residential'),
  station:profile('station','Bahnhofsviertel','brick',0xffbe79,250,['commuter','worker','student','commuter','casual','worker'],'rail','transit'),
  centre:profile('centre','Innenstadt','civic',0xffe8ca,270,['stylish','commuter','casual','older','student','stylish','employee','sporty'],'street','retail'),
  linden:profile('linden','Lindenhöfe','residential',0xffd5a5,220,['casual','older','casual','sporty','commuter','older'],'garden','residential'),
@@ -16,14 +20,14 @@ export const DISTRICT_IDENTITIES={
  hoehen:profile('hoehen','Höhenviertel','townhouse',0xffd9ad,185,['stylish','sporty','older','casual','sporty','stylish'],'garden','quiet')
 };
 export function districtIdentityAt(p={x:0,z:0}){
- const outer=expansionDistrict(p);
+ const outer=westDistrict(p)||expansionDistrict(p);
  const courtyard=p.x>=35&&p.x<=82&&p.z>=14;
  const id=outer?.id||(p.x<-120?'station':p.z<-48?'harbor':p.z>48?'canal':p.x<=15||courtyard?'linden':'centre');
  return DISTRICT_IDENTITIES[id];
 }
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
-const regions=[...EXPANSION_DISTRICTS,
- {id:'station',minX:-300,maxX:-120,minZ:-120,maxZ:120},
+const regions=[...WEST_DISTRICTS,...EXPANSION_DISTRICTS,
+ {id:'station',minX:-260,maxX:-120,minZ:-120,maxZ:120},
  {id:'harbor',minX:-120,maxX:120,minZ:-120,maxZ:-48},
  {id:'linden',minX:-120,maxX:15,minZ:-48,maxZ:48},
  {id:'centre',minX:15,maxX:120,minZ:-48,maxZ:14},

@@ -5,11 +5,16 @@ import {lightingAt,selectLamps} from './lighting.js?v=0.8.1';
 import {groundHeight} from './spatial.js?v=0.8.1';
 function random(seed){let n=seed;return()=>{n=(n*1664525+1013904223)>>>0;return n/4294967296}}
 const surfaceSources=new Map();
-export const surfaceTileMeters=kind=>kind==='asphalt'?6:kind==='cobble'?2.4:4.8;
+export const surfaceTileMeters=kind=>kind==='asphalt'||kind==='wornAsphalt'?6:kind==='cobble'?2.4:4.8;
 export function surfaceTexture(kind){
   if(surfaceSources.has(kind)){const copy=surfaceSources.get(kind).clone();copy.needsUpdate=true;return copy;}
   const c=document.createElement('canvas');c.width=c.height=512;const a=c.getContext('2d'),rand=random(kind==='asphalt'?18:72);
-  a.fillStyle=kind==='asphalt'?'#777d7f':kind==='grass'?'#7c8869':kind==='cobble'?'#85877f':'#a4aaa6';a.fillRect(0,0,512,512);
+  a.fillStyle=kind==='gravel'?'#867e69':kind==='asphalt'||kind==='wornAsphalt'?'#777d7f':kind==='grass'?'#7c8869':kind==='cobble'?'#85877f':'#a4aaa6';a.fillRect(0,0,512,512);
+  if(kind==='wornAsphalt'){
+   for(let i=0;i<11;i++){let x=rand()*512,y=rand()*512;a.strokeStyle='#333b39';a.lineWidth=.7+rand()*1.8;a.beginPath();a.moveTo(x,y);for(let n=0;n<5;n++){x+=rand()*30-15;y+=rand()*28;a.lineTo(x,y);}a.stroke();}
+   for(let i=0;i<18;i++){a.fillStyle=i%2?'#535b5744':'#a5a08a22';a.beginPath();a.ellipse(rand()*512,rand()*512,7+rand()*30,5+rand()*18,rand()*3,0,Math.PI*2);a.fill();}
+  }
+  if(kind==='gravel')for(let i=0;i<10500;i++){const shade=Math.floor(95+rand()*85);a.fillStyle=`rgb(${shade+9},${shade+5},${shade-9})`;a.fillRect(rand()*512,rand()*512,1+rand()*3,1+rand()*2);}
   if(kind==='paving')for(let y=0;y<512;y+=32)for(let x=-64;x<512;x+=64){const xx=x+(y%64?32:0),v=Math.floor(180+rand()*12);a.fillStyle=`rgb(${v+3},${v+4},${v})`;a.fillRect(xx+1,y+1,62,30);a.fillStyle='#ffffff18';a.fillRect(xx+2,y+1,60,1)}
   if(kind==='cobble')for(let y=0;y<512;y+=32)for(let x=-64;x<512;x+=64){const xx=x+(y/32%2?32:0),v=157+Math.floor(rand()*23);a.fillStyle=`rgb(${v+6},${v+4},${v-2})`;a.fillRect(xx+2,y+2,60,28);a.fillStyle='#ffffff18';a.fillRect(xx+3,y+2,58,1);}
   if(kind==='grass')for(let i=0;i<12000;i++){a.fillStyle=['#b8bb7920','#293e2c18','#c3b99620'][i%3];a.fillRect(rand()*512,rand()*512,.7+rand(),2+rand()*5);}
@@ -18,7 +23,7 @@ export function surfaceTexture(kind){
 }
 export function surfaceMaterial(kind,w,d){
   const t=surfaceTexture(kind);t.repeat.set(w/surfaceTileMeters(kind),d/surfaceTileMeters(kind));t.needsUpdate=true;
-  return new THREE.MeshStandardMaterial({map:t,color:kind==='asphalt'?0x899096:kind==='grass'?0xc0c6ab:kind==='cobble'?0xc9c6b9:0xd7d9d2,roughness:kind==='asphalt'?.86:.95,metalness:kind==='asphalt'?.04:0,bumpMap:t,bumpScale:kind==='asphalt'?.010:.012});
+  return new THREE.MeshStandardMaterial({map:t,color:kind==='asphalt'||kind==='wornAsphalt'?0x899096:kind==='grass'?0xc0c6ab:kind==='cobble'?0xc9c6b9:0xd7d9d2,roughness:kind==='asphalt'?.86:.95,metalness:kind==='asphalt'?.04:0,bumpMap:t,bumpScale:kind==='asphalt'?.010:.012});
 }
 export class Atmosphere {
   constructor(scene,renderer){

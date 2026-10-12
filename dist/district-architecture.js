@@ -16,8 +16,8 @@ export function expansionBuilding(root,kit,b,windows=[]){
  windows=districtWindowSet(windows,b.x,b.z);
  const {box,sign,cylinder,mat}=kit,{x,z,w,d,h,style,seed=0}=b,office=style==='office',industry=style==='industrial',campus=style==='campus',town=style==='townhouse',modern=office||campus;
  const tones=modern?[0xbac3be,0xd0cec0,0xaab9b7]:industry?[0xc5b39b,0xb4a28f,0xd1c1aa]:[0xdfd1bc,0xd8c7ad,0xc8baa4];
- const edgeMix=modern&&(x<180||(campus&&z>-153)),wall=edgeMix?[0xc9c7b8,0xc6c4b6,0xb8c1b7][seed%3]:tones[seed%3],trim=modern?0xc7cec6:0xdfd1b8,frame=modern?0x314c57:0x384b48,roofColor=0x48575b;
- const skin=districtMaterial(modern||(town&&seed%2===0)?'limestone':'brick',w,h,wall);
+ const edgeMix=modern&&(x<180||(campus&&z>-153)),wall=edgeMix?[0xc9c7b8,0xc6c4b6,0xb8c1b7][seed%3]:tones[seed%3],trim=b.customFrontage?0x9b9585:modern?0xc7cec6:0xdfd1b8,frame=modern?0x314c57:0x384b48,roofColor=0x48575b;
+ const skin=b.skinMaterial||districtMaterial(modern||(town&&seed%2===0)?'limestone':'brick',w,h,wall);
  const variant=seed%4,terraced=modern&&variant!==0,shoulder=terraced?h-3.4:h;
  // Stepped office/campus upper floors, domestic bay divisions and shed roofs
  // alter the massing while retaining the exact existing solid footprint.
@@ -36,6 +36,7 @@ export function expansionBuilding(root,kit,b,windows=[]){
   const cols=Math.max(3,Math.floor(width/(industry?6:town?4.7:office?3.1:campus?4.5:3.5+(variant%2)*.5))),pitch=(width-1)/cols;
   const rows=industry?1:Math.max(1,Math.floor((shoulder-4)/3.3)),step=(shoulder-4)/rows;
   for(let row=0;row<rows;row++){
+   if(industry&&front&&b.customFrontage)continue;
    const y=industry?shoulder-1.5:4.95+row*step;
    if(modern)box(f,0,y+1.24,.13,width-.5,.17,.26,trim);
    for(let col=0;col<cols;col++){
@@ -47,7 +48,7 @@ export function expansionBuilding(root,kit,b,windows=[]){
     box(f,cx,y+hh/2+.12,.15,ww+.35,.11,.22,trim);
     box(f,cx,y,.17,.055,hh,.05,0x89998f);
     if(!modern)box(f,cx,y+.27,.17,ww,.045,.05,0x89998f);
-    if(!industry&&!modern&&(col+variant)%3!==0&&(town?row===0:true)){
+    if(!b.customFrontage&&!industry&&!modern&&(col+variant)%3!==0&&(town?row===0:true)){
      // Shallow loggias stay inside the established collision margin.
      box(f,cx,y-1,.16,2.25,.12,.3,0x7b8278);
      box(f,cx,y-.36,.31,2.25,.065,.035,frame);
@@ -65,15 +66,15 @@ export function expansionBuilding(root,kit,b,windows=[]){
    if(!office)cylinder(f,side*(width/2-.55),(shoulder-.6)/2,.23,.045,shoulder-.6,0x65726d);
   }
   if(industry){
-   if(front){
+   if(front&&!b.customFrontage){
    for(const cx of [-width*.28,width*.28]){
     box(f,cx,1.64,.12,4.8,3.28,.18,frame);
     for(let yy=.38;yy<3.1;yy+=.42)box(f,cx,yy,.23,4.5,.035,.025,0x8d9994);
     box(f,cx,3.27,.25,5,.16,.2,0x7b8985);
     for(const side of [-1,1])box(f,cx+side*2.5,1.5,.27,.14,2.8,.1,0xc8af6b);
    }
-   sign(f,'ANLIEFERUNG · '+String(seed%9+1).padStart(2,'0'),0,4,.2,Math.min(7,width*.38),.3,'#e2d9bc','#48534f');
-   }else{
+   if(!b.customFrontage)sign(f,'ANLIEFERUNG · '+String(seed%9+1).padStart(2,'0'),0,4,.2,Math.min(7,width*.38),.3,'#e2d9bc','#48534f');
+   }else if(!front){
     for(let col=0;col<=cols;col++)box(f,-width/2+.35+col*(width-.7)/cols,(shoulder-1)/2,.12,.16,shoulder-1,.16,0x9eaa9e);
     box(f,width*.28,1.35,.13,1.2,2.7,.13,0x52615b);
     for(let n=0;n<4;n++)box(f,-width*.22,2.05+n*.15,.17,2.5,.07,.12,0x64736a);
@@ -90,7 +91,7 @@ export function expansionBuilding(root,kit,b,windows=[]){
   }
   if(!industry&&!modern){
    for(let col=0;col<cols;col+=town?2:3){const cx=-width/2+.5+(col+.5)*pitch;box(f,cx,shoulder/2,.04,.18,shoulder-.3,.12,town?0xb3a491:0xa5ad9e);}
-   if(front&&!b.name&&!town&&seed%3===0){
+   if(front&&!b.name&&!b.customFrontage&&!town&&seed%3===0){
     const cx=-width*.3,label=['AHORN · BÄCKEREI','NORDRING · KIOSK','RAD & ALLTAG'][Math.floor(seed/3)%3];
     box(f,cx,2.95,.18,Math.min(6,width*.35),.42,.12,0x596d60);sign(f,label,cx,2.95,.248,Math.min(5.7,width*.33),.26,'#eee4cd','#596d60');
    }

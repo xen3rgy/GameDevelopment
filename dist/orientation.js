@@ -1,4 +1,5 @@
 import {TUNING_SITE} from './tuning-layout.js?v=0.8.1';
+import {WEST_ROADS,WEST_LOCATIONS,westDistrict} from './west-edge-layout.js?v=0.8.1';
 import {EXPANSION_ROADS,EXPANSION_PLACES,expansionDistrict} from './expansion-layout.js?v=0.8.1';
 export const ADDRESSES={
  werkform:['Werkhof',7],
@@ -10,9 +11,11 @@ export const ADDRESSES={
  deliveryB:['Am Kanal',3],deliveryA:['Am Kanal',11],park:['Am Kanal',17]
 };
 for(const p of EXPANSION_PLACES)ADDRESSES[p.id]=[p.street,p.number];
+for(const p of WEST_LOCATIONS)ADDRESSES[p.id]=[p.street||'Westbruchweg',p.number||1];
 export const addressOf=id=>ADDRESSES[id]?.join(' ')||'';
 export const STREETS=[{name:'Hafenstraße',z:-65},{name:'Lindenallee',z:0},{name:'Am Kanal',z:65}];
 export function streetAt(p){
+ if(westDistrict(p)){const distance=r=>Math.hypot(Math.max(0,Math.abs(p.x-r.x)-r.w/2),Math.max(0,Math.abs(p.z-r.z)-r.d/2));return WEST_ROADS.reduce((a,b)=>distance(a)<distance(b)?a:b).name;}
  if(Math.abs(p.x-TUNING_SITE.x)<=TUNING_SITE.w/2&&Math.abs(p.z-TUNING_SITE.z)<=TUNING_SITE.d/2)return 'Werkhof';
  if(expansionDistrict(p)){const r=EXPANSION_ROADS.reduce((a,b)=>{const d=q=>Math.hypot(Math.max(0,Math.abs(p.x-q.x)-q.w/2),Math.max(0,Math.abs(p.z-q.z)-q.d/2));return d(b)<d(a)?b:a;});return r.name;}
  if(p.x<-120){if(Math.abs(p.x+202)<15)return 'Westbogen';if(Math.abs(p.z)<14)return 'Lindenallee West';if(Math.abs(p.z+65)<14)return 'Hafenstraße West';if(Math.abs(p.z-65)<14)return 'Am Kanal West';return p.z<0?'Bahnhofsplatz':'Gleishof';}

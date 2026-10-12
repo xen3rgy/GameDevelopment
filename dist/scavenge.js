@@ -2,24 +2,27 @@ import {BOTTLE_CANDIDATES,NIGHT_CLUSTERS,PUBLIC_BINS} from './scavenge-layout.js
 export const SEARCH_SECONDS=2.3;
 export function hash(text){let h=2166136261;for(const c of String(text)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}h^=h>>>16;h=Math.imul(h,0x7feb352d);h^=h>>>15;h=Math.imul(h,0x846ca68b);return (h^(h>>>16))>>>0;}
 const roll=(seed,day,key)=>hash(seed+':'+day+':'+key)/4294967296;
-export const newScavenge=(seed=globalThis.crypto?.getRandomValues(new Uint32Array(1))[0]??Math.floor(Math.random()*4294967296),day=1)=>({seed,day,searched:[],pending:[],action:null});
+export const newScavenge=(seed=globalThis.crypto?.getRandomValues(new Uint32Array(1))[0]??Math.floor(Math.random()*4294967296),day=1,layout=2)=>({seed,day,layout,searched:[],pending:[],action:null});
 export function initScavenge(s){
- s.scavenge??=newScavenge(hash(JSON.stringify([s.mode,s.day,s.money,s.position,s.stats,s.collected])),s.day);
- if(s.scavenge.day<s.day){s.scavenge.day=s.day;s.scavenge.searched=[];s.scavenge.action=null;s.collected=[];}
+ s.scavenge??=newScavenge(hash(JSON.stringify([s.mode,s.day,s.money,s.position,s.stats,s.collected])),s.day,1);
+ if(s.scavenge.day<s.day){s.scavenge.day=s.day;s.scavenge.layout=2;s.scavenge.searched=[];s.scavenge.action=null;s.collected=[];}
  return s.scavenge;
 }
-export function dailyBottles(seed,day,story=true){
- const r=roll(seed,day,'amount'),count=Math.max(story&&day===1?5:4,r<.25?4+Math.floor(roll(seed,day,'quiet')*4):r<.85?7+Math.floor(roll(seed,day,'normal')*4):10+Math.floor(roll(seed,day,'busy')*6));
- const ranked=BOTTLE_CANDIDATES.map((p,i)=>({...p,rank:-Math.log(Math.max(1e-9,roll(seed,day,'point'+i)))/p.weight})).sort((a,b)=>a.rank-b.rank);
- const chosen=[];for(const p of ranked)if(chosen.length<count&&chosen.every(q=>Math.hypot(q.x-p.x,q.z-p.z)>7))chosen.push(p);
+export function dailyBottles(seed,day,story=true,layout=2){
+ const westStart=layout===2&&story&&day===1;
+ const r=roll(seed,day,'amount'),count=Math.max(westStart?8:story&&day===1?5:4,r<.25?4+Math.floor(roll(seed,day,'quiet')*4):r<.85?7+Math.floor(roll(seed,day,'normal')*4):10+Math.floor(roll(seed,day,'busy')*6));
+ // Append-only candidate groups and a saved layout version preserve old collected IDs.
+ const ranked=BOTTLE_CANDIDATES.filter(p=>layout===2||p.area!=='west').map((p,i)=>({...p,rank:-Math.log(Math.max(1e-9,roll(seed,day,'point'+i)))/p.weight})).sort((a,b)=>a.rank-b.rank);
+ const chosen=westStart?ranked.filter(p=>p.area==='west').slice(0,8):[];
+ for(const p of ranked)if(chosen.length<count&&chosen.every(q=>Math.hypot(q.x-p.x,q.z-p.z)>7))chosen.push(p);
  return chosen.map((p,id)=>({id,x:p.x,z:p.z}));
 }
 export function bottleLayout(s){
- const a=initScavenge(s),day=dailyBottles(a.seed,s.day,s.mode==='story');
+ const a=initScavenge(s),day=dailyBottles(a.seed,s.day,s.mode==='story',a.layout??1);
  if(s.minute>=1200&&roll(a.seed,s.day,'night')<.22){const cluster=NIGHT_CLUSTERS[Math.floor(roll(a.seed,s.day,'cluster')*NIGHT_CLUSTERS.length)],count=1+Math.floor(roll(a.seed,s.day,'bonus')*3);for(const [i,[x,z]] of cluster.slice(0,count).entries())day.push({id:15+i,x,z});}
  return day;
 }
-export function binReward(seed,day,bin){const r=roll(seed,day,'bin'+bin);return r<.4?null:r<.75?{id:'bottle',count:1}:r<.85?{id:'bottle',count:2}:{id:'roll',count:1};}
+export function binReward(seed,day,bin){const r=roll(seed,day,'bin'+bin),west=PUBLIC_BINS.some(b=>b.id===bin&&b.district);return r<(west?.32:.4)?null:r<(west?.78:.75)?{id:'bottle',count:1}:r<(west?.91:.85)?{id:'bottle',count:2}:{id:'roll',count:1};}
 const busy=s=>s.inside||s.riding||s.transit||s.vehicleService||s.job||s.dailyLife?.action||s.workshop?.active||s.cafe?.phase==='open';
 const near=(p,b)=>b&&Math.hypot(p.x-b.x,p.z-b.z)<=1.8;
 function receive(model,reward){
@@ -50,6 +53,7 @@ export function tickBinSearch(model,seconds){
 export function validateScavenge(s){
  if(s.scavenge==null){initScavenge(s);return;}
  const a=s.scavenge,validBin=id=>Number.isInteger(id)&&PUBLIC_BINS.some(b=>b.id===id),fail=()=>{throw Error('Ungültiger Suchfortschritt.');};
+ if(a.layout!=null&&![1,2].includes(a.layout))fail();
  if(!Number.isInteger(a.seed)||a.seed<0||a.seed>4294967295||!Number.isSafeInteger(a.day)||a.day<1||a.day>s.day||!Array.isArray(a.searched)||a.searched.length>PUBLIC_BINS.length||a.searched.some(id=>!validBin(id))||new Set(a.searched).size!==a.searched.length||!Array.isArray(a.pending)||a.pending.length>PUBLIC_BINS.length)fail();
  const seen=new Set();for(const p of a.pending){if(!p||!validBin(p.bin)||!Number.isSafeInteger(p.day)||p.day<1||p.day>a.day||seen.has(p.bin))fail();seen.add(p.bin);const reward=binReward(a.seed,p.day,p.bin);if(!reward||p.id!==reward.id||p.count!==reward.count||p.day===a.day&&!a.searched.includes(p.bin))fail();}
  if(a.action!=null){const t=a.action,bin=PUBLIC_BINS.find(b=>b.id===t.bin);if(!validBin(t.bin)||t.day!==a.day||a.searched.includes(t.bin)||seen.has(t.bin)||!Number.isFinite(t.elapsed)||t.elapsed<0||t.elapsed>=SEARCH_SECONDS||!t.origin||!Number.isFinite(t.origin.x)||!Number.isFinite(t.origin.z)||!near(t.origin,bin)||Math.hypot(s.position.x-t.origin.x,s.position.z-t.origin.z)>.1||busy(s))fail();}

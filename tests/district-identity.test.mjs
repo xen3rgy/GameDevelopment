@@ -17,7 +17,8 @@ test('district glazing reuses bounded palettes, fades in daylight and retains da
 });
 
 test('all neighborhoods and the Lichthof retain a distinct geographic presentation profile',()=>{
- assert.equal(Object.values(DISTRICT_POPULATION).reduce((a,b)=>a+b),20);
+ assert.equal(Object.entries(DISTRICT_POPULATION).filter(([id])=>!['bruchfeld','altgleis','westbruch'].includes(id)).reduce((n,[,count])=>n+count,0),20);
+ assert.equal(Object.values(DISTRICT_POPULATION).reduce((a,b)=>a+b),27);
  assert.ok(DISTRICT_POPULATION.hoehen<DISTRICT_POPULATION.nordstadt);
  for(const [id,p] of Object.entries(positions))assert.equal(districtIdentityAt(p).id,id);
  assert.equal(districtIdentityAt({x:55,z:28}).id,'linden');

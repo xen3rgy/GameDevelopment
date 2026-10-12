@@ -1,4 +1,5 @@
 import {EXPANSION_STOPS,EXPANSION_PARKING} from './expansion-layout.js?v=0.8.1';
+import {WEST_BUS_STOP} from './west-edge-layout.js?v=0.8.1';
 // Metres; interaction markers and safe pavement arrivals are deliberately separate.
 import {SERVICE_BAYS} from './service-layout.js?v=0.8.1';
 export const PARKING_SPACES=[
@@ -19,6 +20,7 @@ export const TRANSIT_STOPS=[
  {id:'railSouth',name:'Gleishof Süd · S1',mode:'train',x:-155,z:58,arrival:{x:-157,z:59},vehicle:{x:-145,z:58,angle:0}}
 ];
 TRANSIT_STOPS.push(...EXPANSION_STOPS);
+TRANSIT_STOPS.push(WEST_BUS_STOP);
 PARKING_SPACES.push(...EXPANSION_PARKING);
 export const stopById=id=>TRANSIT_STOPS.find(p=>p.id===id);
 export const parkingById=id=>PARKING_SPACES.find(p=>p.id===id);

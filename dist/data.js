@@ -3,6 +3,8 @@ import {CLOTHING_LOCATION,CLOTHING_BUILDING} from './clothing.js?v=0.8.1';
 import {WARDROBE_POINT} from './home-layout.js?v=0.8.1';
 import {EXPANSION_PLACES} from './expansion-layout.js?v=0.8.1';
 import {STATION_BUILDINGS} from './city-layout.js?v=0.8.1';
+import {WEST_LOCATIONS} from './west-edge-layout.js?v=0.8.1';
+export const WEST_KIOSK_ITEMS=['roll','water','sandwich'];
 export const ITEMS={
  toolkit:{name:'Pannen-Werkzeugset',icon:'🔧',category:'Werkzeug',weight:2,stack:2,price:3500,description:'Werkzeug und Ersatzteile für eine Notreparatur. Einmal verwendbar über Fahrzeuge → Pannenhilfe: +15 Zustand, maximal 25 %.'},
  bottle:{name:'Pfandflasche',icon:'🍾',category:'Wertstoffe',weight:.1,stack:20,price:25,description:'Eine leere Mehrwegflasche. Am Pfandautomaten bekommst du 0,25 € zurück.'},
@@ -38,15 +40,16 @@ export const LOCATIONS=[
  {id:'deliveryWorkshop',name:'Werkstatt West',type:'delivery',x:-174,z:44,icon:'◫',color:'#c1aa87'},
  {id:'deliveryC',name:'Nordkontor',type:'delivery',x:29,z:-76,icon:'◫',color:'#d6bb93'},
  ...EXPANSION_PLACES,
+ ...WEST_LOCATIONS,
 ];
 export const HOMES=[{id:'stationRoom',location:'stationHome',name:'Zimmer in den Gleishöfen',price:8500,rent:750,energy:80,description:'Ein einfaches Zimmer am ruhigen Innenhof. Günstiger wohnen, weiter zur Arbeit gehen.'},{id:'room',name:'WG-Zimmer',price:12000,rent:1200,energy:80,description:'Ein Schlüssel. Ein Bett. Endlich dein eigener Rückzugsort.'},{id:'flat',name:'Stadtwohnung',price:65000,rent:3500,energy:100,description:'Mehr Raum, ein eigenes Bad und bessere Erholung.'},{id:'penthouse',name:'Penthouse',price:450000,rent:16000,energy:100,description:'Über den Dächern. Dein Aufstieg wird sichtbar.'}];
 export const BUSINESSES={cafe:{name:'Café Morgen',cost:85000,baseSales:18000,baseCosts:7000,stockCost:2500,description:'Kaffee, Frühstück und Stammgäste.'},agency:{name:'Studio Nord',cost:240000,baseSales:45000,baseCosts:16000,stockCost:6000,description:'Digitale Projekte für lokale Unternehmen.'}};
 export const PEOPLE=[{id:'mara',name:'Mara',role:'Kurierin',x:23,z:-9,color:0xb66b4e},{id:'emil',name:'Emil',role:'Nachbar',x:-38,z:9,color:0x778b68},{id:'leyla',name:'Leyla',role:'Gründerin',x:61,z:-9,color:0x6a7a9c}];
 export const QUESTS=[
- {name:'Ein kleiner Anfang',text:'Sammle 5 Pfandflaschen.',key:'collected',goal:5,reward:500,target:'recycle'},
- {name:'Dein erstes Geld',text:'Gib 5 Flaschen am Pfandautomaten ab.',key:'returned',goal:5,reward:800,target:'recycle'},
- {name:'Erst mal durchatmen',text:'Kaufe etwas im Markt und iss oder trink es.',key:'consumed',goal:1,reward:1200,target:'market'},
- {name:'Auf eigenen Beinen',text:'Schließe deinen ersten Job ab.',key:'jobs',goal:1,reward:5000,target:'jobs'},
+ {name:'Ein kleiner Anfang',text:'Du startest ohne Geld. Sieh dich um und sammle 5 Pfandflaschen.',key:'collected',goal:5,reward:0,target:'westRecycle'},
+ {name:'Dein erstes Geld',text:'Gib 5 Flaschen bei PFAND & SPAR in Westbruch ab.',key:'returned',goal:5,reward:0,target:'westRecycle'},
+ {name:'Erst mal durchatmen',text:'Kaufe etwas bei PFAND & SPAR und iss oder trink es.',key:'consumed',goal:1,reward:300,target:'westKiosk'},
+ {name:'Auf eigenen Beinen',text:'Folge dem Weg durch das Bahnhofsviertel in die Stadt und schließe deinen ersten Job ab.',key:'jobs',goal:1,reward:5000,target:'jobs'},
  {name:'Eine Nacht in Sicherheit',text:'Schlafe in der Anlaufstelle oder zu Hause.',key:'slept',goal:1,reward:3500,target:'shelter'},
  {name:'Ein Schlüssel für dich',text:'Miete dein erstes Zimmer in Lindenstadt.',key:'homes',goal:1,reward:10000,target:'home'},
  {name:'In dich investieren',text:'Schließe einen Kurs am Campus West ab.',key:'courses',goal:1,reward:18000,target:'school'},

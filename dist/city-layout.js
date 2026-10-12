@@ -1,14 +1,15 @@
 import {EXPANDED_BOUNDS,EXPANSION_ROADS,expansionDistrict} from './expansion-layout.js?v=0.8.1';
+import {WEST_BOUNDS,WEST_ROADS,westDistrict} from './west-edge-layout.js?v=0.8.1';
 // Shared exterior footprint. Detached interiors are deliberately outside this area.
-export const WORLD_BOUNDS=EXPANDED_BOUNDS;
+export const WORLD_BOUNDS={...EXPANDED_BOUNDS,minX:WEST_BOUNDS.minX};
 export const ROAD_X=[-202,-110,0,110];
 export const ROAD_Z=[-65,0,65];
 export const CORE_ROADS=[...ROAD_Z.map(z=>({x:-50,z,w:350,d:13})),...ROAD_X.map(x=>({x,z:0,w:13,d:x===-202?160:250}))];
-export const ROADS=[...CORE_ROADS,...EXPANSION_ROADS];
+export const ROADS=[...CORE_ROADS,...EXPANSION_ROADS,...WEST_ROADS];
 export function exteriorContains(x,z,r=0){
  return Number.isFinite(x)&&Number.isFinite(z)&&x>=WORLD_BOUNDS.minX+r&&x<=WORLD_BOUNDS.maxX-r&&z>=WORLD_BOUNDS.minZ+r&&z<=WORLD_BOUNDS.maxZ-r;
 }
-export const districtOf=p=>expansionDistrict(p)?.name||(p.x<-120?'BAHNHOFSVIERTEL':p.z<-48?'WESTHAFEN':p.z>48?'KANALVIERTEL':p.x>15?'INNENSTADT':'LINDENHÖFE');
+export const districtOf=p=>westDistrict(p)?.name||expansionDistrict(p)?.name||(p.x<-120?'BAHNHOFSVIERTEL':p.z<-48?'WESTHAFEN':p.z>48?'KANALVIERTEL':p.x>15?'INNENSTADT':'LINDENHÖFE');
 export const STATION_PLAZAS=[{x:-174,z:-32,w:42,d:50},{x:-174,z:32.5,w:42,d:51}];
 export const STATION_YARD={minX:-225,maxX:-116.5,minZ:-80,maxZ:80,height:.04};
 export const STATION_STEPS={minX:-124.10,maxX:-123.50,midX:-123.50,low:.04,mid:.17,high:.30,roadClear:7.25};

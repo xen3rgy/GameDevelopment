@@ -1,4 +1,5 @@
 import {routeLength} from './navigation.js?v=0.8.1';
+import {WEST_PATHS} from './west-edge-layout.js?v=0.8.1';
 import {districtCitizenAwake,districtDestinationScore} from './district-identity.js?v=0.8.1';
 import {PedestrianNavigation,PEDESTRIAN_RADIUS,pedestrianSegmentClear as segmentClear} from './pedestrian-navigation.js?v=0.8.1';
 import {approach} from './movement.js?v=0.8.1';
@@ -15,7 +16,7 @@ const random=p=>{p.seed=(Math.imul(p.seed,1664525)+1013904223)>>>0;return p.seed
 
 function surfacePoint(x,z){
  if(onRoad(x,z))return CROSSINGS.some(c=>Math.abs(c.axis==='x'?z-c.z:x-c.x)<1.45&&Math.abs(c.axis==='x'?x-c.x:z-c.z)<7);
- return PAVEMENTS.some(p=>rect(p,x,z))||STATION_PLAZAS.some(p=>rect(p,x,z))||GARDEN_PATHS.some(p=>rect(p,x,z));
+ return PAVEMENTS.some(p=>rect(p,x,z))||STATION_PLAZAS.some(p=>rect(p,x,z))||GARDEN_PATHS.some(p=>rect(p,x,z))||WEST_PATHS.some(p=>rect(p,x,z));
 }
 export function pedestrianSurface(x,z,r=0){
  if(!surfacePoint(x,z))return false;

@@ -1,5 +1,6 @@
 import {CLOTHING_ROOM,CLOTHING_FIXTURES} from './clothing.js?v=0.8.1';
 import {EXPANSION_PATHS} from './expansion-layout.js?v=0.8.1';
+import {WEST_PATHS,westPathHeight} from './west-edge-layout.js?v=0.8.1';
 import {homeFixtures} from './home-layout.js?v=0.8.1';
 export {homeFixtures} from './home-layout.js?v=0.8.1';
 import {onServiceApron} from './service-layout.js?v=0.8.1';
@@ -14,6 +15,7 @@ export function groundHeight(x,z,interior=null){
  if(interior)return .07;
  if(onServiceApron(x,z))return .30;
  const street=streetSurface(x,z);if(street)return street.height;
+ const westPath=WEST_PATHS.find(p=>Math.abs(x-p.x)<=p.w/2&&Math.abs(z-p.z)<=p.d/2);if(westPath)return westPathHeight(westPath,x,z);
  if(onGardenPath(x,z)||EXPANSION_PATHS.some(p=>Math.abs(x-p.x)<=p.w/2&&Math.abs(z-p.z)<=p.d/2))return .02;
  const frontage=frontageSurface(x,z);if(frontage)return frontage.height;
  const inStationYard=x>=STATION_YARD.minX&&x<=STATION_YARD.maxX&&z>=STATION_YARD.minZ&&z<=STATION_YARD.maxZ;
@@ -52,7 +54,10 @@ export class CameraRig{
   this.pitch=this.pitch==null?desiredPitch:this.pitch+(desiredPitch-this.pitch)*orbitEase;
   this.zoom=this.zoom==null?desiredDistance:this.zoom+(desiredDistance-this.zoom)*(1-Math.exp(-dt*12));
   angle=this.angle;pitch=this.pitch;distance=this.zoom;
-  const ease=1-Math.exp(-Math.max(0,dt)*12),targetY=position.y+1.4;
+  const ease=1-Math.exp(-Math.max(0,dt)*12);let targetY=position.y+1.4;
+  // Anticipate parked roofs before they intersect the boom: smoothly elevate
+  // the view instead of snapping into a close-up beside a low vehicle.
+  if(!room&&!shelter)for(const c of colliders){if(!c.parkedScenery)continue;const dx=Math.max(0,Math.abs(position.x-c.x)-c.w),dz=Math.max(0,Math.abs(position.z-c.z)-c.d),gap=Math.hypot(dx,dz),t=Math.max(0,Math.min(1,(3-gap)/2));targetY=Math.max(targetY,position.y+1.4+Math.max(0,c.h+.3-position.y-1.4)*t*t*(3-2*t));}
   this.height=this.height==null?targetY:this.height+(targetY-this.height)*ease;
   const anchor={x:position.x,y:room?Math.min(this.height,room.ceiling-.35):this.height,z:position.z};
   let dir={x:Math.sin(angle)*Math.cos(pitch),y:Math.sin(pitch),z:Math.cos(angle)*Math.cos(pitch)};

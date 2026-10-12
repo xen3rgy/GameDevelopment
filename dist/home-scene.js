@@ -1,3 +1,4 @@
+import {WEST_SLEEP_POSE} from './west-edge-layout.js?v=0.8.1';
 import {buildHomeInteriors} from './home-furnishings.js?v=0.8.1';
 import {homeStyle,homeFixtures,HOME_ALIGNMENT} from './home-layout.js?v=0.8.1';
 import * as THREE from './vendor/three.module.js';
@@ -58,6 +59,12 @@ export class HomeScene{
    const start=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,a.yaw,0)),lying=new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI/2,0,0));p.quaternion.copy(start.slerp(lying,settle));
    for(let i=0;i<2;i++){d.legs[i].rotation.x=-Math.sin(Math.PI*settle)*.7;d.knees[i].rotation.x=Math.sin(Math.PI*settle)*1.0;d.arms[i].rotation.set(-.12,0,i?-.12:.12);d.elbows[i].rotation.set(-.15,0,0);}
    d.upper.rotation.x=.12*settle;if(d.backpack)d.backpack.visible=settle<.1;this.blanket.visible=settle>.95;
+  }else if(a.kind==='roughSleep'){
+   const origin=new THREE.Vector3(a.origin.x,groundHeight(a.origin.x,a.origin.z)-.05,a.origin.z);
+   this.cameraAnchor=origin.clone();p.position.copy(origin).lerp(new THREE.Vector3(WEST_SLEEP_POSE.x,WEST_SLEEP_POSE.y,WEST_SLEEP_POSE.z),settle);
+   const start=new THREE.Quaternion().setFromEuler(new THREE.Euler(0,a.yaw,0)),lying=new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI/2,0,0));p.quaternion.copy(start.slerp(lying,settle));
+   for(let i=0;i<2;i++){d.legs[i].rotation.x=0;d.knees[i].rotation.x=0;d.arms[i].rotation.set(-.08,0,i?-.1:.1);d.elbows[i].rotation.x=-.12;}
+   d.upper.rotation.x=0;if(d.backpack)d.backpack.visible=settle<.1;
   }else if(a.kind==='shower'){
    this.cameraAnchor=new THREE.Vector3(a.origin.x,.02,a.origin.z);
    p.position.set(a.origin.x,.02,a.origin.z).lerp(new THREE.Vector3(305.85+HOME_ALIGNMENT.showerShiftX,.20,2),settle);this.privacy.visible=settle>.1;this.water.visible=settle>.8;

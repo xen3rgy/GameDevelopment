@@ -19,7 +19,7 @@ function kit(){
  k.cylinder=(p,x,y,z,r,h,c)=>k.box(p,x,y,z,r*2,h,r*2,c);k.sphere=(p,x,y,z,r,c)=>k.box(p,x,y,z,r*2,r*2,r*2,c);
  return k;
 }
-const withCanvas=fn=>{const prior=globalThis.document;globalThis.document={createElement:()=>({getContext:()=>({fillRect(){}})})};try{return fn();}finally{globalThis.document=prior;}};
+const withCanvas=fn=>{const prior=globalThis.document;globalThis.document={createElement:()=>({getContext:()=>({fillRect(){},strokeRect(){},beginPath(){},moveTo(){},lineTo(){},stroke(){},ellipse(){},fill(){}})})};try{return fn();}finally{globalThis.document=prior;}};
 
 test('every lane and intersection stays level; pavement patches never occupy road interiors',()=>{
  for(const x of ROAD_X)for(const z of ROAD_Z)for(const dx of [-6,-3,0,3,6])for(const dz of [-6,-3,0,3,6])near(groundHeight(x+dx,z+dz),ROAD_HEIGHT);
@@ -40,6 +40,7 @@ test('intersection corners are rounded, fully surfaced and curb ramps no longer 
  for(let i=0;i<RAMPS.length;i++)for(let j=i+1;j<RAMPS.length;j++){const a=RAMPS[i],b=RAMPS[j];if(a.axis===b.axis)continue;const ox=Math.min(a.x+a.w/2,b.x+b.w/2)-Math.max(a.x-a.w/2,b.x-b.w/2),oz=Math.min(a.z+a.d/2,b.z+b.d/2)-Math.max(a.z-a.d/2,b.z-b.d/2);assert.ok(ox<=1e-8||oz<=1e-8,'perpendicular curb ramps overlap');}
  assert.equal(RAMP_WIDTH,3);
  const world={scene:new THREE.Scene(),staticGroups:[],atmosphere:{materials:[]}},g=buildStreets(world,kit()),surfaces=g.children.filter(m=>m.name.startsWith('Street · ')&&!m.name.endsWith('kerb')),ray=new THREE.Raycaster(),down=new THREE.Vector3(0,-1,0);
+ g.updateMatrixWorld(true);
  for(const [u,v,y] of [[.2,.2,ROAD_HEIGHT],[CORNER_RADIUS-.2,CORNER_RADIUS-.2,PAVEMENT_HEIGHT]]){const x=ROAD_X[1]+HALF_ROAD+u,z=ROAD_Z[1]+HALF_ROAD+v;ray.set(new THREE.Vector3(x,2,z),down);const hits=ray.intersectObjects(surfaces,false);assert.equal(hits.length,1,`corner gap/overlap at ${x},${z}`);near(hits[0].point.y,y,2e-5);}
 }));
 
@@ -53,11 +54,11 @@ test('bollards stay on pavement edges and never occupy vehicle lanes or junction
 
 test('marked crossings have continuous dropped kerbs on both sides and shared traffic priority',()=>{
  for(const c of CROSSINGS)for(const side of [-1,1]){
-  const p=t=>({x:c.x+(c.axis==='x'?side*t:0),z:c.z+(c.axis==='z'?side*t:0)});
+  const half=c.halfRoad??HALF_ROAD;const p=t=>({x:c.x+(c.axis==='x'?side*t:0),z:c.z+(c.axis==='z'?side*t:0)});
   let previous=ROAD_HEIGHT;
-  for(let d=6.45;d<=8.6;d+=.05){const q=p(d),y=groundHeight(q.x,q.z);assert.ok(y>=previous-1e-7);assert.ok(y-previous<.005);previous=y;}
+  for(let d=half-.05;d<=half+2.1;d+=.05){const q=p(d),y=groundHeight(q.x,q.z);assert.ok(y>=previous-1e-7);assert.ok(y-previous<.005);previous=y;}
   near(previous,PAVEMENT_HEIGHT);
-  const waiting=p(7.5),moving={...waiting,vx:c.axis==='x'?-side:0,vz:c.axis==='z'?-side:0};
+  const waiting=p(half+1),moving={...waiting,vx:c.axis==='x'?-side:0,vz:c.axis==='z'?-side:0};
   assert.ok(crossingObstacles([moving]).length>0);assert.equal(crossingObstacles([{...waiting,vx:0,vz:0}]).length,0);
  }
 });
@@ -67,12 +68,12 @@ test('road meshes and every ramp flare match the actual support height without d
  const surfaces=g.children.filter(m=>m.name.startsWith('Street · ')&&!m.name.endsWith('kerb'));
  const ray=new THREE.Raycaster(),down=new THREE.Vector3(0,-1,0);
  for(const r of RAMPS){for(const lateral of [-1.4,-1.1,0,1.1,1.4])for(const normal of [.17,.66,1.33,1.77]){
-  const x=r.crossing.x+(r.axis==='z'?lateral:(6.5+normal)*r.side),z=r.crossing.z+(r.axis==='z'?(6.5+normal)*r.side:lateral);
+  const x=r.crossing.x+(r.axis==='z'?lateral:((r.crossing.halfRoad??HALF_ROAD)+normal)*r.side),z=r.crossing.z+(r.axis==='z'?((r.crossing.halfRoad??HALF_ROAD)+normal)*r.side:lateral);
   ray.set(new THREE.Vector3(x,2,z),down);const hits=ray.intersectObjects(surfaces,false);assert.ok(hits.length>0,`missing ${x},${z}`);
   near(hits[0].point.y,groundHeight(x,z),2e-5);assert.equal(hits.length,1,`overlap ${x},${z}`);
  }}
  for(const x of ROAD_X)for(const z of ROAD_Z){ray.set(new THREE.Vector3(x+.123,2,z+.321),down);const hits=ray.intersectObjects(surfaces,false);assert.equal(hits.length,1);near(hits[0].point.y,ROAD_HEIGHT);}
- assert.equal(world.atmosphere.materials.length,1);
+ assert.equal(world.atmosphere.materials.length,2);
 }));
 
 test('jump trajectory is independent of the road or kerb below until actual landing',()=>{
