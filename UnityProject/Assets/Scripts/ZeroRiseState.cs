@@ -26,7 +26,7 @@ namespace ZeroRise
         public float minute = 480f;
         public float x = -175f, z = -8f, yaw = 0f;
         public NeedState needs = new NeedState();
-        public int bottles = 0, returned = 0, jobs = 0, earned = 0, food = 0, water = 0;
+        public int bottles = 0, returned = 0, jobs = 0, earned = 0, food = 0, rolls = 0, water = 0, consumed = 0;
         public bool hasHome = false;
         public int sleepCount = 0;
         public bool hasVehicle = false, riding = false;
@@ -50,7 +50,7 @@ namespace ZeroRise
             needs.Normalize(); money = Mathf.Max(0, money); bank = Mathf.Max(0, bank);
             debt = Mathf.Max(0, debt); day = Mathf.Max(1, day);
             minute = Mathf.Repeat(minute, 1440f);
-            bottles = Mathf.Clamp(bottles, 0, 10000);
+            bottles = Mathf.Clamp(bottles, 0, 10000); food = Mathf.Max(0, food); rolls = Mathf.Max(0, rolls); water = Mathf.Max(0, water); consumed = Mathf.Max(0, consumed);
             collectedBottleIds ??= new int[0];
             if (string.IsNullOrEmpty(mode)) mode = "story";
             if (string.IsNullOrEmpty(vehicleType)) vehicleType = "car";

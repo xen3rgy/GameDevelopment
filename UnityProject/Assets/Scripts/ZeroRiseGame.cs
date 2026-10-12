@@ -36,6 +36,12 @@ namespace ZeroRise
             var root=new GameObject("ZERO // RISE world");
             view=root.AddComponent<ZeroRiseWorldView>();
             view.Build(state);
+            if(state.riding && view.Vehicle!=null)
+            {
+                view.Controller.enabled=false;
+                view.PlayerVisual.gameObject.SetActive(false);
+                view.Player.transform.position=view.Vehicle.transform.position;
+            }
             lookYaw=state.yaw;lookPitch=16;
             smoothCamera=view.Player.transform.position+new Vector3(0,3,-7);
             view.Camera.transform.position=smoothCamera;
@@ -47,7 +53,6 @@ namespace ZeroRise
         private void Continue() {playing=true;Status("Willkommen zurück in Lindenstadt.");}
         private void Save()
         {
-            if(!playing)return;
             state.collectedBottleIds=new int[collected.Count];collected.CopyTo(state.collectedBottleIds);
             try{ZeroRiseSave.Write(state);}catch(Exception ex){Debug.LogError(ex);Status("Speichern fehlgeschlagen: "+ex.Message);}
         }
@@ -329,9 +334,18 @@ namespace ZeroRise
         }
         private void Eat()
         {
-            if(state.food<=0){Status("Kein Sandwich im Rucksack.");return;}
-            state.food--;state.needs.hunger=Mathf.Min(100,state.needs.hunger+38);
-            Status("Sandwich gegessen.");CheckQuests();
+            if(state.food>0)
+            {
+                state.food--;state.needs.hunger=Mathf.Min(100,state.needs.hunger+38);
+                Status("Sandwich gegessen.");
+            }
+            else if(state.rolls>0)
+            {
+                state.rolls--;state.needs.hunger=Mathf.Min(100,state.needs.hunger+14);
+                Status("Backshop-Semmel gegessen.");
+            }
+            else {Status("Kein verzehrfertiges Essen im Rucksack.");return;}
+            state.consumed++;CheckQuests();
         }
         private void Drink()
         {
@@ -342,7 +356,7 @@ namespace ZeroRise
                 else Status("Kein Wasser im Rucksack.");
                 return;
             }
-            state.water--;state.bottles++;state.needs.thirst=Mathf.Min(100,state.needs.thirst+45);
+            state.water--;state.bottles++;state.consumed++;state.needs.thirst=Mathf.Min(100,state.needs.thirst+45);
             Status("Wasser getrunken. Leere Pfandflasche erhalten.");CheckQuests();
         }
         private void Purchase(string id,int price)
@@ -350,7 +364,7 @@ namespace ZeroRise
             if(state.money<price){Status("Nicht genug Bargeld.");return;}
             state.money-=price;
             if(id=="water")state.water++;
-            else if(id=="roll")state.food++;
+            else if(id=="roll")state.rolls++;
             else state.food++;
             Status(id+" gekauft für "+Currency(price));
         }
@@ -375,7 +389,7 @@ namespace ZeroRise
                 {
                     case 0:completed=collected.Count>=5;break;
                     case 1:completed=state.returned>=5;break;
-                    case 2:completed=state.food>=0&&state.water>=0&&state.playedSeconds>60&&state.earned>0;break;
+                    case 2:completed=state.consumed>=1;break;
                     case 3:completed=state.jobs>=1;break;
                     case 4:completed=state.sleepCount>=1;break;
                     case 5:completed=state.hasHome;break;
@@ -448,7 +462,7 @@ namespace ZeroRise
             NeedBar(30,803,"Durst",state.needs.thirst,Art.Hex(0x7299be));
             NeedBar(30,828,"Energie",state.needs.energy,Art.Hex(0x7ba582));
             GUI.Label(new Rect(30,859,370,18),
-                "Pfand: "+state.bottles+"  ·  Essen: "+state.food+"  ·  Wasser: "+state.water,small);
+                "Pfand: "+state.bottles+"  ·  Essen: "+(state.food+state.rolls)+"  ·  Wasser: "+state.water,small);
 
             Panel(new Rect(1170,18,412,96),new Color(.045f,.115f,.14f,.88f));
             GUI.Label(new Rect(1184,29,380,26),focusName.Length>0?focusName:"WASD · Bewegen / Rechtsklick · Kamera",label);
