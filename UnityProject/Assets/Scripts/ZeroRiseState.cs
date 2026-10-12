@@ -99,6 +99,8 @@ namespace ZeroRise
         public string mode;
         public int money, bank, debt, day, quest;
         public float minute;
+        public bool inside;
+        public string interior;
         public BrowserPoint position;
         public NeedState needs;
     }
@@ -110,6 +112,8 @@ namespace ZeroRise
             var src = JsonUtility.FromJson<BrowserSnapshot>(json);
             if (src == null || (src.mode != "story" && src.mode != "sandbox"))
                 throw new ArgumentException("Not a ZERO // RISE browser save");
+            if (src.inside || !string.IsNullOrEmpty(src.interior))
+                throw new ArgumentException("Leave your browser interior and export an OUTDOOR save before partial import.");
             var state = GameState.New(src.mode == "sandbox");
             state.money = Mathf.Max(0, src.money); state.bank = Mathf.Max(0, src.bank);
             state.debt = Mathf.Max(0, src.debt); state.day = Mathf.Max(1, src.day);

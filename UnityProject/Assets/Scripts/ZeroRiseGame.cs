@@ -374,7 +374,7 @@ namespace ZeroRise
             if(state.hasVehicle){Status("Du besitzt bereits ein Fahrzeug (Prototyp-Limit).");return;}
             if(state.money<price){Status("Dafür reicht dein Geld nicht.");return;}
             state.money-=price;state.hasVehicle=true;state.vehicleType=type;
-            state.vehicleX=79;state.vehicleZ=16;state.vehicleYaw=180;
+            state.vehicleX=79;state.vehicleZ=8;state.vehicleYaw=180;
             state.vehicleFuel=type=="bike"?100:45;state.vehicleCondition=100;
             view.MakeVehicle(state);garageOpen=false;
             Status("Fahrzeug gekauft. F neben dem Fahrzeug zum Einsteigen.");
