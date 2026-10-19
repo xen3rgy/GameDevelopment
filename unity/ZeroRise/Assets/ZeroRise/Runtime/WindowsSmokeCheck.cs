@@ -96,6 +96,28 @@ namespace ZeroRise
             float residentEnd=0;int activities=0;if(residents)foreach(var person in residents.people){residentEnd+=person.totalDistance;if(person.state==PedestrianAgent.Behaviour.Activity)activities++;}
             pass=pass&&residentEnd>residentStart+1&&activities>0;
             Debug.Log("WINDOWS RESIDENT SMOKE: "+(residents?residents.people.Length:0)+" people, "+activities+" active activities, "+(residentEnd-residentStart).ToString("F2")+" m walked during boarding verification");
+            // Unity batch mode does not present the game camera. Explicitly
+            // render the shipped HDRP pipeline before testing GPU water time;
+            // ordinary Update/physics frames alone do not simulate/render water.
+            if(canal&&Camera.main)
+            {
+                var camera=Camera.main;player.orbit.enabled=false;
+                camera.transform.SetPositionAndRotation(new Vector3(-109.2f,2.8f,-26),Quaternion.LookRotation(new Vector3(-121,0,13)-new Vector3(-109.2f,2.8f,-26)));
+                var render=new RenderTexture(1280,720,24,RenderTextureFormat.ARGB32);camera.targetTexture=render;
+                for(int i=0;i<70;i++)
+                {
+                    RenderPipeline.SubmitRenderRequest(camera,new RenderPipeline.StandardRequest{destination=render});
+                    if(i==10)waterStart=canal.simulationTime;
+                    yield return null;
+                }
+                var waterArgs=Environment.GetCommandLineArgs();int waterOutput=Array.IndexOf(waterArgs,"--qa-output");
+                if(waterOutput>=0&&waterOutput+1<waterArgs.Length)
+                {
+                    var previous=RenderTexture.active;RenderTexture.active=render;var pixels=new Texture2D(1280,720,TextureFormat.RGB24,false);pixels.ReadPixels(new Rect(0,0,1280,720),0,0);pixels.Apply();
+                    Directory.CreateDirectory(waterArgs[waterOutput+1]);File.WriteAllBytes(Path.Combine(waterArgs[waterOutput+1],"windows-canal.png"),pixels.EncodeToPNG());Destroy(pixels);RenderTexture.active=previous;
+                }
+                camera.targetTexture=null;render.Release();Destroy(render);
+            }
             float waterAdvance=canal?canal.simulationTime-waterStart:0;pass=pass&&waterAdvance>.1f;
             Debug.Log("WINDOWS CANAL SMOKE: "+(canal&&waterAdvance>.1f?"PASSED":"FAILED")+" - native river GPU simulation advanced "+waterAdvance.ToString("F2")+" s");
             Debug.Log("ZERO RISE WINDOWS SMOKE: "+(pass?"PASSED":"FAILED"));
