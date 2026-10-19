@@ -1,0 +1,24 @@
+#pragma kernel Probe
+#pragma kernel ShrubProbe
+#include "../Art/VegetationBend.hlsl"
+StructuredBuffer<float4> _Points;
+StructuredBuffer<float4> _Roots;
+RWStructuredBuffer<float3> _Output;
+int _Count;
+[numthreads(32,1,1)]
+void Probe(uint3 id:SV_DispatchThreadID)
+{
+    if(id.x>=_Count)return;
+    float4 root=_Roots[id.x];float3 axis;float angle;
+    ZRPlantRotation(root.xyz,root.w,_ZRPlantTime,axis,angle);
+    float s,c;sincos(angle,s,c);
+    _Output[id.x]=root.xyz+ZRRotate(_Points[id.x].xyz-root.xyz,axis,s,c);
+}
+
+[numthreads(32,1,1)]
+void ShrubProbe(uint3 id:SV_DispatchThreadID)
+{
+    if(id.x>=_Count)return;
+    float3 axis;float angle;
+    _Output[id.x]=ZRShrubDeform(_Points[id.x].xyz,_Roots[id.x].xyz,_ZRPlantTime,axis,angle);
+}

@@ -1,0 +1,58 @@
+{
+  "name": "WESTBRUCH",
+  "width": 264,
+  "depth": 228,
+  "spawn": { "x": -35, "z": -68 },
+  "roads": [
+    { "id": "Westbruchstrasse", "x": 0, "z": 0, "w": 200, "d": 10 },
+    { "id": "Nordring", "x": 0, "z": 80, "w": 200, "d": 10 },
+    { "id": "Suedring", "x": 0, "z": -80, "w": 200, "d": 10 },
+    { "id": "Uferstrasse", "x": -94, "z": 0, "w": 10, "d": 170 },
+    { "id": "Hofstrasse", "x": 20, "z": 0, "w": 8, "d": 170 },
+    { "id": "Stadtanschluss", "x": 94, "z": 0, "w": 12, "d": 228 }
+  ],
+  "paths": [
+    { "id": "Nordhof", "x": -35, "z": 42, "w": 104, "d": 3 },
+    { "id": "Suedhof", "x": -35, "z": -40, "w": 104, "d": 3 },
+    { "id": "SpielplatzZugang", "x": -35, "z": -57, "w": 3, "d": 37 },
+    { "id": "SpielplatzTor", "x": -42.5, "z": -49, "w": 18, "d": 3 },
+    { "id": "WerkstattZufahrt", "x": 55, "z": -39, "w": 62, "d": 7 },
+    { "id": "LadenZugang", "x": 66, "z": 24, "w": 42, "d": 3 }
+  ],
+  "buildings": [
+    { "id": "Uferhof_12", "x": -70, "z": 23, "w": 24, "d": 14, "floors": 3, "yaw": 0, "kind": "housing", "surface": "plaster", "tone": "#b3a28b" },
+    { "id": "Uferhof_14", "x": -38, "z": 22, "w": 22, "d": 14, "floors": 4, "yaw": 0, "kind": "housing", "surface": "brick", "tone": "#bdada0" },
+    { "id": "Hofstrasse_3", "x": -4, "z": 24, "w": 22, "d": 16, "floors": 3, "yaw": 0, "kind": "housing", "surface": "plaster", "tone": "#9b9584" },
+    { "id": "Nordhof_8", "x": -70, "z": 61, "w": 24, "d": 14, "floors": 3, "yaw": 0, "kind": "housing", "surface": "plaster", "tone": "#b0a489" },
+    { "id": "Nordhof_10", "x": -39, "z": 61, "w": 22, "d": 14, "floors": 3, "yaw": 0, "kind": "housing", "surface": "brick", "tone": "#ab978a" },
+    { "id": "Nordhof_16", "x": -5, "z": 61, "w": 22, "d": 14, "floors": 4, "yaw": 0, "kind": "housing", "surface": "plaster", "tone": "#afa08c" },
+    { "id": "Suedhof_2", "x": -70, "z": -23, "w": 24, "d": 14, "floors": 3, "yaw": 180, "kind": "housing", "surface": "brick", "tone": "#b6a495" },
+    { "id": "Suedhof_4", "x": -38, "z": -23, "w": 22, "d": 14, "floors": 3, "yaw": 180, "kind": "housing", "surface": "plaster", "tone": "#baa98c" },
+    { "id": "Suedhof_6", "x": -3, "z": -22, "w": 24, "d": 16, "floors": 4, "yaw": 180, "kind": "housing", "surface": "plaster", "tone": "#a59989" },
+    { "id": "Garagen_West", "x": -67, "z": -65, "w": 30, "d": 8, "floors": 1, "yaw": 0, "kind": "garage", "surface": "brick", "tone": "#a99c8f" },
+    { "id": "Pfand_und_Spar", "x": 57, "z": 47, "w": 26, "d": 16, "floors": 3, "yaw": 0, "kind": "shop", "surface": "plaster", "tone": "#b9ad95" },
+    { "id": "Stadthof_21", "x": 57, "z": 13, "w": 24, "d": 10, "floors": 3, "yaw": 0, "kind": "housing", "surface": "brick", "tone": "#bca698" },
+    { "id": "Werkstatt", "x": 56, "z": -57, "w": 32, "d": 18, "floors": 1, "yaw": 180, "kind": "workshop", "surface": "brick", "tone": "#9e9488" },
+    { "id": "Stadthof_25", "x": 56, "z": -19, "w": 28, "d": 16, "floors": 3, "yaw": 180, "kind": "housing", "surface": "plaster", "tone": "#aa9b83" },
+    { "id": "Nordring_31", "x": -64, "z": 100, "w": 28, "d": 14, "floors": 3, "yaw": 0, "kind": "housing", "surface": "brick", "tone": "#b8aba0" },
+    { "id": "Nordring_33", "x": -24, "z": 100, "w": 28, "d": 14, "floors": 4, "yaw": 0, "kind": "housing", "surface": "plaster", "tone": "#b9b09f" },
+    { "id": "Nordring_35", "x": 57, "z": 100, "w": 28, "d": 14, "floors": 3, "yaw": 0, "kind": "housing", "surface": "brick", "tone": "#b4aa9e" },
+    { "id": "Suedring_41", "x": -64, "z": -100, "w": 28, "d": 14, "floors": 3, "yaw": 180, "kind": "housing", "surface": "plaster", "tone": "#b6a995" },
+    { "id": "Suedring_43", "x": -24, "z": -100, "w": 28, "d": 14, "floors": 3, "yaw": 180, "kind": "housing", "surface": "brick", "tone": "#b7a595" },
+    { "id": "Suedring_45", "x": 57, "z": -100, "w": 28, "d": 14, "floors": 4, "yaw": 180, "kind": "housing", "surface": "plaster", "tone": "#aca28e" }
+  ],
+  "trees": [
+    { "x": -84, "z": 46 }, { "x": -52, "z": 44 }, { "x": -20, "z": 45 },
+    { "x": -85, "z": -47 }, { "x": -43, "z": -48 }, { "x": -20, "z": -65 },
+    { "x": 32, "z": 62 }, { "x": 79, "z": 38 }, { "x": 79, "z": -23 },
+    { "x": 33, "z": -25 }, { "x": -106, "z": 34 }, { "x": -106, "z": -30 },
+    { "x": -106, "z": 68 }, { "x": -106, "z": -69 }
+  ],
+  "cars": [
+    { "x": -55, "z": -36, "yaw": 90, "driveable": true },
+    { "x": -76, "z": 37, "yaw": 90, "driveable": false },
+    { "x": -12, "z": 38, "yaw": 90, "driveable": false },
+    { "x": 61, "z": -43, "yaw": 90, "driveable": false },
+    { "x": 81, "z": 8, "yaw": 0, "driveable": false }
+  ]
+}

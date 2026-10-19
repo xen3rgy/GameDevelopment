@@ -1,0 +1,1 @@
+Geometry and diffuse image copied from dist/assets/lindenstadt-tree.glb. Original provenance remains that of the browser asset; verify its original commercial license before shipping on Steam. No third-party assets downloaded for this port.
