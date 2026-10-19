@@ -202,24 +202,7 @@ namespace ZeroRise.Editor
         }
         static void Bridge(Transform parent)
         {
-            var root=Group("Rail underpass – east connection",parent,new Vector3(94,0,65)).transform;
-            Box("Bridge deck",root,new Vector3(0,6.2f,0),new Vector3(44,.9f,8),stone);
-            foreach(int s in new[]{-1,1})
-            {
-                Box("Abutment",root,new Vector3(s*16,2.9f,0),new Vector3(2.2f,5.8f,8),stone);
-                Box("Railway parapet",root,new Vector3(0,7,s*3.8f),new Vector3(44,.7f,.35f),stone);
-                Box("Rail",root,new Vector3(0,6.76f,s*.72f),new Vector3(44,.12f,.09f),metal,false);
-                Box("Bridge girder",root,new Vector3(0,5.56f,s*2.8f),new Vector3(40,.45f,.32f),metal);
-            }
-            for(float x=-21;x<22;x+=.6f) Box("Rail sleeper",root,new Vector3(x,6.69f,0),new Vector3(.19f,.12f,2.1f),timber,false);
-            foreach(int s in new[]{-1,1})
-            {
-                var lightObj=Group("Underpass warm lamp",root,new Vector3(s*10,5.45f,0));
-                var light=lightObj.AddComponent<Light>();light.type=LightType.Point;light.color=new Color(1,.73f,.38f);light.range=10;
-                lightObj.AddComponent<HDAdditionalLightData>();light.intensity=500;
-                Box("Lamp housing",root,new Vector3(s*10,5.58f,0),new Vector3(.65f,.1f,.35f),metal,false);
-            }
-            Sign("WESTBRUCH",root,new Vector3(0,5.9f,-4.06f),5,metal,Color.white);
+            WestbruchBridgeStart.Build(parent,false);
         }
         static void WorkshopYard(Transform parent)
         {
