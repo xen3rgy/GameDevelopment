@@ -1,0 +1,40 @@
+# ZERO // RISE - Unity project generated files
+# Unity project location: unity/ZeroRise/
+# Keep Assets/, Packages/, and ProjectSettings/ under version control.
+
+/unity/ZeroRise/[Ll]ibrary/
+/unity/ZeroRise/[Tt]emp/
+/unity/ZeroRise/[Oo]bj/
+/unity/ZeroRise/[Bb]uild/
+/unity/ZeroRise/[Bb]uilds/
+/unity/ZeroRise/[Ll]ogs/
+/unity/ZeroRise/[Uu]ser[Ss]ettings/
+/unity/ZeroRise/[Mm]emoryCaptures/
+/unity/ZeroRise/[Rr]ecordings/
+
+# IDE and generated solution files
+/unity/ZeroRise/.vs/
+/unity/ZeroRise/.vscode/
+/unity/ZeroRise/.idea/
+/unity/ZeroRise/*.csproj
+/unity/ZeroRise/*.sln
+/unity/ZeroRise/*.slnx
+/unity/ZeroRise/*.suo
+/unity/ZeroRise/*.user
+/unity/ZeroRise/*.userprefs
+/unity/ZeroRise/*.pidb
+/unity/ZeroRise/*.booproj
+/unity/ZeroRise/*.svd
+
+# Unity crash/debug data
+/unity/ZeroRise/sysinfo.txt
+/unity/ZeroRise/mono_crash.*
+/unity/ZeroRise/Editor.log
+
+# Operating system junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Note: .gitignore does not untrack files already committed.
+# Keep Unity .meta files: they preserve asset references.
