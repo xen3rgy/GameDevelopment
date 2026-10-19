@@ -23,7 +23,7 @@ namespace ZeroRise.Editor
             Fence(props,new Vector3(-131.5f,0,-113.5f),new Vector3(131.5f,0,-113.5f));
             Fence(props,new Vector3(-131.5f,0,113.5f),new Vector3(131.5f,0,113.5f));
             Fence(props,new Vector3(-131.5f,0,-113.5f),new Vector3(-131.5f,0,113.5f));
-            Fence(props,new Vector3(131.5f,0,-113.5f),new Vector3(131.5f,0,113.5f));
+            // The engineered east railway area owns the connected service-yard boundary.
             foreach(int s in new[]{-1,1})
             {
                 var signRoot=Group("Next district construction boundary",props,new Vector3(94,0,s*112.8f),s==1?0:180).transform;

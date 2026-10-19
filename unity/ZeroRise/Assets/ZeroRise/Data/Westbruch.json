@@ -2,7 +2,7 @@
   "name": "WESTBRUCH",
   "width": 264,
   "depth": 228,
-  "spawn": { "x": 83, "z": 66 },
+  "spawn": { "x": 116, "z": 70 },
   "roads": [
     { "id": "Westbruchstrasse", "x": 0, "z": 0, "w": 200, "d": 10 },
     { "id": "Nordring", "x": 0, "z": 80, "w": 200, "d": 10 },

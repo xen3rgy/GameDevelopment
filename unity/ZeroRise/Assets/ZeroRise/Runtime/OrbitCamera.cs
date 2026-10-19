@@ -8,12 +8,14 @@ namespace ZeroRise
         public LayerMask obstacles = 1;
         public float distance = 5.5f;
         public float targetHeight = 1.5f;
+        public float initialYaw;
         float yaw, pitch = 19, boom = 5.5f;
         Vector3 currentAim,aimVelocity;
         bool initialized;
         Transform ignoredVehicle;
         bool releasingVehicle;
         readonly RaycastHit[] hits = new RaycastHit[32];
+        void Awake(){yaw=initialYaw;}
         public void Follow(Transform next, float height, float desiredDistance)
         { target = next; targetHeight = height; distance = desiredDistance; }
         public void IgnoreVehicle(Transform vehicle){ignoredVehicle=vehicle;releasingVehicle=false;}

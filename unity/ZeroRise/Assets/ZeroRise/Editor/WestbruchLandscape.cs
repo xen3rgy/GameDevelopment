@@ -29,7 +29,9 @@ namespace ZeroRise.Editor
             if(layout.buildings.Any(p=>RectDistance(p,x,z,1.15f)<radius))return false;
             if(layout.cars.Any(c=>Mathf.Abs(x-c.x)<(c.yaw==90?2.6f:1.35f)+radius&&Mathf.Abs(z-c.z)<(c.yaw==90?1.35f:2.6f)+radius))return false;
             if(x>-81&&x<-49&&z>-57&&z<-41)return false;
-            if(x>73&&x<117&&z>58&&z<72)return false;
+            if(WestbruchOverpassArchitecture.IsPaved(x,z,radius))return false;
+            if(x>103.5f-radius&&x<133+radius&&(z<63+radius||z>97-radius))return false;
+            if(x>112.7f&&x<121.3f&&z>66&&z<72.4f)return false;
             return true;
         }
         // The circulation plan is the cheap first filter; the real collider

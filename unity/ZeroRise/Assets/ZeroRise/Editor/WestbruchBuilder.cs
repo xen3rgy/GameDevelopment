@@ -73,7 +73,7 @@ namespace ZeroRise.Editor
             var controller = player.AddComponent<CharacterController>(); controller.height = 1.8f; controller.radius = .3f;
             controller.center = Vector3.up * .9f; controller.stepOffset = .26f; controller.slopeLimit = 45;
             var motor = player.AddComponent<ThirdPersonMotor>(); motor.orbit = orbit;
-            PlayerAvatarBuilder.Build(motor);orbit.Follow(player.transform, 1.5f, 5.5f);
+            PlayerAvatarBuilder.Build(motor);orbit.initialYaw=-90;player.transform.rotation=Quaternion.Euler(0,-90,0);orbit.Follow(player.transform, 1.5f, 5.5f);
             foreach (var car in layout.cars)
             {
                 var built = WestbruchProps.Car(root, car);
@@ -86,7 +86,7 @@ namespace ZeroRise.Editor
             WestbruchPedestrianBuilder.Build(root,layout);
             WestbruchDesignPass.Apply(root,layout);
             WestbruchCanalBuilder.Build(root);
-            cameraObject.transform.position = layout.spawn.Position(4) + Vector3.back * 6;
+            cameraObject.transform.position = layout.spawn.Position(4) + Vector3.right * 6;
             cameraObject.transform.LookAt(layout.spawn.Position(1.4f));
             Physics.SyncTransforms();
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -350,10 +350,7 @@ namespace ZeroRise.Editor
         [MenuItem("ZERO RISE/Windows-Prototyp bauen")]
         public static void BuildWindows()
         {
-            if(!File.Exists(ScenePath)) Build();
-            Directory.CreateDirectory("Builds/Windows");
-            var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions { scenes=new[]{ScenePath}, locationPathName="Builds/Windows/ZeroRise.exe", target=BuildTarget.StandaloneWindows64, options=BuildOptions.None });
-            if(report.summary.result!=UnityEditor.Build.Reporting.BuildResult.Succeeded) throw new Exception("Windows build failed: "+report.summary.result);
+            WestbruchOverpassBuild.FromMenu();
         }
     }
 }

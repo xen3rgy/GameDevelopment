@@ -161,16 +161,6 @@ namespace ZeroRise.Editor
                 }
                 for(int i=0;i<3;i++){var ring=Model("Salvaged tyre",root,new Vector3(2,.13f+i*.23f,-.4f),Ring(.34f,.095f),Material("Rubber",null,new Color(.05f,.05f,.05f)));ring.transform.localRotation=Quaternion.Euler(90,0,0);}
             }
-            // Railway continuation rests on masonry beyond the clear road span.
-            Box("Railway east retaining fill",parent,new Vector3(123.5f,3.25f,65),new Vector3(15,6.5f,8),concrete);
-            Box("Railway west retaining fill",parent,new Vector3(63,3.25f,65),new Vector3(18,6.5f,8),concrete);
-            foreach(float x in new[]{63f,123.5f})
-            {
-                float width=x>100?15:18;
-                Box("Ballast atop abutment",parent,new Vector3(x,6.57f,65),new Vector3(width,.14f,7.8f),Material("RailBallast","yard",new Color(.66f,.66f,.64f)));
-                foreach(float z in new[]{64.28f,65.72f})Box("Rail continuation",parent,new Vector3(x,6.76f,z),new Vector3(width,.12f,.09f),metal,false);
-                for(float xx=x-width*.5f+.3f;xx<x+width*.5f;xx+=.6f)Box("Rail continuation sleeper",parent,new Vector3(xx,6.69f,65),new Vector3(.19f,.12f,2.1f),wood,false);
-            }
         }
         static void RoadDetails(Transform parent)
         {

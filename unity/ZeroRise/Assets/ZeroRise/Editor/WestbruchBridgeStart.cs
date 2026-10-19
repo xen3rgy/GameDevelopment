@@ -27,6 +27,7 @@ namespace ZeroRise.Editor
         [MenuItem("ZERO RISE/Bridge and story start/Apply local patch")]
         public static void Apply()
         {
+            Directory.CreateDirectory("QA");
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Exit play mode before applying the local patch.");
             if(EditorSceneManager.GetActiveScene().path!=WestbruchBuilder.ScenePath)
                 EditorSceneManager.OpenScene(WestbruchBuilder.ScenePath);
@@ -40,9 +41,8 @@ namespace ZeroRise.Editor
             if(old)UnityEngine.Object.DestroyImmediate(old);
             if(current)UnityEngine.Object.DestroyImmediate(current);
             var camp=GameObject.Find(CampName);if(camp)UnityEngine.Object.DestroyImmediate(camp);
+            WestbruchOverpassArchitecture.ClearLegacy(parent.root);
             Clear();Build(parent);
-            var approachTree=parent.root.GetComponentsInChildren<LODGroup>().FirstOrDefault(t=>Vector2.Distance(new Vector2(t.transform.position.x,t.transform.position.z),new Vector2(32,62))<.2f);
-            if(approachTree)approachTree.transform.position=new Vector3(30,Ground(30,57.5f)-.02f,57.5f);
             PlacePlayer();
             Physics.SyncTransforms();
             EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
@@ -82,98 +82,19 @@ namespace ZeroRise.Editor
         }
         public static void Build(Transform parent,bool bakeLocal=true)
         {
-            var bridge=Group(BridgeName,parent,new Vector3(94,0,65)).transform;
-            var asphalt=Existing("Asphalt");var rubber=Existing("StreetLife_Rubber");
-            Part("Load bearing concrete deck",bridge,new Vector3(0,6.2f,0),new Vector3(44,.9f,8),Concrete,true);
-            Part("Upper carriageway",bridge,new Vector3(0,6.69f,0),new Vector3(44,.08f,6.8f),asphalt,true);
-            var stain=Material("Bridge_MineralRunoff", "concrete",new Color(.34f,.36f,.30f),.05f);
-            foreach(int side in new[]{-1,1})
-            {
-                float x=side*16;
-                Part("Grounded abutment footing",bridge,new Vector3(x,.05f,0),new Vector3(3.2f,.75f,8.5f),Concrete,true);
-                Part("Concrete abutment",bridge,new Vector3(x,2.9f,0),new Vector3(2.2f,5.8f,8),Concrete,true);
-                Part("Pier cap",bridge,new Vector3(x,5.45f,0),new Vector3(3.1f,.55f,8),Concrete,true);
-                foreach(float z in new[]{-2.7f,0,2.7f})
-                    Part("Elastomer bearing",bridge,new Vector3(x,5.78f,z),new Vector3(.75f,.12f,.75f),rubber);
-                Part("Raised edge kerb",bridge,new Vector3(0,6.79f,side*3.65f),new Vector3(44,.28f,.6f),Concrete,true);
-                for(float xx=-21.5f;xx<=22;xx+=2.4f)
-                {
-                    Part("Railing base plate",bridge,new Vector3(xx,6.95f,side*3.75f),new Vector3(.23f,.05f,.23f),Metal);
-                    Part("Guardrail post",bridge,new Vector3(xx,7.43f,side*3.75f),new Vector3(.075f,.96f,.075f),Metal,true);
-                }
-                foreach(float h in new[]{7.18f,7.55f,7.93f})
-                    Part("Continuous safety rail",bridge,new Vector3(0,h,side*3.75f),new Vector3(44,.065f,.07f),Metal,true);
-                // Narrow board-form seams and irregular drip traces, never solid walls.
-                for(float xx=-20;xx<=20;xx+=4)
-                {
-                    Part("Deck construction seam",bridge,new Vector3(xx,6.15f,side*4.004f),new Vector3(.014f,.86f,.008f),stain);
-                    float h=.18f+Mathf.PerlinNoise(xx+32,side+2)*.37f;
-                    Part("Water runoff below scupper",bridge,new Vector3(xx+.4f,6.59f-h*.5f,side*4.009f),new Vector3(.10f,h,.009f),stain);
-                }
-                for(float yy=.9f;yy<5.3f;yy+=1.35f)
-                    Part("Abutment form joint",bridge,new Vector3(x,yy,-4.008f),new Vector3(2.18f,.018f,.009f),stain);
-                foreach(float xx in new[]{-15.5f,15.5f})
-                {
-                    Cylinder("Rainwater downpipe",bridge,new Vector3(xx,2.8f,side*4.16f),.065f,5.6f,Metal);
-                    foreach(float y in new[]{.6f,2.4f,4.2f})Part("Pipe wall bracket",bridge,new Vector3(xx,y,side*4.08f),new Vector3(.21f,.04f,.20f),Metal);
-                    Part("Drain gravel bed",bridge,new Vector3(xx,.015f,side*4.55f),new Vector3(.65f,.035f,.8f),Existing("CompactedSoil"));
-                }
-            }
-            foreach(float z in new[]{-2.8f,0,2.8f})Part("Underside concrete beam",bridge,new Vector3(0,5.47f,z),new Vector3(44,.58f,.48f),Concrete,true);
-            for(float x=-20;x<=20;x+=8)Part("Transverse diaphragm",bridge,new Vector3(x,5.47f,0),new Vector3(.30f,.50f,7.4f),Concrete);
-            foreach(float x in new[]{-17.2f,17.2f})
-                Part("Expansion joint",bridge,new Vector3(x,6.737f,0),new Vector3(.09f,.015f,6.8f),rubber);
-            for(float x=-20;x<22;x+=4)
-                Part("Worn centre dash",bridge,new Vector3(x,6.738f,0),new Vector3(1.8f,.009f,.11f),Existing("OldPaper"));
-            var glow=Material("Bridge_WarmDiffuser",null,new Color(.85f,.79f,.60f),.2f);
-            glow.SetColor("_EmissiveColor",new Color(2.8f,2.2f,1.5f));HDMaterial.ValidateMaterial(glow);EditorUtility.SetDirty(glow);
-            foreach(float x in new[]{-11f,0,11})
-            {
-                Part("Sealed underside luminaire",bridge,new Vector3(x,5.73f,-1.4f),new Vector3(.85f,.09f,.34f),Metal);
-                Part("Warm frosted diffuser",bridge,new Vector3(x,5.674f,-1.4f),new Vector3(.71f,.018f,.25f),glow);
-                var lamp=Group("Subtle underpass light",bridge,new Vector3(x,5.4f,-1.4f)).AddComponent<Light>();
-                lamp.type=LightType.Point;lamp.range=8;lamp.color=new Color(1,.83f,.62f);lamp.shadows=LightShadows.None;
-                lamp.gameObject.AddComponent<HDAdditionalLightData>();lamp.intensity=260;
-            }
-            // The old disconnected deck receives sloped, soil-backed approaches.
-            // Their profile meets terrain without changing the existing streets below.
-            Approach(bridge,-1,asphalt);Approach(bridge,1,asphalt);
-            WestbruchProps.Fence(bridge,new Vector3(-21.8f,0,-5.9f),new Vector3(-16.9f,0,-5.9f));
-            Camp(parent,bakeLocal);
-            if(bakeLocal)BakeLocal(bridge,"Bridge");
+            WestbruchOverpassArchitecture.Build(parent,bakeLocal);
         }
-
-        static void Approach(Transform parent,int side,Material asphalt)
+        internal static void BuildRelocatedCamp(Transform parent,bool bakeLocal)
         {
-            float start=side*22,end=side<0?-74:64;const int steps=14;
-            var earth=Existing("CompactedSoil");
-            var v=new List<Vector3>();var uv=new List<Vector2>();var tris=new List<int>();
-            var roadV=new List<Vector3>();var roadUv=new List<Vector2>();var roadT=new List<int>();
-            for(int i=0;i<=steps;i++)
-            {
-                float t=i/(float)steps,x=Mathf.Lerp(start,end,t),worldX=x+94;
-                float ground=Ground(worldX,65),h=Mathf.Lerp(6.66f,ground+.025f,t);
-                // Keep the fill inside the existing clear strip between shop and Nordring.
-                float toe=Mathf.Min(8.8f,4.2f+(h-ground)*1.35f);
-                foreach(var p in new[]{new Vector3(x,Ground(worldX,65-toe)-.10f,-toe),new Vector3(x,h,-4.2f),new Vector3(x,h,4.2f),new Vector3(x,Ground(worldX,65+toe)-.10f,toe)}){v.Add(p);uv.Add(new Vector2(p.x/3,p.z/3));}
-                foreach(float z in new[]{-3.4f,3.4f}){roadV.Add(new Vector3(x,h+.045f,z));roadUv.Add(new Vector2(x/3,z/3));}
-                if(i==steps)continue;
-                for(int j=0;j<3;j++)Quad(tris,i*4+j,i*4+j+1,(i+1)*4+j+1,(i+1)*4+j);
-                Quad(roadT,i*2,i*2+1,(i+1)*2+1,(i+1)*2);
-                if(i%2==0)
-                    foreach(int edge in new[]{-1,1})
-                    {
-                        var p=new Vector3(x,h,edge*3.8f);Part("Approach barrier post",parent,p+Vector3.up*.55f,new Vector3(.08f,1.1f,.08f),Metal,true);
-                        float nextX=Mathf.Lerp(start,end,Mathf.Min(1,t+2f/steps));float nextH=Mathf.Lerp(6.66f,Ground(nextX+94,65)+.025f,Mathf.Min(1,t+2f/steps));
-                        Beam("Approach guardrail",parent,p+Vector3.up*.95f,new Vector3(nextX,nextH+.95f,edge*3.8f),.09f,Metal,true);
-                    }
-            }
-            if(side<0){tris.Reverse();roadT.Reverse();}
-            MeshPart("Soil backed approach "+side,parent,v,uv,tris,earth,true);
-            MeshPart("Sloping approach carriageway "+side,parent,roadV,roadUv,roadT,asphalt,true);
+            Camp(parent,false);
+            var camp=GameObject.Find(CampName).transform;
+            var ground=camp.Cast<Transform>().ToDictionary(t=>t,t=>Ground(t.position.x,t.position.z));
+            camp.SetPositionAndRotation(new Vector3(182,0,-13),Quaternion.Euler(0,-90,0));
+            foreach(var item in ground){var p=item.Key.position;item.Key.position+=Vector3.up*(Ground(p.x,p.z)-item.Value);}
+            if(bakeLocal)BakeLocal(camp,"RelocatedCamp");
         }
         static void Quad(List<int> t,int a,int b,int c,int d){t.AddRange(new[]{a,b,c,a,c,d});}
-        static GameObject MeshPart(string name,Transform parent,List<Vector3> vertices,List<Vector2> uv,List<int> triangles,Material mat,bool solid=false)
+        internal static GameObject MeshPart(string name,Transform parent,List<Vector3> vertices,List<Vector2> uv,List<int> triangles,Material mat,bool solid=false)
         {
             string path=Generated+"/Meshes/BridgeStart_"+name.Replace(' ','_')+".asset";
             var mesh=AssetDatabase.LoadAssetAtPath<Mesh>(path);if(!mesh){mesh=new Mesh();AssetDatabase.CreateAsset(mesh,path);}else mesh.Clear();
@@ -270,7 +191,7 @@ namespace ZeroRise.Editor
             var collider=mattress.AddComponent<BoxCollider>();collider.center=new Vector3(0,.16f,0);collider.size=new Vector3(1.12f,.24f,1.99f);
         }
 
-        static void BakeLocal(Transform root,string label)
+        internal static void BakeLocal(Transform root,string label)
         {
             var sources=root.GetComponentsInChildren<MeshFilter>().Where(f=>f.sharedMesh&&f.GetComponent<MeshRenderer>()&&f.GetComponent<MeshRenderer>().enabled).ToArray();
             foreach(var batch in sources.GroupBy(f=>f.GetComponent<MeshRenderer>().sharedMaterial))
@@ -285,12 +206,13 @@ namespace ZeroRise.Editor
                     foreach(var source in parts)
                     {
                         var planted=source.transform.position;float height=source.sharedMesh.bounds.max.y;
-                        foreach(var vertex in source.sharedMesh.vertices){heights.Add(new Vector2(planted.y,Mathf.Clamp01(vertex.y/height)));roots.Add(new Vector2(planted.x,planted.z));}
+                        if(source.sharedMesh.uv3.Length==source.sharedMesh.vertexCount&&source.sharedMesh.uv4.Length==source.sharedMesh.vertexCount){heights.AddRange(source.sharedMesh.uv3);roots.AddRange(source.sharedMesh.uv4);}
+                        else foreach(var vertex in source.sharedMesh.vertices){heights.Add(new Vector2(planted.y,Mathf.Clamp01(vertex.y/height)));roots.Add(new Vector2(planted.x,planted.z));}
                     }
                     mesh.SetUVs(2,heights);mesh.SetUVs(3,roots);var bounds=mesh.bounds;bounds.Expand(new Vector3(2.6f,1.2f,2.6f));mesh.bounds=bounds;
                 }
                 EditorUtility.SetDirty(mesh);var chunk=Group("Local render batch "+mat.name,root,Vector3.zero);chunk.isStatic=true;
-                chunk.AddComponent<MeshFilter>().sharedMesh=mesh;chunk.AddComponent<MeshRenderer>().sharedMaterial=mat;
+                chunk.AddComponent<MeshFilter>().sharedMesh=mesh;var renderer=chunk.AddComponent<MeshRenderer>();renderer.sharedMaterial=mat;renderer.receiveShadows=parts[0].GetComponent<MeshRenderer>().receiveShadows;renderer.shadowCastingMode=parts[0].GetComponent<MeshRenderer>().shadowCastingMode;
                 foreach(var source in parts)source.GetComponent<MeshRenderer>().enabled=false;
             }
         }
@@ -356,9 +278,10 @@ namespace ZeroRise.Editor
             var plan=JsonUtility.FromJson<WestbruchLayout>(File.ReadAllText("Assets/ZeroRise/Data/Westbruch.json"));
             var player=UnityEngine.Object.FindAnyObjectByType<ThirdPersonMotor>();if(!player)throw new InvalidOperationException("Existing player missing.");
             var cc=player.GetComponent<CharacterController>();bool enabled=cc.enabled;cc.enabled=false;
-            player.transform.SetPositionAndRotation(new Vector3(plan.spawn.x,Ground(plan.spawn.x,plan.spawn.z)+.035f,plan.spawn.z),Quaternion.identity);cc.enabled=enabled;
-            if(player.visual)player.visual.rotation=Quaternion.identity;
-            if(Camera.main){Camera.main.transform.position=player.transform.position+new Vector3(0,3.3f,-5.2f);Camera.main.transform.LookAt(player.transform.position+Vector3.up*1.5f);}
+            player.transform.SetPositionAndRotation(new Vector3(plan.spawn.x,Ground(plan.spawn.x,plan.spawn.z)+.035f,plan.spawn.z),Quaternion.Euler(0,-90,0));cc.enabled=enabled;
+            if(player.visual)player.visual.rotation=Quaternion.Euler(0,-90,0);
+            if(player.orbit)player.orbit.initialYaw=-90;
+            if(Camera.main){Camera.main.transform.position=player.transform.position+new Vector3(5.2f,3.3f,0);Camera.main.transform.LookAt(player.transform.position+Vector3.up*1.5f);}
         }
     }
 }
