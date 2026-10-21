@@ -91,6 +91,14 @@ namespace ZeroRise.Editor
             var ground=camp.Cast<Transform>().ToDictionary(t=>t,t=>Ground(t.position.x,t.position.z));
             camp.SetPositionAndRotation(new Vector3(182,0,-13),Quaternion.Euler(0,-90,0));
             foreach(var item in ground){var p=item.Key.position;item.Key.position+=Vector3.up*(Ground(p.x,p.z)-item.Value);}
+            var fenceParts=new HashSet<string>{"Fence post","Upper rail","Lower rail","Chain link diagonal","Fence collider rail"};
+            foreach(var t in camp.GetComponentsInChildren<Transform>().Where(t=>fenceParts.Contains(t.name)).ToArray())UnityEngine.Object.DestroyImmediate(t.gameObject);
+            var fence=Group("Grounded shelter perimeter with west exit",camp,Vector3.zero).transform;
+            fence.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
+            WestbruchOverpassArchitecture.GroundFence(fence,new Vector2(120.7f,66.4f),new Vector2(120.7f,71.9f));
+            WestbruchOverpassArchitecture.GroundFence(fence,new Vector2(120.7f,71.9f),new Vector2(113.2f,71.9f));
+            WestbruchOverpassArchitecture.GroundFence(fence,new Vector2(113.2f,66.4f),new Vector2(113.2f,69.1f));
+            WestbruchOverpassArchitecture.GroundFence(fence,new Vector2(113.2f,70.9f),new Vector2(113.2f,71.9f));
             if(bakeLocal)BakeLocal(camp,"RelocatedCamp");
         }
         static void Quad(List<int> t,int a,int b,int c,int d){t.AddRange(new[]{a,b,c,a,c,d});}
@@ -107,24 +115,21 @@ namespace ZeroRise.Editor
         {
             var root=Group(CampName,parent,Vector3.zero).transform;
             Vector3 P(float x,float z,float y=0)=>new Vector3(x,Ground(x,z)+y,z);
-            // Fence leaves a 1.8 m exit and a clear northbound path to Nordring.
-            WestbruchProps.Fence(root,P(79.4f,61.3f),P(85,61.3f));
-            WestbruchProps.Fence(root,P(85,61.3f),P(85,68.8f));
-            WestbruchProps.Fence(root,P(79.4f,68.8f),P(82.1f,68.8f));
-            WestbruchProps.Fence(root,P(83.9f,68.8f),P(85,68.8f));
+            // The perimeter is grounded against finished world surfaces after
+            // relocation, including the 1.8 m west exit and pavement level.
             var fabric=Existing("StreetLife_FadedFabric");var cardboard=Existing("StreetLife_Cardboard");
             var blanket=new Material(fabric){name="BridgeStart_OliveBlanket"};
             const string blanketPath=Generated+"/Materials/BridgeStart_OliveBlanket.mat";
             if(Existing("BridgeStart_OliveBlanket")){UnityEngine.Object.DestroyImmediate(blanket);blanket=Existing("BridgeStart_OliveBlanket");}
             else AssetDatabase.CreateAsset(blanket,blanketPath);
             blanket.SetColor("_BaseColor",new Color(.25f,.28f,.19f));EditorUtility.SetDirty(blanket);
-            var bed=Group("Worn mattress and bedding",root,P(80.65f,65.25f,.025f),-8).transform;
+            var bed=Group("Worn mattress and bedding",root,P(80.65f,65.25f,.014f),-8).transform;
             Part("Flattened cardboard under bedding",bed,new Vector3(0,.012f,0),new Vector3(1.55f,.022f,2.4f),cardboard);
             Mattress(bed,fabric);
             Cushion("Flattened pillow",bed,new Vector3(0,.35f,.72f),new Vector3(.65f,.14f,.38f),fabric);
             Cloth(bed,"Rumpled olive blanket",new Vector3(0,.30f,-.29f),1.12f,1.35f,blanket,false);
             for(int i=0;i<6;i++)Part("Mattress edge stitching",bed,new Vector3(-.587f,.19f,-.8f+i*.32f),new Vector3(.012f,.013f,.18f),cardboard);
-            var bag=Group("Worn backpack",root,P(79.8f,63.6f,.03f),20).transform;
+            var bag=Group("Worn backpack",root,P(79.8f,63.6f,-.015f),20).transform;
             Cushion("Canvas pack",bag,new Vector3(0,.35f,0),new Vector3(.44f,.64f,.28f),blanket,true);
             Cushion("Front pocket",bag,new Vector3(0,.24f,-.16f),new Vector3(.33f,.28f,.09f),fabric);
             foreach(float x in new[]{-.13f,.13f})Rod(bag,new Vector3(x,.05f,.16f),new Vector3(x,.61f,.16f),.035f);
@@ -144,7 +149,7 @@ namespace ZeroRise.Editor
             }
             foreach(var at in new[]{new Vector2(81.8f,62.2f),new Vector2(84.5f,62),new Vector2(79.7f,67.5f)})
             {
-                var sack=Group("Tied refuse bag",root,P(at.x,at.y,.02f)).transform;
+                var sack=Group("Tied refuse bag",root,P(at.x,at.y,.010f)).transform;
                 Cushion("Bag of belongings",sack,new Vector3(0,.22f,0),new Vector3(.42f,.43f,.4f),Existing("StreetLife_BlackPlastic"));
                 Cushion("Tied bag neck",sack,new Vector3(0,.46f,0),new Vector3(.09f,.10f,.08f),Existing("StreetLife_BlackPlastic"));
             }
@@ -193,6 +198,19 @@ namespace ZeroRise.Editor
 
         internal static void BakeLocal(Transform root,string label)
         {
+            // Adjacent fence spans share one real post, never two coincident
+            // cylinders fighting for depth at every joint and corner.
+            var posts=new Dictionary<Vector3Int,Transform>();
+            foreach(var t in root.GetComponentsInChildren<Transform>().Where(t=>t.name=="Fence post").ToArray())
+            {
+                var bounds=t.GetComponent<MeshRenderer>().bounds;var p=new Vector3(bounds.center.x,bounds.min.y,bounds.center.z);var key=new Vector3Int(Mathf.RoundToInt(p.x*1000),Mathf.RoundToInt(p.y*1000),Mathf.RoundToInt(p.z*1000));
+                if(posts.TryGetValue(key,out var previous))
+                {
+                    if(previous.GetComponent<MeshRenderer>().bounds.max.y>=bounds.max.y)UnityEngine.Object.DestroyImmediate(t.gameObject);
+                    else {UnityEngine.Object.DestroyImmediate(previous.gameObject);posts[key]=t;}
+                }
+                else posts[key]=t;
+            }
             var sources=root.GetComponentsInChildren<MeshFilter>().Where(f=>f.sharedMesh&&f.GetComponent<MeshRenderer>()&&f.GetComponent<MeshRenderer>().enabled).ToArray();
             foreach(var batch in sources.GroupBy(f=>f.GetComponent<MeshRenderer>().sharedMaterial))
             {

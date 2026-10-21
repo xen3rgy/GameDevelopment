@@ -67,18 +67,19 @@ namespace ZeroRise.Editor
                 {
                     if(floor==0&&Mathf.Abs(x)<2)continue;
                     int seed=Mathf.Abs(Mathf.RoundToInt(x*10)+index*31+floor*7);
-                    float y=1.7f+floor*3.05f,z=-b.d*.5f-.07f;
+                    float y=1.7f+floor*3.05f,z=-b.d*.5f-.07f,detailX=side==-1?x:-x;
+                    string aligned=side==-1?"":"Aligned rear ";
                     if(seed%4==0)
                     {
-                        Box("Half lowered roller shutter",face,new Vector3(x,y+.46f,z-.015f),new Vector3(1.28f,.65f,.045f),faded,false);
-                        for(int l=0;l<5;l++)Box("Shutter louvre",face,new Vector3(x,y+.18f+l*.12f,z-.045f),new Vector3(1.29f,.025f,.02f),metal,false);
+                        Box(aligned+"Half lowered roller shutter",face,new Vector3(detailX,y+.46f,z-.015f),new Vector3(1.28f,.65f,.045f),faded,false);
+                        for(int l=0;l<5;l++)Box(aligned+"Shutter louvre",face,new Vector3(detailX,y+.18f+l*.12f,z-.045f),new Vector3(1.29f,.025f,.02f),metal,false);
                     }
                     else if(seed%3==0)
                     {
                         var curtain=Material("Curtain"+seed%3,null,new[]{new Color(.38f,.36f,.31f),new Color(.29f,.32f,.34f),new Color(.42f,.37f,.30f)}[seed%3],.35f);
-                        Box("Drawn curtain",face,new Vector3(x-.36f,y,z),new Vector3(.49f,1.57f,.018f),curtain,false);
+                        Box(aligned+"Drawn curtain",face,new Vector3(detailX+(side==-1?-.36f:.36f),y,z),new Vector3(.49f,1.57f,.018f),curtain,false);
                     }
-                    if(floor==0&&seed%7==0)Box("Window security bars",face,new Vector3(x,y,z-.08f),new Vector3(1.4f,.04f,.04f),metal,false);
+                    if(floor==0&&seed%7==0)Box(aligned+"Window security bars",face,new Vector3(detailX,y,z-.08f),new Vector3(1.4f,.04f,.04f),metal,false);
                 }
                 // Worn service panels are attached to the wall, not floating signs.
                 Box("Utility connection",face,new Vector3(b.w*.5f-1.4f,.48f,-b.d*.5f-.09f),new Vector3(.4f,.5f,.15f),metal,false);

@@ -15,7 +15,7 @@ namespace ZeroRise.Editor
         const string Assets=Generated+"/Meshes/";
         static Material Load(string id)=>AssetDatabase.LoadAssetAtPath<Material>(Generated+"/Materials/"+id+".mat");
         static Material concrete,metal,ballast,rail,sleeper,paint,paving,asphalt;
-        static GameObject Part(string name,Transform parent,Vector3 p,Vector3 size,Material m,bool solid=false,float tile=4)=>Box(name,parent,p,size,m,solid,tile);
+        static GameObject Part(string name,Transform parent,Vector3 p,Vector3 size,Material m,bool solid=false,float tile=3)=>Box(name,parent,p,size,m,solid,m==concrete?2.5f:tile);
         public static void ClearLegacy(Transform district)
         {
             var names=new HashSet<string>{"Railway east retaining fill","Railway west retaining fill","Ballast atop abutment","Rail continuation","Rail continuation sleeper"};
@@ -26,8 +26,8 @@ namespace ZeroRise.Editor
             foreach(var f in district.GetComponentsInChildren<MeshFilter>())
             {
                 var r=f.GetComponent<MeshRenderer>();if(!r)continue;
-                if(fenceNames.Contains(f.name)&&Mathf.Abs(r.bounds.center.x-131.5f)<.15f&&r.bounds.size.x<.35f)targets.Add(f.gameObject);
-                if((f.name=="Connected pavement"||f.name=="Kerb")&&r.bounds.center.x>=99.85f&&r.bounds.center.x<=103.05f&&r.bounds.center.z>75&&r.bounds.center.z<85)targets.Add(f.gameObject);
+                if(fenceNames.Contains(f.name)&&(Mathf.Abs(r.bounds.center.x-131.5f)<.15f&&r.bounds.size.x<.35f||Mathf.Abs(Mathf.Abs(r.bounds.center.z)-113.5f)<.15f))targets.Add(f.gameObject);
+                if((f.name=="Connected pavement"&&r.bounds.center.z>72&&r.bounds.center.z<88||f.name=="Kerb"&&r.bounds.center.z>75&&r.bounds.center.z<85)&&r.bounds.center.x>=99.85f&&r.bounds.center.x<=103.05f)targets.Add(f.gameObject);
             }
             RemoveBakedSources(district,targets.Distinct().ToArray());
             foreach(var o in targets.Distinct())if(o)UnityEngine.Object.DestroyImmediate(o);
@@ -76,7 +76,7 @@ namespace ZeroRise.Editor
         }
         static float Floor(float x,float z)=>Terrain.activeTerrain.SampleHeight(new Vector3(x,0,z))+Terrain.activeTerrain.transform.position.y;
         static string Key(MeshFilter f){var p=f.transform.position;return f.GetComponent<MeshRenderer>().sharedMaterial.name+"_"+Mathf.FloorToInt(p.x/32)+"_"+Mathf.FloorToInt(p.z/32);}
-        static void RemoveBakedSources(Transform district,GameObject[] objects)
+        internal static void RemoveBakedSources(Transform district,GameObject[] objects)
         {
             var chunks=district.Find("Static render chunks – sources retained for editing");if(!chunks)return;
             var sources=objects.SelectMany(o=>o.GetComponentsInChildren<MeshFilter>()).Distinct().Where(f=>f.GetComponent<MeshRenderer>()&&!f.GetComponent<MeshRenderer>().enabled&&f.name!="Fence collider rail").ToArray();
@@ -115,6 +115,7 @@ namespace ZeroRise.Editor
             paint=Load("Signage_Face_road_paint");paving=Load("Paving");asphalt=Load("Asphalt");
             WestbruchOverpassGround.Build(root);
             Structure(root);Track(root);Streets(root);Boundaries(root);Details(root);
+            WestbruchOverpassPlacement.Repair(parent.root,root);
             WestbruchBridgeStart.BuildRelocatedCamp(parent,bakeLocal);
             if(bakeLocal)WestbruchBridgeStart.BakeLocal(root,"EngineeredOverpass");
         }
@@ -126,7 +127,7 @@ namespace ZeroRise.Editor
                 Part("Prestressed longitudinal girder",root,new Vector3(x,5.36f,80),new Vector3(.42f,.56f,32),concrete,true,5);
                 Part("Girder lower flange",root,new Vector3(x,5.13f,80),new Vector3(.68f,.12f,32),concrete,false,5);
             }
-            foreach(float z in new[]{62.2f,97.8f})Part("Retained maintenance approach apron",root,new Vector3(118,6.175f,z),new Vector3(8.6f,.45f,2.2f),concrete,true);
+            foreach(float z in new[]{62.2f,97.8f})Part("Retained maintenance approach apron",root,new Vector3(118,6.18f,z),new Vector3(5.2f,.46f,2.2f),concrete,true);
             foreach(float z in new[]{64f,96})
             {
                 Part("Embedded reinforced footing",root,new Vector3(118,.09f,z),new Vector3(9.2f,.5f,3.4f),concrete,true);
@@ -134,7 +135,7 @@ namespace ZeroRise.Editor
                 Part("Bearing shelf",root,new Vector3(118,4.67f,z),new Vector3(8.4f,.50f,2.5f),concrete,true);
                 foreach(float x in new[]{114.55f,116.85f,119.15f,121.45f})
                     Part("Replaceable elastomer bearing",root,new Vector3(x,5.0f,z),new Vector3(.72f,.16f,.65f),Load("StreetLife_Rubber"));
-                Part("Ballast backwall",root,new Vector3(118,5.47f,z+(z<80?-1.02f:1.02f)),new Vector3(8.4f,1.76f,.32f),concrete,true);
+                Part("Ballast backwall",root,new Vector3(118,5.47f,z+(z<80?-1.02f:1.02f)),new Vector3(8.2f,1.76f,.32f),concrete,true);
                 foreach(int side in new[]{-1,1})
                 {
                     Vector2 a=new Vector2(118+side*14.5f,z<80?51:109),b=new Vector2(118+side*2.6f,z<80?63:97);
@@ -150,12 +151,12 @@ namespace ZeroRise.Editor
             }
             foreach(float x in new[]{114.05f,121.95f})
             {
-                Part("Bridge edge cornice",root,new Vector3(x,6.21f,80),new Vector3(.30f,.3f,34),concrete,true);
-                Part("Maintenance walkway",root,new Vector3(x+(x<118?.28f:-.28f),6.33f,80),new Vector3(.75f,.16f,34),concrete,true);
+                Part("Bridge edge cornice",root,new Vector3(x,6.21f,80),new Vector3(.30f,.3f,33.6f),concrete,true);
+                Part("Maintenance walkway",root,new Vector3(x+(x<118?.28f:-.28f),6.33f,80),new Vector3(.75f,.16f,33.4f),concrete,true);
                 for(float z=63;z<=97;z+=2)
                 {
-                    Part("Parapet base plate",root,new Vector3(x,6.45f,z),new Vector3(.19f,.035f,.19f),metal);
-                    Part("Maintenance parapet post",root,new Vector3(x,7.03f,z),new Vector3(.055f,1.15f,.055f),metal,true);
+                    Part("Parapet base plate",root,new Vector3(x,6.4275f,z),new Vector3(.19f,.035f,.19f),metal);
+                    Part("Maintenance parapet post",root,new Vector3(x,7.02f,z),new Vector3(.055f,1.15f,.055f),metal,true);
                 }
                 foreach(float h in new[]{6.72f,7.12f,7.60f})Part("Bridge continuous parapet",root,new Vector3(x,h,80),new Vector3(.055f,.055f,34),metal,true);
                 for(float z=63.4f;z<97;z+=.20f)Part("Safety infill upright",root,new Vector3(x,7.05f,z),new Vector3(.018f,1.08f,.018f),metal);
@@ -166,6 +167,41 @@ namespace ZeroRise.Editor
                     Part("Rainwater catchpit",root,new Vector3(x,.05f,z),new Vector3(.48f,.12f,.48f),concrete,true);
                 }
             }
+            Physics.SyncTransforms();
+            foreach(bool north in new[]{false,true})foreach(bool east in new[]{false,true})ApproachRamp(root,north,east);
+        }
+        static void ApproachRamp(Transform root,bool north,bool east)
+        {
+            var vertices=new List<Vector3>();var triangles=new List<int>();const int rows=12;
+            float tail=north?100.7f:59.3f,head=north?96.7f:63.3f;
+            for(int i=0;i<=rows;i++)
+            {
+                float t=i/(float)rows,z=Mathf.Lerp(tail,head,t),center=Mathf.Lerp(east?121:115,east?121.67f:114.33f,t);
+                float top=Mathf.Lerp(6.02f,6.41f,Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.9f,t)));
+                foreach(float x in new[]{center-.425f,center+.425f})
+                {
+                    float bottom=WestbruchOverpassGround.Surface(x,z);
+                    foreach(var hit in Physics.RaycastAll(new Vector3(x,12,z),Vector3.down,16,1,QueryTriggerInteraction.Ignore))
+                        if(hit.normal.y>.25f&&hit.point.y<top-.02f)bottom=Mathf.Max(bottom,hit.point.y);
+                    // The narrow outside edge is carried by a short corbel off
+                    // the wing, rather than an invented six-metre ground wall.
+                    bottom=Mathf.Max(bottom,5.30f);
+                    vertices.Add(new Vector3(x,Mathf.Min(bottom-.025f,top-.10f),z));
+                }
+                vertices.Add(new Vector3(center-.425f,top,z));vertices.Add(new Vector3(center+.425f,top,z));
+                if(i==rows)continue;int n=i*4;
+                triangles.AddRange(new[]{n,n+1,n+4,n+1,n+5,n+4,n+2,n+6,n+3,n+3,n+6,n+7,n,n+4,n+2,n+2,n+4,n+6,n+1,n+3,n+5,n+3,n+7,n+5});
+            }
+            triangles.AddRange(new[]{0,2,1,1,2,3});int last=rows*4;triangles.AddRange(new[]{last,last+1,last+2,last+1,last+3,last+2});
+            if(north)triangles.Reverse();
+            var flat=triangles.Select(i=>vertices[i]).ToList();var uv=new List<Vector2>();var anchor=flat[0];
+            for(int i=0;i<flat.Count;i+=3)
+            {
+                var normal=Vector3.Cross(flat[i+1]-flat[i],flat[i+2]-flat[i]).normalized;
+                var tangent=Vector3.Cross(Mathf.Abs(normal.y)>.8f?Vector3.forward:Vector3.up,normal).normalized;var bitangent=Vector3.Cross(normal,tangent);
+                for(int j=0;j<3;j++){var p=flat[i+j]-anchor;uv.Add(new Vector2(Vector3.Dot(p,tangent),Vector3.Dot(p,bitangent))/2.5f);}
+            }
+            WestbruchBridgeStart.MeshPart("Seated maintenance approach ramp "+north+"_"+east,root,flat,uv,Enumerable.Range(0,flat.Count).ToList(),concrete,true);
         }
         static void Wing(Transform parent,Vector2 a,Vector2 b)
         {
@@ -176,7 +212,16 @@ namespace ZeroRise.Editor
             var t=new List<int>{0,2,1,0,3,2,4,5,6,4,6,7,0,1,5,0,5,4,1,2,6,1,6,5,2,3,7,2,7,6,3,0,4,3,4,7};
             // Hard concrete faces must not average normals across prism corners.
             var flat=new List<Vector3>();foreach(int index in t)flat.Add(v[index]);v=flat;t=Enumerable.Range(0,flat.Count).ToList();
-            var uv=v.Select(p=>new Vector2(Vector2.Dot(new Vector2(p.x,p.z)-a,direction),p.y)/4).ToList();
+            // Each face has its own orthonormal projection. Along/height maps
+            // collapse both the sloping cap and the thin end faces to a line.
+            var uv=new List<Vector2>();var origin=new Vector3(a.x,0,a.y);
+            for(int i=0;i<v.Count;i+=3)
+            {
+                var normal=Vector3.Cross(v[i+1]-v[i],v[i+2]-v[i]).normalized;
+                var tangent=Vector3.Cross(Mathf.Abs(normal.y)>.8f?Vector3.forward:Vector3.up,normal).normalized;
+                var bitangent=Vector3.Cross(normal,tangent);
+                for(int j=0;j<3;j++){var p=v[i+j]-origin;uv.Add(new Vector2(Vector3.Dot(p,tangent),Vector3.Dot(p,bitangent))/2.5f);}
+            }
             var wingMaterial=Material("Overpass_RetainingConcrete","concrete",new Color(.72f,.74f,.72f),.13f);
             var wing=WestbruchBridgeStart.MeshPart("Rising retaining wing "+a.x+"_"+a.y,parent,v,uv,t,wingMaterial,true);
             wing.GetComponent<MeshRenderer>().receiveShadows=true;
@@ -217,58 +262,120 @@ namespace ZeroRise.Editor
                 Part("Weatherproof signal cabinet",cabinet,new Vector3(0,.48f,0),new Vector3(.42f,.90f,.34f),metal);
                 Part("Cabinet concrete plinth",cabinet,new Vector3(0,.045f,0),new Vector3(.58f,.09f,.48f),concrete);
             }
-            foreach(float x in new[]{115f,121f})foreach(var segment in new[]{new Vector2(-620,62.8f),new Vector2(97.2f,620)})
+            Physics.SyncTransforms();
+            foreach(bool east in new[]{false,true})foreach(var segment in new[]{new Vector2(-620,63),new Vector2(97,620)})
             {
-                Part("Railway access barrier",root,new Vector3(x,6.5f,(segment.x+segment.y)*.5f),new Vector3(.05f,1.8f,segment.y-segment.x),metal,true).GetComponent<Renderer>().enabled=false;
-                for(float z=segment.x;z<=segment.y;z+=3)Cylinder("Rail boundary post",root,new Vector3(x,6.45f,z),.027f,1.8f,metal);
-                foreach(float h in new[]{6.3f,6.7f,7.1f})Part("Railway boundary tension wire",root,new Vector3(x,h,(segment.x+segment.y)*.5f),new Vector3(.014f,.014f,segment.y-segment.x),metal);
+                int count=Mathf.CeilToInt((segment.y-segment.x)/3);var points=new List<Vector3>();
+                for(int i=0;i<=count;i++)
+                {
+                    float z=Mathf.Lerp(segment.x,segment.y,i/(float)count);
+                    float splay=z<80?Mathf.SmoothStep(0,1,Mathf.InverseLerp(59.3f,63,z)):1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(97,100.7f,z));
+                    float x=Mathf.Lerp(east?121:115,east?121.95f:114.05f,splay),floor=WestbruchOverpassGround.Surface(x,z);
+                    foreach(var hit in Physics.RaycastAll(new Vector3(x,12,z),Vector3.down,16,1,QueryTriggerInteraction.Ignore))
+                        if(hit.normal.y>.25f&&(hit.collider.name=="Maintenance walkway"||hit.collider.name.StartsWith("Seated maintenance approach ramp")||hit.collider.name=="Retained maintenance approach apron"))floor=Mathf.Max(floor,hit.point.y);
+                    var p=new Vector3(x,floor,z);points.Add(p);
+                    if(Mathf.Abs(z-63)>.01f&&Mathf.Abs(z-97)>.01f)Cylinder("Grounded rail boundary post",root,p+Vector3.up*.6075f,.027f,1.265f,metal);
+                    if(i==0)continue;var previous=points[i-1];
+                    foreach(float h in new[]{.31f,.71f,1.19f})Beam("Terminated railway safety wire",root,previous+Vector3.up*h,p+Vector3.up*h,.014f,metal);
+                    var barrier=Part("Railway access barrier",root,(previous+p)*.5f+Vector3.up*.6f,new Vector3(.06f,1.2f,Vector3.Distance(previous,p)),metal,true);barrier.transform.rotation=Quaternion.LookRotation(p-previous);barrier.GetComponent<MeshRenderer>().enabled=false;
+                }
             }
         }
         static void Streets(Transform root)
         {
-            Part("Connected Nordring east carriageway",root,new Vector3(128,.015f,80),new Vector3(56,.05f,10),asphalt,true);
-            foreach(float z in new[]{73.5f,86.5f})Part("Continuous underpass pavement",root,new Vector3(119.5f,.0675f,z),new Vector3(39,.145f,3),paving,true);
+            Part("Connected Nordring east carriageway",root,new Vector3(121,.015f,80),new Vector3(42,.05f,10),asphalt,true);
+            foreach(float z in new[]{73.5f,86.5f})Part("Continuous underpass pavement",root,new Vector3(121,.0675f,z),new Vector3(42,.145f,3),paving,true);
             // A paved turning court makes a deliberate destination, with a rounded
             // usable turning envelope and no road ending in bare dirt.
             Part("Gewerbehof turning court",root,new Vector3(151,.015f,80),new Vector3(18,.05f,38),asphalt,true);
-            Part("Court east pavement",root,new Vector3(161.5f,.0675f,80),new Vector3(3,.145f,40),paving,true);
-            foreach(float z in new[]{67,93})Part("Court west pavement",root,new Vector3(140.5f,.0675f,z),new Vector3(3,.145f,14),paving,true);
+            Part("Court east pavement",root,new Vector3(161.5f,.0675f,80),new Vector3(3,.145f,38),paving,true);
+            foreach(float z in new[]{66.5f,93.5f})Part("Court west pavement",root,new Vector3(140.5f,.0675f,z),new Vector3(3,.145f,11),paving,true);
             foreach(float z in new[]{59.5f,100.5f})Part("Court end pavement",root,new Vector3(151,.0675f,z),new Vector3(24,.145f,3),paving,true);
             // Kerbs stop at the open junction and at the turning court.
-            foreach(float z in new[]{74.91f,85.09f})Part("Underpass kerb",root,new Vector3(120,.10f,z),new Vector3(40,.20f,.18f),concrete,true);
-            foreach(float x in new[]{142.09f,159.91f})foreach(var range in new[]{new Vector2(61,74.85f),new Vector2(85.15f,99)})
+            foreach(float z in new[]{74.91f,85.09f})Part("Underpass kerb",root,new Vector3(121,.10f,z),new Vector3(42,.20f,.18f),concrete,true);
+            foreach(float z in new[]{74.41f,85.59f})Part("Completed west corner kerb return",root,new Vector3(100.09f,.10f,z),new Vector3(.18f,.20f,.82f),concrete,true);
+            foreach(float x in new[]{142.075f,159.925f})foreach(var range in new[]{new Vector2(61.165f,74.82f),new Vector2(85.18f,98.835f)})
                 Part("Turning court kerb",root,new Vector3(x,.10f,(range.x+range.y)*.5f),new Vector3(.18f,.20f,range.y-range.x),concrete,true);
-            foreach(float z in new[]{61.09f,98.91f})Part("Court end kerb",root,new Vector3(151,.10f,z),new Vector3(18,.20f,.18f),concrete,true);
+            foreach(float z in new[]{61.075f,98.925f})Part("Court end kerb",root,new Vector3(151,.10f,z),new Vector3(18.03f,.20f,.18f),concrete,true);
             for(float x=104;x<140;x+=5)Part("Faded lane centre dash",root,new Vector3(x,.0425f,80),new Vector3(2.5f,.005f,.11f),paint);
             for(float z=75.5f;z<85;z+=1.0f)Part("Nordring pedestrian crossing paint",root,new Vector3(104,.044f,z),new Vector3(2.2f,.004f,.48f),paint);
             for(float x=146;x<156;x+=2.6f)
                 foreach(float z in new[]{64f,96f})Part("Faded service parking bay",root,new Vector3(x,.043f,z),new Vector3(.07f,.004f,4),paint);
             foreach(var p in new[]{new Vector2(111,74.65f),new Vector2(126,74.65f),new Vector2(111,85.35f),new Vector2(126,85.35f)})
             {
-                Part("Flush storm drain surround",root,new Vector3(p.x,.043f,p.y),new Vector3(.55f,.008f,.38f),metal);
-                for(int i=0;i<7;i++)Part("Gully grate slot",root,new Vector3(p.x-.21f+i*.07f,.049f,p.y),new Vector3(.027f,.006f,.30f),rail);
+                Part("Flush storm drain surround",root,new Vector3(p.x,.145f,p.y),new Vector3(.55f,.010f,.38f),metal);
+                for(int i=0;i<7;i++)Part("Gully grate slot",root,new Vector3(p.x-.21f+i*.07f,.152f,p.y),new Vector3(.027f,.004f,.30f),rail);
             }
         }
         static void Boundaries(Transform root)
         {
-            GroundFence(root,new Vector2(131.5f,-113.5f),new Vector2(131.5f,71.8f));
-            GroundFence(root,new Vector2(131.5f,88.2f),new Vector2(131.5f,113.5f));
-            GroundFence(root,new Vector2(131.5f,57.5f),new Vector2(164,57.5f));
+            // A railway security boundary follows flat land outside both toes.
+            // District end fences stop here, rather than tunnelling into a bank.
+            foreach(float z in new[]{-113.5f,113.5f})GroundFence(root,new Vector2(-131.5f,z),new Vector2(103.15f,z));
+            GroundFence(root,new Vector2(103.15f,-113.5f),new Vector2(103.15f,7));
+            GroundFence(root,new Vector2(103.15f,7),new Vector2(107.15f,10));
+            GroundFence(root,new Vector2(107.15f,10),new Vector2(107.15f,24));
+            GroundFence(root,new Vector2(107.15f,24),new Vector2(103.15f,28));
+            GroundFence(root,new Vector2(103.15f,28),new Vector2(103.15f,61));
+            GroundFence(root,new Vector2(103.15f,99),new Vector2(103.15f,113.5f));
+            GroundFence(root,new Vector2(103.15f,61),new Vector2(113.25f,61));
+            GroundFence(root,new Vector2(103.15f,99),new Vector2(113.25f,99));
+            GroundFence(root,new Vector2(136,-113.5f),new Vector2(136,57.5f));
+            GroundFence(root,new Vector2(136,57.5f),new Vector2(164,57.5f));
             GroundFence(root,new Vector2(164,57.5f),new Vector2(164,112));
-            GroundFence(root,new Vector2(164,112),new Vector2(131.5f,112));
+            GroundFence(root,new Vector2(164,112),new Vector2(136,112));
+            GroundFence(root,new Vector2(136,112),new Vector2(136,113.5f));
+            // Separate maintenance plot, with a visible service gate at the road.
+            GroundFence(root,new Vector2(136,88.7f),new Vector2(136,112));
+            GroundFence(root,new Vector2(136,57.5f),new Vector2(136,71.3f));
         }
-        static void GroundFence(Transform root,Vector2 a,Vector2 b)
+        internal static void GroundFence(Transform root,Vector2 a,Vector2 b)
         {
-            int n=Mathf.CeilToInt(Vector2.Distance(a,b)/4.8f);
+            Physics.SyncTransforms();
+            float Grade(Vector2 p)
+            {
+                float floor=WestbruchOverpassGround.Surface(p.x,p.y);
+                foreach(var h in Physics.RaycastAll(new Vector3(p.x,20,p.y),Vector3.down,40,1,QueryTriggerInteraction.Ignore))
+                {
+                    string name=h.collider.name.ToLowerInvariant();
+                    if(h.normal.y>.3f&&(h.collider is TerrainCollider||name.Contains("pavement")||name.Contains("carriageway")||name.Contains("turning court")||name.Contains("sleeping court")))floor=Mathf.Max(floor,h.point.y);
+                }
+                return floor;
+            }
+            var points=new List<Vector2>{a};
+            void Append(Vector2 p,Vector2 q)
+            {
+                float low=float.PositiveInfinity,high=float.NegativeInfinity;
+                for(int j=0;j<=8;j++){float h=Grade(Vector2.Lerp(p,q,j/8f));low=Mathf.Min(low,h);high=Mathf.Max(high,h);}
+                if(high-low>.14f&&Vector2.Distance(p,q)>.12f){var middle=(p+q)*.5f;Append(p,middle);Append(middle,q);}else points.Add(q);
+            }
+            int initial=Mathf.CeilToInt(Vector2.Distance(a,b)/2.0f);
+            for(int i=0;i<initial;i++)Append(Vector2.Lerp(a,b,i/(float)initial),Vector2.Lerp(a,b,(i+1)/(float)initial));
+            int n=points.Count-1;
+            var grades=new float[n+1];var panels=new float[n];
+            for(int i=0;i<=n;i++)grades[i]=Grade(points[i]);
             for(int i=0;i<n;i++)
             {
-                var p=Vector2.Lerp(a,b,i/(float)n);var q=Vector2.Lerp(a,b,(i+1)/(float)n);
-                WestbruchProps.Fence(root,new Vector3(p.x,WestbruchOverpassGround.Surface(p.x,p.y),p.y),new Vector3(q.x,WestbruchOverpassGround.Surface(q.x,q.y),q.y));
+                float highest=Mathf.Max(grades[i],grades[i+1]);
+                for(int j=1;j<8;j++)highest=Mathf.Max(highest,Grade(Vector2.Lerp(points[i],points[i+1],j/8f)));
+                panels[i]=highest-.025f;
+            }
+            for(int i=0;i<=n;i++)
+            {
+                var p=points[i];float top=Mathf.Max(i>0?panels[i-1]:panels[0],i<n?panels[i]:panels[n-1])+1.16f;
+                float bottom=grades[i]-.025f;
+                Cylinder("Fence post",root,new Vector3(p.x,(top+bottom)*.5f,p.y),.035f,top-bottom,metal);
+            }
+            for(int i=0;i<n;i++)
+            {
+                var p=points[i];var q=points[i+1];
+                WestbruchProps.Fence(root,new Vector3(p.x,panels[i],p.y),new Vector3(q.x,panels[i],q.y),true,false);
             }
         }
         static void MaintenanceGarage(Transform root)
         {
-            float floor=Floor(151,106)+.04f;
+            float floor=.14f;
+            Part("Garage entrance apron pavement",root,new Vector3(151,.0675f,102.25f),new Vector3(10.4f,.145f,.5f),paving,true);
             var building=Group("Gewerbehof railway maintenance garage",root,new Vector3(151,floor,106)).transform;
             var brick=Material("Overpass_ServiceBrick","brick",new Color(.65f,.61f,.52f),.12f);
             var dark=Load("DressingMetal");
@@ -300,11 +407,12 @@ namespace ZeroRise.Editor
             if(prototype)foreach(var p in new[]{new Vector3(106,.14f,86),new Vector3(136,.14f,73.9f),new Vector3(161,.14f,93)})
             {var light=UnityEngine.Object.Instantiate(prototype.gameObject,root);light.name="Reused district streetlight";foreach(var r in light.GetComponentsInChildren<MeshRenderer>())r.enabled=true;light.transform.position=p;light.transform.rotation=Quaternion.Euler(0,p.z>80?180:0,0);}
             MaintenanceGarage(root);
-            var service=Group("Gewerbehof utilities and loading",root,new Vector3(161,0,105)).transform;
+            var service=Group("Gewerbehof utilities and loading",root,new Vector3(161,Floor(161,105),105)).transform;
+            Part("Utility cabinet hardstanding",service,new Vector3(0,-.04f,0),new Vector3(5.1f,.12f,.90f),concrete,true);
             Part("Recessed service cabinet",service,new Vector3(0,1,0),new Vector3(4.8f,2,.55f),metal,true);
-            for(int i=0;i<3;i++)WestbruchProps.Pallet(root,new Vector3(157,.17f*i,92));
-            WestbruchProps.Bin(root,new Vector3(157,.10f,67),180);
-            WestbruchProps.Bin(root,new Vector3(158,.10f,67),180);
+            for(int i=0;i<3;i++)WestbruchProps.Pallet(root,new Vector3(157,.04f+.17f*i,92));
+            WestbruchProps.Bin(root,new Vector3(157,.04f,67),180);
+            WestbruchProps.Bin(root,new Vector3(158,.04f,67),180);
             Part("Crash bollard",root,new Vector3(157,.60f,90),new Vector3(.16f,1.2f,.16f),metal,true);
             var post=WestbruchSignage.Post(root,new Vector3(106,.14f,87.1f));
             WestbruchSignage.Plate("street_1","Nordring",post,new Vector3(0,2.55f,0),new Vector2(1.05f,.24f),post,"Post",90);

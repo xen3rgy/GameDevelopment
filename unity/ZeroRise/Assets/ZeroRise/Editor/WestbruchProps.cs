@@ -20,8 +20,6 @@ namespace ZeroRise.Editor
             WorkshopYard(props);
             // Temporary construction fences delimit this first playable district.
             // They sit beyond all road/entrance probes and stop players falling off Terrain.
-            Fence(props,new Vector3(-131.5f,0,-113.5f),new Vector3(131.5f,0,-113.5f));
-            Fence(props,new Vector3(-131.5f,0,113.5f),new Vector3(131.5f,0,113.5f));
             Fence(props,new Vector3(-131.5f,0,-113.5f),new Vector3(-131.5f,0,113.5f));
             // The engineered east railway area owns the connected service-yard boundary.
             foreach(int s in new[]{-1,1})
@@ -126,10 +124,10 @@ namespace ZeroRise.Editor
             for(int i=0;i<3;i++) Box("Runner",root,new Vector3((i-1)*.38f,.055f,0),new Vector3(.1f,.11f,.8f),timber,false);
             for(int i=0;i<5;i++) Box("Slat",root,new Vector3(0,.14f,(i-2)*.17f),new Vector3(1.1f,.06f,.12f),timber,false);
         }
-        internal static void Fence(Transform parent,Vector3 a,Vector3 b,bool mesh=true)
+        internal static void Fence(Transform parent,Vector3 a,Vector3 b,bool mesh=true,bool posts=true)
         {
             var delta=b-a; int n=Mathf.CeilToInt(delta.magnitude/2.4f);
-            for(int i=0;i<=n;i++)
+            for(int i=0;posts&&i<=n;i++)
             {
                 var p=Vector3.Lerp(a,b,i/(float)n);
                 Cylinder("Fence post",parent,p+Vector3.up*.58f,.035f,1.16f,metal);

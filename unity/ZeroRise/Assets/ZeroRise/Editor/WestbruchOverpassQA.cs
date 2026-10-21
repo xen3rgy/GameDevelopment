@@ -16,6 +16,7 @@ namespace ZeroRise.Editor
         const string Pending="WestbruchOverpassQA.Pending";
         internal const string AuthoredReport="WestbruchOverpassQA.AuthoredReport",AuthoredFailed="WestbruchOverpassQA.AuthoredFailed";
         public static void CaptureOnly()=>Launch(false);
+        public static void UrbanBaseline(){SessionState.SetBool("Westbruch.UrbanBaseline",true);Launch(false);}
         public static void CaptureSaved()=>Launch(true);
         public static void RebuildAndValidate(){WestbruchBridgeStart.Apply();CaptureSaved();}
         static void Launch(bool validate)
@@ -82,6 +83,8 @@ namespace ZeroRise.Editor
             }
             string examples="";int shown=0;foreach(var root in roadRoots){if(shown++>=5)break;examples+=" "+root.ToString("F2");}
             Record("New asphalt lanes and turning court exclude interior vegetation",roadRoots.Count==0&&unreadable==0,"Interior plant roots "+roadRoots.Count+"; unreadable authored flora meshes "+unreadable+examples);
+            WestbruchOverpassDetailQA.Validate(Record);
+            WestbruchUrbanRenewal.Validate(Record);
             SessionState.SetString(AuthoredReport,string.Join("\n",lines));SessionState.SetBool(AuthoredFailed,failed);
             File.WriteAllLines("QA/overpass-authored-assets.txt",lines);
         }
@@ -135,6 +138,14 @@ namespace ZeroRise.Editor
                 {hd.renderingPathCustomFrameSettings.SetEnabled(field,false);hd.renderingPathCustomFrameSettingsOverrideMask.mask[(uint)field]=true;}}
             for(int i=0;i<100;i++)yield return null;
             orbitYaw=orbit.transform.eulerAngles.y;
+            if(SessionState.GetBool("Westbruch.UrbanBaseline",false))
+            {
+                SessionState.SetBool("Westbruch.UrbanBaseline",false);if(orbit)orbit.enabled=false;
+                yield return Capture("urban-housing",new Vector3(-76,2.1f,10),new Vector3(-73,3,16));
+                yield return Capture("urban-shop",new Vector3(65,1.5f,34.3f),new Vector3(63.6f,.55f,38.3f));
+                yield return Capture("urban-crossing",new Vector3(76,1.0f,72.5f),new Vector3(72,.10f,76));
+                Finish(null);yield break;
+            }
             yield return Capture("spawn",null,null);
             if(orbit)orbit.enabled=false;
             yield return Capture("overall",new Vector3(151,26,111),new Vector3(118,3,80));
@@ -143,6 +154,30 @@ namespace ZeroRise.Editor
             yield return Capture("south-track",new Vector3(118,9,113),new Vector3(118,7,60));
             yield return Capture("shelter",new Vector3(111,2.2f,73),new Vector3(116,1,70));
             yield return Capture("junction",new Vector3(81,9,93),new Vector3(114,1,80));
+            // Close views deliberately expose the joins that district-wide
+            // screenshots conceal: cap UVs, feet, tiny loose stones and corners.
+            yield return Capture("detail-south-toe",WestbruchOverpassDetailQA.Eye(101.5f,55,1.15f),new Vector3(110,2.5f,58));
+            yield return Capture("detail-north-toe",WestbruchOverpassDetailQA.Eye(135,108,1.15f),new Vector3(124,2.5f,104));
+            yield return Capture("detail-south-crest",new Vector3(111,7.8f,59),new Vector3(116,5.7f,63));
+            yield return Capture("detail-north-crest",new Vector3(125,7.8f,101),new Vector3(120,5.7f,97));
+            yield return Capture("detail-south-corner",new Vector3(137,1.5f,70.5f),new Vector3(141,.14f,74));
+            yield return Capture("detail-north-corner",new Vector3(137,1.5f,90),new Vector3(141,.14f,86));
+            yield return Capture("detail-south-fence",WestbruchOverpassDetailQA.Eye(138,55,1.4f),WestbruchOverpassDetailQA.Eye(136,57.5f,.65f));
+            yield return Capture("detail-north-fence",WestbruchOverpassDetailQA.Eye(138,114,1.4f),WestbruchOverpassDetailQA.Eye(136,111.5f,.65f));
+            yield return Capture("detail-east-pier-rubble",WestbruchOverpassDetailQA.Eye(125,67,.75f),WestbruchOverpassDetailQA.Eye(122.8f,65.8f,.08f));
+            yield return Capture("detail-west-pier-rubble",WestbruchOverpassDetailQA.Eye(110,67,.75f),WestbruchOverpassDetailQA.Eye(113.2f,65.8f,.08f));
+            yield return Capture("urban-nordhof",new Vector3(-77,1.6f,72),new Vector3(-76.1f,.4f,68.8f));
+            yield return Capture("urban-shop",new Vector3(74,1.5f,41),new Vector3(71.1f,.5f,43.2f));
+            yield return Capture("urban-housing",new Vector3(-76,2.1f,10),new Vector3(-73,3,16));
+            yield return Capture("urban-rear",new Vector3(-32,1.7f,34),new Vector3(-31.6f,.6f,29.8f));
+            yield return Capture("urban-graffiti",new Vector3(-22,3.7f,24),new Vector3(-26.99f,3.34f,22));
+            yield return Capture("urban-refuse",new Vector3(-79,1.5f,34),new Vector3(-77.1f,.4f,30.78f));
+            yield return Capture("urban-drain",new Vector3(47.5f,1.0f,82),new Vector3(46,.05f,84.7f));
+            yield return Capture("urban-crossing",new Vector3(76,1.0f,72.5f),new Vector3(72,.10f,76));
+            yield return Capture("urban-railway",new Vector3(124,10,36),new Vector3(118,8,51));
+            yield return Capture("urban-railway-north",new Vector3(112,10,124),new Vector3(118,8,107));
+            yield return Capture("urban-railway-deck",new Vector3(124,8.5f,72),new Vector3(119,6.7f,94));
+            yield return Capture("urban-workshop",new Vector3(75,2.2f,-35),new Vector3(62,2.0f,-48));
             if(validate)yield return ValidateRuntime();
             Finish(null);
         }
@@ -175,12 +210,23 @@ namespace ZeroRise.Editor
             }
             Check("Actual ThirdPersonMotor walking from camp gate around pier and through underpass",allWalked,"Travel "+walked.ToString("F2")+" m; ended "+player.transform.position.ToString("F3"));
             yield return Capture("walked-underpass",new Vector3(103,2,86.5f),new Vector3(120,2.4f,84));
+            if(GameObject.Find(WestbruchUrbanRenewal.RootName))
+            {
+                orbit.transform.rotation=Quaternion.identity;
+                PlacePlayer(Ground(new Vector3(72,0,72.8f))+Vector3.up*.04f);
+                yield return WalkTo(new Vector2(72,87.1f));bool outward=walkReached;
+                yield return WalkTo(new Vector2(72,72.8f));
+                Check("Actual motor crosses both new Nordring ramps in both directions",outward&&walkReached,"Returned "+player.transform.position.ToString("F3"));
+            }
             testCar=player.nearbyCar?player.nearbyCar:FindAnyObjectByType<SimpleCar>();
             if(!testCar){Check("Driveable car exists",false,"");yield break;}
             carBody=testCar.GetComponent<Rigidbody>();
             yield return DriveRoute("eastbound",new Vector2(103,77.5f),new Vector2(149,77.5f),90);
             yield return DriveRoute("westbound",new Vector2(149,82.5f),new Vector2(102,82.5f),270);
             Check("No scene gameplay objects removed",FindObjectsByType<ThirdPersonMotor>(FindObjectsSortMode.None).Length==1&&FindObjectsByType<SimpleCar>(FindObjectsSortMode.None).Length>0,"Tests use the saved scene's actual player/car; scene never saved from play mode.");
+            var residents=FindAnyObjectByType<PedestrianWorld>();int activeResidents=0;float walkedByResidents=0;
+            if(residents)foreach(var npc in residents.people){if(npc&&npc.agent.enabled&&npc.agent.isOnNavMesh)activeResidents++;if(npc)walkedByResidents+=npc.totalDistance;}
+            Check("Existing residents continue navigating the updated district",activeResidents==18&&walkedByResidents>5,"Active residents "+activeResidents+"; combined walking "+walkedByResidents.ToString("F1")+"m; completed activities "+(residents?residents.completedActivities:0)+"; completed road crossings "+(residents?residents.crossedRoads:0));
         }
         void Geometry()
         {

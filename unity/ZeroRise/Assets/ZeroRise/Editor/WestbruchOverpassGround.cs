@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -15,6 +13,11 @@ namespace ZeroRise.Editor
         const float Crest = 5.95f;
         const string Prefix = "OverpassGround_";
         static Terrain terrain;
+        sealed class BankPatch
+        {
+            public float start,end;public int rows,cols;public List<Vector3> vertices;
+        }
+        static readonly List<BankPatch> bankPatches=new List<BankPatch>();
         static float Ground(float x, float z)
         {
             if(!terrain)return -.025f;
@@ -28,13 +31,15 @@ namespace ZeroRise.Editor
         public static void Build(Transform parent)
         {
             terrain = Terrain.activeTerrain;
+            bankPatches.Clear();
             FlattenLocalPavementAndCamp();
             var root = Group("Railway earthworks – continuous vegetated embankments", parent, Vector3.zero).transform;
             Material earth = GroundMaterial();
             Bank(root, -620, 63, "South", earth);
             Bank(root, 97, 620, "North", earth);
             HorizonAprons(root);
-            CampSurface(root, earth);
+            BlendTerrainFeet();
+            CampSurface(root,GroundMaterial("ShelteredSoil"));
             BankVegetation(root);
             ReclaimedWestGround(root);
         }
@@ -78,50 +83,98 @@ namespace ZeroRise.Editor
         static void Profile(float z,out float left,out float right,out float toeHeight)
         {
             float end = z < 80 ? Mathf.InverseLerp(51,63,z) : 1-Mathf.InverseLerp(97,109,z);
-            float variation = (Mathf.PerlinNoise(z*.041f+19,2.3f)-.5f)*.70f*(1-end);
+            // The retaining wings start at EXACT authored positions. Organic
+            // variation fades out before those interfaces rather than leaving
+            // little triangular holes between wall and earth.
+            float wings=1-Smooth(45,51,z)* (1-Smooth(109,115,z));
+            float variation = (Mathf.PerlinNoise(z*.041f+19,2.3f)-.5f)*.70f*(1-end)*wings;
             left = Mathf.Lerp(103.5f+variation,115.4f,end);
             right = Mathf.Lerp(132.5f+variation,120.6f,end);
             float stop=Smooth(0,10,z)*(1-Smooth(24,34,z));
             left=Mathf.Lerp(left,107.3f,stop);
             toeHeight = Crest*end;
         }
+        static float FootWidth(float z)
+        {
+            float wings=1-Smooth(45,51,z)*(1-Smooth(109,115,z));
+            float stop=Smooth(0,10,z)*(1-Smooth(24,34,z));
+            return 2*wings*(1-stop);
+        }
+        static void Extents(float z,out float left,out float right)
+        {
+            Profile(z,out left,out right,out _);
+            float foot=FootWidth(z);left-=foot;right+=foot;
+            left=Mathf.Max(103.25f,left);right=Mathf.Min(134.5f,right);
+        }
         public static float Surface(float x,float z)
         {
             if(z>63&&z<97)return Ground(x,z);
-            Profile(z,out float left,out float right,out _);
-            return x>=left&&x<=right?BankHeight(x,z):Ground(x,z);
+            return TryBankSurface(x,z,out float height,out _)?Mathf.Max(Ground(x,z),height):Ground(x,z);
         }
         static float BankHeight(float x,float z)
         {
             Profile(z,out float left,out float right,out float toe);
             if(x>=115.4f&&x<=120.6f)return Crest;
+            Extents(z,out float outerLeft,out float outerRight);
             bool west=x<115.4f;
-            float t=west?Mathf.InverseLerp(left,115.4f,x):Mathf.InverseLerp(right,120.6f,x);
-            float baseY=Mathf.Max(Ground(x,z)-.025f,toe-.025f);
-            float height=Mathf.Lerp(baseY,Crest,t);
-            // Centimetres of natural settlement, never a wavy railway crest.
-            height+=(Mathf.PerlinNoise(x*.43f+47,z*.29f+61)-.5f)*.075f*Mathf.Sin(t*Mathf.PI);
+            float t=west?Mathf.InverseLerp(outerLeft,115.4f,x):Mathf.InverseLerp(outerRight,120.6f,x);
+            float baseY=Mathf.Max(Ground(x,z)-.035f,toe-.025f);
+            // C1-continuous slope: zero derivative at the buried outer foot
+            // and at the horizontal rail crest. No planar wedge or sharp lip.
+            float height=Mathf.Lerp(baseY,Crest,t*t*(3-2*t));
+            float settlement=Mathf.Pow(Mathf.Sin(t*Mathf.PI),2);
+            height+=(Mathf.PerlinNoise(x*.29f+47,z*.19f+61)-.5f)*.12f*settlement;
             return height;
+        }
+
+        static bool TryBankSurface(float x,float z,out float height,out Vector3 normal)
+        {
+            height=Ground(x,z);normal=Vector3.up;
+            Extents(z,out float left,out float right);
+            if((z>63&&z<97)||x<left||x>right)return false;
+            foreach(var patch in bankPatches)
+            {
+                if(z<patch.start||z>patch.end)continue;
+                int row=Mathf.Clamp(Mathf.FloorToInt((z-patch.start)/(patch.end-patch.start)*patch.rows),0,patch.rows-1);
+                for(int col=0;col<patch.cols-1;col++)
+                {
+                    int a=row*patch.cols+col,b=a+patch.cols;
+                    if(TriangleHeight(patch.vertices[a],patch.vertices[b],patch.vertices[a+1],x,z,out height,out normal)||
+                       TriangleHeight(patch.vertices[a+1],patch.vertices[b],patch.vertices[b+1],x,z,out height,out normal))return true;
+                }
+            }
+            height=BankHeight(x,z);return true;
+        }
+        static bool TriangleHeight(Vector3 a,Vector3 b,Vector3 c,float x,float z,out float height,out Vector3 normal)
+        {
+            height=0;normal=Vector3.up;
+            float denominator=(b.z-c.z)*(a.x-c.x)+(c.x-b.x)*(a.z-c.z);
+            if(Mathf.Abs(denominator)<1e-8f)return false;
+            float u=((b.z-c.z)*(x-c.x)+(c.x-b.x)*(z-c.z))/denominator;
+            float v=((c.z-a.z)*(x-c.x)+(a.x-c.x)*(z-c.z))/denominator;
+            if(u<-.0001f||v<-.0001f||u+v>1.0001f)return false;
+            height=u*a.y+v*b.y+(1-u-v)*c.y;normal=Vector3.Cross(b-a,c-a).normalized;return true;
         }
 
         static void Bank(Transform root,float start,float end,string id,Material material)
         {
-            int rows=Mathf.CeilToInt((end-start)/1.25f);
-            const int cols=17;
+            int rows=Mathf.CeilToInt((end-start)/.65f);
+            const int cols=65;
             var vertices=new List<Vector3>();var uv=new List<Vector2>();var triangles=new List<int>();
             for(int row=0;row<=rows;row++)
             {
                 float z=Mathf.Lerp(start,end,row/(float)rows);
-                Profile(z,out float left,out float right,out _);
+                Extents(z,out float left,out float right);
                 for(int col=0;col<cols;col++)
                 {
-                    float x=col<7?Mathf.Lerp(left,115.4f,col/6f):col<10?Mathf.Lerp(115.4f,120.6f,(col-6)/4f):Mathf.Lerp(120.6f,right,(col-10)/6f);
+                    float x=col<=28?Mathf.Lerp(left,115.4f,col/28f):col<=36?Mathf.Lerp(115.4f,120.6f,(col-28)/8f):Mathf.Lerp(120.6f,right,(col-36)/28f);
                     var p=new Vector3(x,BankHeight(x,z),z);
                     vertices.Add(p);uv.Add(WorldUV(p));
                     if(row==rows||col==cols-1)continue;
                     int a=row*cols+col;triangles.AddRange(new[]{a,a+cols,a+1,a+1,a+cols,a+cols+1});
                 }
             }
+            bankPatches.Add(new BankPatch{start=start,end=end,rows=rows,cols=cols,vertices=vertices});
             MeshPart("Continuous "+id+" railway earth bank",root,vertices,uv,triangles,material,true);
         }
         static Vector2 WorldUV(Vector3 p)=>new Vector2((p.x-101.5f)/33f,(p.z+620)/1240f);
@@ -129,8 +182,7 @@ namespace ZeroRise.Editor
         static void HorizonAprons(Transform root)
         {
             if(!terrain)return;
-            var material=Material(Prefix+"DistantGround","grass",new Color(.72f,.71f,.65f),.08f);
-            ConfigureGroundDetail(material);
+            var material=GroundMaterial("DistantGround");
             foreach(int sign in new[]{-1,1})
             {
                 float edge=sign<0?terrain.transform.position.z:terrain.transform.position.z+terrain.terrainData.size.z;
@@ -138,8 +190,10 @@ namespace ZeroRise.Editor
                 const int cols=25,rows=100;
                 for(int iz=0;iz<=rows;iz++)for(int ix=0;ix<=cols;ix++)
                 {
-                    float x=Mathf.Lerp(44,192,ix/(float)cols),z=Mathf.Lerp(edge-sign*2,sign*620,iz/(float)rows);
-                    var p=new Vector3(x,Ground(x,z)-.035f,z);v.Add(p);uv.Add(new Vector2(x,z)/8);
+                    // Starts on the terrain boundary, with NO overlapping
+                    // coplanar strip. Both sides share the exact edge height.
+                    float x=Mathf.Lerp(44,192,ix/(float)cols),z=Mathf.Lerp(edge,sign*620,iz/(float)rows);
+                    var p=new Vector3(x,Ground(x,z),z);v.Add(p);uv.Add(WorldUV(p));
                     if(iz==rows||ix==cols)continue;int a=iz*(cols+1)+ix;
                     t.AddRange(new[]{a,a+cols+1,a+1,a+1,a+cols+1,a+cols+2});
                 }
@@ -168,7 +222,7 @@ namespace ZeroRise.Editor
                 // Polar coordinates use the opposite winding to a cartesian grid.
                 t.AddRange(new[]{a,a+1,a+spokes+1,a+1,a+spokes+2,a+spokes+1});
             }
-            MeshPart("Compacted sheltered sleeping court",root,v,uv,t,material,false);
+            MeshPart("Compacted sheltered sleeping court",root,v,uv,t,material,true);
             v.Clear();uv.Clear();t.Clear();
             Vector2 from=new Vector2(114,69.5f),to=new Vector2(110,73.5f),axis=(to-from).normalized,across=new Vector2(-axis.y,axis.x);
             for(int i=0;i<=16;i++)
@@ -193,10 +247,7 @@ namespace ZeroRise.Editor
 
         static void ReclaimedWestGround(Transform root)
         {
-            const string texturePath=Generated+"/Materials/OverpassGround_WestRegrowthV4.png";
-            if(!File.Exists(texturePath))BakeMacroTexture(texturePath,28,85,55,75,1024,512);
-            var material=Material(Prefix+"WestRegrowth",null,Color.white,.08f);
-            material.shader=Shader.Find("HDRP/Lit");material.SetTexture("_BaseColorMap",AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath));ConfigureGroundDetail(material);
+            var material=GroundMaterial("WestRegrowth");
             var flora=AssetDatabase.LoadAssetAtPath<Material>(Generated+"/Materials/DistrictFlora.mat");
             var sources=new Mesh[3];for(int i=0;i<3;i++)sources[i]=AssetDatabase.LoadAssetAtPath<Mesh>(Generated+"/Meshes/UrbanFlora_0_"+i+".asset");
             var sites=new[]{new Vector2(35,62),new Vector2(42,69),new Vector2(49,60),new Vector2(54,68),new Vector2(62,62),new Vector2(68,70),new Vector2(75,61),new Vector2(79,68)};
@@ -224,7 +275,7 @@ namespace ZeroRise.Editor
                     float a=(float)random.NextDouble()*Mathf.PI*2,r=Mathf.Sqrt((float)random.NextDouble())*.91f;
                     float x=center.x+Mathf.Cos(a)*rx*r,z=center.y+Mathf.Sin(a)*rz*r;
                     if(Mathf.PerlinNoise(x*.63f+3,z*.52f+5)<.40f)continue;
-                    float y=Ground(x,z)-.017f,scale=.70f+(float)random.NextDouble()*.63f;
+                    float y=Ground(x,z)-.042f,scale=.70f+(float)random.NextDouble()*.63f;
                     var mesh=sources[random.Next(3)];
                     parts.Add(new CombineInstance{mesh=mesh,transform=Matrix4x4.TRS(new Vector3(x,y,z),Quaternion.Euler(0,(float)random.NextDouble()*360,0),Vector3.one*scale)});
                     foreach(var vertex in mesh.vertices){heights.Add(new Vector2(y,Mathf.Clamp01(vertex.y/mesh.bounds.max.y)));roots.Add(new Vector2(x,z));}
@@ -243,151 +294,139 @@ namespace ZeroRise.Editor
             var obj=Group(name,root,Vector3.zero);obj.isStatic=true;obj.AddComponent<MeshFilter>().sharedMesh=mesh;obj.AddComponent<MeshRenderer>().sharedMaterial=material;
         }
 
-        static Material GroundMaterial()
+        static Material GroundMaterial(string id="LivingEarth")
         {
-            const string texturePath=Generated+"/Materials/OverpassGround_Macro1240V4.png";
-            if(!File.Exists(texturePath))BakeMacroTexture(texturePath,101.5f,134.5f,-620,620,512,8192);
-            var mat=Material(Prefix+"LivingEarth",null,Color.white,.09f);
-            mat.shader=Shader.Find("HDRP/Lit");
-            mat.SetTexture("_BaseColorMap",AssetDatabase.LoadAssetAtPath<Texture2D>(texturePath));
-            mat.SetTextureScale("_BaseColorMap",Vector2.one);
-            mat.SetTexture("_NormalMap",null);mat.SetTexture("_MaskMap",null);
-            mat.SetFloat("_Metallic",0);mat.SetFloat("_Smoothness",.09f);
-            ConfigureGroundDetail(mat);return mat;
+            // Actual coloured photography is blended in the stock HDRP ground
+            // shader. No bright greyscale pebble overlay or stretched 1240 m
+            // photographic atlas is involved. UV1 remains full precision in
+            // Windows builds; UV0 is only a harmless blend-mask coordinate.
+            var material=Material(Prefix+id,null,Color.white,.06f);
+            material.shader=Shader.Find("HDRP/LayeredLit");
+            material.SetFloat("_LayerCount",3);
+            material.SetFloat("_VertexColorMode",1);
+            material.SetFloat("_UseHeightBasedBlend",0);
+            material.SetFloat("_UseMainLayerInfluence",0);
+            material.SetFloat("_UVBlendMask",0);
+            material.SetVector("_UVMappingMaskBlendMask",new Vector4(1,0,0,0));
+            material.SetTexture("_LayerMaskMap",Texture2D.whiteTexture);
+            string folder="Assets/ZeroRise/Art/SurfacesV3/";
+            string[] surfaces={"mud","grass","mud"};
+            float[] tiles={1.65f,1.17f,2.79f};
+            var tints=new[]{new Color(.86f,.84f,.80f),new Color(.86f,.88f,.77f),new Color(1,.97f,.89f)};
+            for(int layer=0;layer<3;layer++)
+            {
+                string suffix=layer.ToString();
+                material.SetColor("_BaseColor"+suffix,tints[layer]);
+                material.SetTexture("_BaseColorMap"+suffix,AssetDatabase.LoadAssetAtPath<Texture2D>(folder+surfaces[layer]+".jpg"));
+                material.SetTextureScale("_BaseColorMap"+suffix,Vector2.one/tiles[layer]);
+                material.SetTextureOffset("_BaseColorMap"+suffix,new Vector2(layer*.373f,layer*.619f));
+                material.SetFloat("_UVBase"+suffix,1);
+                material.SetVector("_UVMappingMask"+suffix,new Vector4(0,1,0,0));
+                material.SetFloat("_NormalMapSpace"+suffix,0);
+                material.SetTexture("_NormalMap"+suffix,AssetDatabase.LoadAssetAtPath<Texture2D>(folder+surfaces[layer]+"-height.png"));
+                material.SetFloat("_NormalScale"+suffix,.19f);
+                material.SetTexture("_MaskMap"+suffix,null);
+                material.SetTexture("_DetailMap"+suffix,null);
+                material.SetFloat("_Smoothness"+suffix,.055f);
+                material.SetFloat("_Metallic"+suffix,0);
+            }
+            HDMaterial.ValidateMaterial(material);
+            EditorUtility.SetDirty(material);return material;
         }
 
-        static void ConfigureGroundDetail(Material material)
+        static Color CoverWeights(float x,float z)
         {
-            const string path=Generated+"/Materials/OverpassGround_PhotographicDetail.png";
-            if(!File.Exists(path))BakeGroundDetail(path);
-            material.SetTexture("_DetailMap",AssetDatabase.LoadAssetAtPath<Texture2D>(path));
-            // Player vertex compression packs UV0 to half precision. Multiplying
-            // its 1240 m macro axis into detail coordinates causes metre-wide
-            // streaks in standalone builds. UV1 is excluded from this project's
-            // vertex compression and stores independent metre coordinates.
-            material.SetFloat("_UVDetail",1);material.SetVector("_UVDetailsMappingMask",new Vector4(0,1,0,0));
-            material.SetFloat("_LinkDetailsWithBase",0);
-            material.SetTextureScale("_DetailMap",Vector2.one/3f);
-            material.SetFloat("_DetailAlbedoScale",1.45f);material.SetFloat("_DetailNormalScale",.65f);material.SetFloat("_DetailSmoothnessScale",.10f);
-            HDMaterial.ValidateMaterial(material);EditorUtility.SetDirty(material);
+            // Warp the field before sampling: organic grass islands rather than
+            // regular longitudinal bands or identical round texture stamps.
+            float warp=(Mathf.PerlinNoise(x*.047f+91,z*.043f+17)-.5f)*3.3f;
+            float broad=Mathf.PerlinNoise((x+warp)*.19f+39,z*.139f+72);
+            float fine=Mathf.PerlinNoise(x*.59f+4,z*.47f+19);
+            float grass=Smooth(.37f,.66f,broad*.80f+fine*.20f)*.94f;
+            float camp=1-Smooth(0,1.4f,RectDistance(x,z,112.7f,121.2f,66,72.4f));
+            float path=1-Smooth(.35f,1.05f,SegmentDistance(new Vector2(x,z),new Vector2(114,69.5f),new Vector2(110,73.5f)));
+            grass*=1-Mathf.Max(camp,path)*.97f;
+            if(x>114.2f&&x<121.8f&&(z<63||z>97))grass*=.55f;
+            float dry=Smooth(.34f,.67f,Mathf.PerlinNoise(x*.23f+53,z*.171f+17))*.66f*(1-grass);
+            return new Color(grass,dry,0,1);
         }
 
-        static void BakeGroundDetail(string path)
+        static void BlendTerrainFeet()
         {
-            // HDRP detail packing: R albedo, G normal Y, B smoothness,
-            // A normal X. Reuse the project's real yard/grass photography.
-            var yard=new ImageSource("yard");var grass=new ImageSource("grass");
-            const int size=1024;var pixels=new Color32[size*size];
-            float Luma(Color c)=>c.r*.25f+c.g*.60f+c.b*.15f;
-            float Value(float u,float v)=>Luma(Color.Lerp(yard.Sample(u,v),grass.Sample(u,v),.22f));
-            float mean=0;
-            for(int y=0;y<64;y++)for(int x=0;x<64;x++)mean+=Value((x+.5f)/64,(y+.5f)/64);
-            mean/=4096;
-            for(int y=0;y<size;y++)for(int x=0;x<size;x++)
+            if(!terrain)return;
+            var data=terrain.terrainData;int resolution=data.alphamapResolution;
+            if(data.alphamapLayers<3)return;
+            Vector3 origin=terrain.transform.position;
+            int x0=Mathf.Clamp(Mathf.FloorToInt((99-origin.x)/data.size.x*resolution),0,resolution-1);
+            int x1=Mathf.Clamp(Mathf.CeilToInt((137-origin.x)/data.size.x*resolution),0,resolution-1);
+            var alpha=data.GetAlphamaps(x0,0,x1-x0+1,resolution);
+            for(int row=0;row<resolution;row++)for(int col=0;col<alpha.GetLength(1);col++)
             {
-                float u=(x+.5f)/size,v=(y+.5f)/size,step=1f/size;
-                float h=Value(u,v),dx=(Value(u+step,v)-Value(u-step,v))*1.6f,dy=(Value(u,v+step)-Value(u,v-step))*1.6f;
-                var normal=new Vector3(-dx,-dy,1).normalized;
-                pixels[y*size+x]=new Color(Mathf.Clamp01(.5f+(h-mean)*1.15f),normal.y*.5f+.5f,.5f,normal.x*.5f+.5f);
+                float x=origin.x+(x0+col+.5f)*data.size.x/resolution;
+                float z=origin.z+(row+.5f)*data.size.z/resolution;
+                if(z>51&&z<109)continue;
+                Extents(z,out float left,out float right);
+                float distance=Mathf.Min(Mathf.Abs(x-left),Mathf.Abs(x-right));
+                float blend=1-Smooth(.30f,2.35f,distance);
+                // The bus shelter and the road pavement retain their materials.
+                if(x<107.3f&&z>0&&z<34)blend*=Smooth(105.8f,107.3f,x);
+                if(blend<=0)continue;
+                var cover=CoverWeights(x,z);
+                for(int layer=0;layer<data.alphamapLayers;layer++)
+                {
+                    float target=layer==1?cover.r:layer==2?1-cover.r:0;
+                    alpha[row,col,layer]=Mathf.Lerp(alpha[row,col,layer],target,blend);
+                }
             }
-            var texture=new Texture2D(size,size,TextureFormat.RGBA32,true,true);texture.SetPixels32(pixels);texture.Apply();File.WriteAllBytes(path,texture.EncodeToPNG());UnityEngine.Object.DestroyImmediate(texture);
-            AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceSynchronousImport);
-            var importer=(TextureImporter)AssetImporter.GetAtPath(path);importer.sRGBTexture=false;importer.textureType=TextureImporterType.Default;importer.alphaSource=TextureImporterAlphaSource.FromInput;
-            importer.mipmapEnabled=true;importer.maxTextureSize=size;importer.wrapMode=TextureWrapMode.Repeat;importer.anisoLevel=16;importer.textureCompression=TextureImporterCompression.CompressedHQ;importer.SaveAndReimport();
+            data.SetAlphamaps(x0,0,alpha);EditorUtility.SetDirty(data);
         }
-        sealed class ImageSource
-        {
-            readonly Color32[] pixels;readonly int width,height;
-            public ImageSource(string id)
-            {
-                string path="Assets/ZeroRise/Art/SurfacesV3/"+id+".jpg";
-                if(!File.Exists(path))path="Assets/ZeroRise/Art/Surfaces/"+id+".jpg";
-                var texture=new Texture2D(2,2,TextureFormat.RGBA32,false);
-                ImageConversion.LoadImage(texture,File.ReadAllBytes(path));width=texture.width;height=texture.height;pixels=texture.GetPixels32();UnityEngine.Object.DestroyImmediate(texture);
-            }
-            public Color Sample(float x,float z)
-            {
-                int ix=Mathf.FloorToInt(Mathf.Repeat(x,1)*width),iz=Mathf.FloorToInt(Mathf.Repeat(z,1)*height);
-                return pixels[iz*width+ix];
-            }
-        }
-        static void BakeMacroTexture(string path,float minX,float maxX,float minZ,float maxZ,int width,int height)
-        {
-            // Reuse actual project surface photography with rotated secondary
-            // sampling and large coherent vegetation/damp fields. The 1240 m
-            // map contains no repeated large-scale texture motif.
-            var pixels=new Color32[width*height];
-            for(int iz=0;iz<height;iz++)for(int ix=0;ix<width;ix++)
-            {
-                float x=minX+(ix+.5f)*(maxX-minX)/width,z=minZ+(iz+.5f)*(maxZ-minZ)/height;
-                float broad=Mathf.PerlinNoise(x*.10f+39,z*.073f+72);
-                float detail=Mathf.PerlinNoise(x*.57f+4,z*.41f+19);
-                float field=broad*.77f+detail*.23f;
-                float mix=Smooth(.40f,.59f,field);
-                float slope=Mathf.Clamp01(Mathf.Abs(x-118)/3.3f);
-                float grassAmount=Mathf.Lerp(.035f,.91f,mix)*slope;
-                // Footwear and dry shelter keep the small sleeping area bare.
-                float camp=1-Smooth(0,1.6f,RectDistance(x,z,112.7f,121.2f,66.0f,72.4f));
-                float route=1-Smooth(.35f,1.15f,SegmentDistance(new Vector2(x,z),new Vector2(114,69.5f),new Vector2(110,73.5f)));
-                grassAmount*=1-Mathf.Max(camp,route)*.97f;
-                // Only metre-scale colour lives in this map. Sharp photographic
-                // soil grain and normal response come from the independent
-                // detail map, avoiding stretched, blurry source motifs.
-                Color earth=new Color(.51f,.445f,.35f);
-                Color green=new Color(.30f,.335f,.205f);
-                Color soil=new Color(.315f,.285f,.235f);
-                float damp=Smooth(.43f,.61f,Mathf.PerlinNoise(x*.15f+53,z*.11f+17));
-                float mineral=Smooth(.47f,.65f,Mathf.PerlinNoise(x*.085f+18,z*.071f+97));
-                earth=Color.Lerp(earth,soil,damp*.64f+camp*.10f);
-                earth=Color.Lerp(earth,new Color(.445f,.435f,.375f),mineral*.54f);
-                Color result=Color.Lerp(earth,green,grassAmount);
-                float macro=Mathf.Lerp(.77f,1.12f,Smooth(.30f,.69f,Mathf.PerlinNoise(x*.031f+71,z*.037f+44)));
-                result*=macro;result.a=1;pixels[iz*width+ix]=result;
-            }
-            var image=new Texture2D(width,height,TextureFormat.RGBA32,true);image.SetPixels32(pixels);image.Apply();
-            File.WriteAllBytes(path,image.EncodeToPNG());UnityEngine.Object.DestroyImmediate(image);
-            AssetDatabase.ImportAsset(path,ImportAssetOptions.ForceSynchronousImport);
-            var importer=(TextureImporter)AssetImporter.GetAtPath(path);importer.sRGBTexture=true;importer.mipmapEnabled=true;importer.maxTextureSize=Mathf.Max(width,height);
-            importer.npotScale=TextureImporterNPOTScale.None;importer.wrapMode=TextureWrapMode.Clamp;importer.anisoLevel=8;importer.textureCompression=TextureImporterCompression.CompressedHQ;importer.SaveAndReimport();
-        }
-
         static void BankVegetation(Transform root)
         {
             var material=AssetDatabase.LoadAssetAtPath<Material>(Generated+"/Materials/DistrictFlora.mat");
             if(!material)return;
-            var sources=new Mesh[3];for(int i=0;i<3;i++)sources[i]=AssetDatabase.LoadAssetAtPath<Mesh>(Generated+"/Meshes/UrbanFlora_0_"+i+".asset");
-            if(!sources[0]||!sources[1]||!sources[2])return;
+            var sources=new Mesh[4,3];
+            for(int kind=0;kind<4;kind++)for(int i=0;i<3;i++)
+                sources[kind,i]=AssetDatabase.LoadAssetAtPath<Mesh>(Generated+"/Meshes/UrbanFlora_"+kind+"_"+i+".asset");
+            if(!sources[0,0])return;
             var random=new System.Random(430291);
             float Range(float a,float b)=>Mathf.Lerp(a,b,(float)random.NextDouble());
+            int plantedCount=0;
             for(int section=-20;section<=19;section++)
             {
                 var parts=new List<CombineInstance>();var heights=new List<Vector2>();var roots=new List<Vector2>();
-                for(int i=0;i<370;i++)
+                int attempts=section>=-5&&section<=5?1900:330;
+                for(int i=0;i<attempts;i++)
                 {
-                    float z=section*32+Range(0,32);if(z< -620||z>620||(z>51&&z<109))continue;
-                    Profile(z,out float left,out float right,out _);
-                    float x=Range(left+.20f,right-.20f);if(x>114.3f&&x<121.7f)continue;
-                    float abundance=Mathf.PerlinNoise(x*.28f+9,z*.21f+43);
-                    if(Range(0,1)>abundance*.9f+.12f)continue;
-                    var mesh=sources[random.Next(3)];float y=BankHeight(x,z)-.018f;
-                    float scale=Range(.80f,1.38f);
-                    var planted=new Vector3(x,y,z);
-                    // Plants stay upright, rooted a little into the slope.
-                    var transform=Matrix4x4.TRS(planted,Quaternion.Euler(0,Range(0,360),0),Vector3.one*scale);
-                    parts.Add(new CombineInstance{mesh=mesh,transform=transform});
-                    foreach(var vertex in mesh.vertices){heights.Add(new Vector2(y,Mathf.Clamp01(vertex.y/mesh.bounds.max.y)));roots.Add(new Vector2(x,z));}
+                    float z=section*32+Range(0,32);
+                    if(z< -620||z>620||(z>62.75f&&z<97.25f))continue;
+                    Extents(z,out float left,out float right);
+                    float x=Range(left+.3f,right-.3f);
+                    if(x>114.5f&&x<121.5f)continue;
+                    float grass=CoverWeights(x,z).r;
+                    if(Range(0,1)>.04f+grass*.94f)continue;
+                    if(!TryBankSurface(x,z,out float surface,out Vector3 normal)||normal.y<.3f)continue;
+                    float terrainHeight=Ground(x,z);
+                    if(surface<terrainHeight+.06f)continue;
+                    float choice=Range(0,1);
+                    int kind=choice<.82f?0:choice<.90f?1:choice<.98f?2:3;
+                    var mesh=sources[kind,random.Next(3)];if(!mesh)continue;
+                    float scale=Range(.78f,1.34f);
+                    // Roots use the actual rendered/collision triangle, not a
+                    // different analytic/bilinear surface. Tilt the root plane
+                    // into the slope and bury it 4.5 cm, covering blade spread.
+                    var planted=new Vector3(x,surface-.045f,z);
+                    Quaternion rotation=Quaternion.FromToRotation(Vector3.up,Vector3.Lerp(Vector3.up,normal,.72f).normalized)*Quaternion.Euler(0,Range(0,360),0);
+                    parts.Add(new CombineInstance{mesh=mesh,transform=Matrix4x4.TRS(planted,rotation,Vector3.one*scale)});
+                    foreach(var vertex in mesh.vertices)
+                    {
+                        heights.Add(new Vector2(planted.y,Mathf.Clamp01(vertex.y/mesh.bounds.max.y)));
+                        roots.Add(new Vector2(x,z));
+                    }
+                    plantedCount++;
                 }
-                if(parts.Count==0)continue;
-                string path=Generated+"/Meshes/"+Prefix+"Flora_"+section+".asset";
-                var combined=AssetDatabase.LoadAssetAtPath<Mesh>(path);if(!combined){combined=new Mesh();AssetDatabase.CreateAsset(combined,path);}else combined.Clear();
-                combined.indexFormat=IndexFormat.UInt32;combined.CombineMeshes(parts.ToArray(),true,true);
-                combined.SetUVs(2,heights);combined.SetUVs(3,roots);var bounds=combined.bounds;bounds.Expand(new Vector3(2.6f,1.2f,2.6f));combined.bounds=bounds;
-                EditorUtility.SetDirty(combined);
-                var obj=Group("Rooted embankment grass "+section,root,Vector3.zero);obj.isStatic=true;
-                obj.AddComponent<MeshFilter>().sharedMesh=combined;obj.AddComponent<MeshRenderer>().sharedMaterial=material;
+                PlantChunk(root,"Rooted embankment grass "+section,parts,heights,roots,material);
             }
+            Debug.Log("Overpass earthworks: "+plantedCount+" slope-conforming grass/sedge/rosette clumps; every root anchored to its collision triangle.");
         }
-
         static void MeshPart(string name,Transform parent,List<Vector3> vertices,List<Vector2> uv,List<int> triangles,Material material,bool solid)
         {
             string path=Generated+"/Meshes/"+Prefix+name.Replace(' ','_')+".asset";
@@ -400,8 +439,11 @@ namespace ZeroRise.Editor
             }
             mesh.indexFormat=IndexFormat.UInt32;mesh.SetVertices(vertices);mesh.SetUVs(0,uv);
             mesh.SetUVs(1,vertices.ConvertAll(p=>new Vector2(p.x-118,p.z-80)));
+            mesh.SetColors(vertices.ConvertAll(p=>CoverWeights(p.x,p.z)));
             mesh.SetTriangles(clean,0);mesh.RecalculateNormals();mesh.RecalculateTangents();mesh.RecalculateBounds();EditorUtility.SetDirty(mesh);
-            var obj=Group(name,parent,Vector3.zero);obj.isStatic=true;obj.AddComponent<MeshFilter>().sharedMesh=mesh;obj.AddComponent<MeshRenderer>().sharedMaterial=material;
+            var obj=Group(name,parent,Vector3.zero);obj.isStatic=true;obj.AddComponent<MeshFilter>().sharedMesh=mesh;
+            var renderer=obj.AddComponent<MeshRenderer>();renderer.sharedMaterial=material;
+            renderer.shadowCastingMode=name.Contains("earth bank")?ShadowCastingMode.On:ShadowCastingMode.Off;
             if(solid)obj.AddComponent<MeshCollider>().sharedMesh=mesh;
         }
     }
