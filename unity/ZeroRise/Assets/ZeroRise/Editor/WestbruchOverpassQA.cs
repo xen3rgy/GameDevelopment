@@ -85,6 +85,7 @@ namespace ZeroRise.Editor
             Record("New asphalt lanes and turning court exclude interior vegetation",roadRoots.Count==0&&unreadable==0,"Interior plant roots "+roadRoots.Count+"; unreadable authored flora meshes "+unreadable+examples);
             WestbruchOverpassDetailQA.Validate(Record);
             WestbruchUrbanRenewal.Validate(Record);
+            WestbruchAtmospherePass.Validate(Record);
             SessionState.SetString(AuthoredReport,string.Join("\n",lines));SessionState.SetBool(AuthoredFailed,failed);
             File.WriteAllLines("QA/overpass-authored-assets.txt",lines);
         }
@@ -178,6 +179,13 @@ namespace ZeroRise.Editor
             yield return Capture("urban-railway-north",new Vector3(112,10,124),new Vector3(118,8,107));
             yield return Capture("urban-railway-deck",new Vector3(124,8.5f,72),new Vector3(119,6.7f,94));
             yield return Capture("urban-workshop",new Vector3(75,2.2f,-35),new Vector3(62,2.0f,-48));
+            if(GameObject.Find(WestbruchAtmospherePass.RootName))
+            {
+                yield return WestbruchAtmosphereProbe.Run(captureCamera,"QA",Check,false);
+                yield return Capture("atmosphere-underbridge",new Vector3(118,1.8f,80),new Vector3(118,3.3f,66));
+                yield return Capture("atmosphere-entrance",new Vector3(-67.5f,1.7f,12),new Vector3(-68.7f,2,15.8f));
+                yield return Capture("atmosphere-courtyard",new Vector3(-39,1.8f,42),new Vector3(-68,2.2f,32));
+            }
             if(validate)yield return ValidateRuntime();
             Finish(null);
         }
@@ -200,6 +208,7 @@ namespace ZeroRise.Editor
             for(int i=0;i<30;i++){MoveForFrame(Vector2.zero);yield return null;}
             Check("Spawn grounded using actual motor",player.IsGrounded&&Mathf.Abs(initial.y-player.transform.position.y)<.25f,player.transform.position.ToString("F3"));
             orbit.enabled=false;orbit.transform.rotation=Quaternion.identity;
+            var soundscape=FindAnyObjectByType<WestbruchSoundscape>();int initialSteps=soundscape?soundscape.FootstepCount:0;
             var walking=new[]{new Vector2(111,70),new Vector2(110,73.5f),new Vector2(143,73.5f),new Vector2(145,86.5f),new Vector2(104,86.5f)};
             float walked=0;bool allWalked=true;
             foreach(var point in walking)
@@ -209,6 +218,7 @@ namespace ZeroRise.Editor
                 if(!walkReached)break;
             }
             Check("Actual ThirdPersonMotor walking from camp gate around pier and through underpass",allWalked,"Travel "+walked.ToString("F2")+" m; ended "+player.transform.position.ToString("F3"));
+            if(soundscape)Check("Grounded real player walking triggers surface footsteps",soundscape.FootstepCount-initialSteps>20,"Footsteps while walking "+(soundscape.FootstepCount-initialSteps));
             yield return Capture("walked-underpass",new Vector3(103,2,86.5f),new Vector3(120,2.4f,84));
             if(GameObject.Find(WestbruchUrbanRenewal.RootName))
             {

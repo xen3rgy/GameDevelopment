@@ -40,7 +40,9 @@ namespace ZeroRise
                 if(t.name.StartsWith("Freight stop signal "))freightSignals++;
             }
             bool neighbourhood=GameObject.Find("Westbruch inhabited neighbourhood update")&&crossingLandings==36&&roomInserts==26&&freightSignals==2;
-            bool releaseFeatures=approachRamps==4&&layeredGround&&neighbourhood;
+            var soundscape=FindAnyObjectByType<WestbruchSoundscape>();
+            bool atmosphere=soundscape&&soundscape.city&&soundscape.city.clip&&soundscape.wind&&soundscape.wind.clip;
+            bool releaseFeatures=approachRamps==4&&layeredGround&&neighbourhood&&atmosphere;
             bool current=GameObject.Find("Continuous rail head")&&GameObject.Find("Connected Nordring east carriageway")&&Vector2.Distance(new Vector2(position.x,position.z),new Vector2(116,70))<.3f&&player.IsGrounded&&releaseFeatures;
             ScreenCapture.CaptureScreenshot(Path.Combine(output,"overpass-windows-spawn.png"));
             for(int i=0;i<30;i++)yield return null;
@@ -68,9 +70,13 @@ namespace ZeroRise
             yield return CaptureDetail(camera,"urban-drain",new Vector3(47.5f,1.0f,82),new Vector3(46,.05f,84.7f));
             yield return CaptureDetail(camera,"urban-railway",new Vector3(124,10,36),new Vector3(118,8,51));
             yield return CaptureDetail(camera,"urban-railway-deck",new Vector3(124,8.5f,72),new Vector3(119,6.7f,94));
+            bool audioPassed=true;var audioLines=new System.Collections.Generic.List<string>();
+            if(atmosphere)yield return WestbruchAtmosphereProbe.Run(camera,output,(label,pass,detail)=>{audioPassed&=pass;audioLines.Add((pass?"PASS: ":"FAIL: ")+label+". "+detail);},true);
+            else {audioPassed=false;audioLines.Add("FAIL: Missing installed atmosphere.");}
+            File.WriteAllLines(Path.Combine(output,"atmosphere-windows-validation.txt"),audioLines);
             string releasePath=Path.Combine(Path.GetDirectoryName(Application.dataPath),"Westbruch-build.json");
             bool stamp=File.Exists(releasePath);string release=stamp?File.ReadAllText(releasePath):"MISSING";
-            Complete(current&&stamp&&errors==0,"Spawn: "+position.ToString("F3")+"\nCurrent engineered overpass scene and grounded spawn: "+current+"\nFinal release geometry/material features: "+releaseFeatures+"\nNeighbourhood update: "+neighbourhood+"; crossing landings "+crossingLandings+"; apartment interiors "+roomInserts+"; freight signals "+freightSignals+"\nSeated approach ramp objects: "+approachRamps+"/4\nHDRP layered ground present: "+layeredGround+" ("+groundShader+")\nRelease manifest present: "+stamp+"\nRuntime errors: "+errors+"\nApplication data: "+Application.dataPath+"\nRelease: "+release);
+            Complete(current&&stamp&&errors==0&&audioPassed,"Spawn: "+position.ToString("F3")+"\nCurrent engineered overpass scene and grounded spawn: "+current+"\nFinal release geometry/material features: "+releaseFeatures+"\nNeighbourhood update: "+neighbourhood+"; crossing landings "+crossingLandings+"; apartment interiors "+roomInserts+"; freight signals "+freightSignals+"\nAtmosphere present: "+atmosphere+"; audio output passed: "+audioPassed+"\nSeated approach ramp objects: "+approachRamps+"/4\nHDRP layered ground present: "+layeredGround+" ("+groundShader+")\nRelease manifest present: "+stamp+"\nRuntime errors: "+errors+"\nApplication data: "+Application.dataPath+"\nRelease: "+release);
         }
         IEnumerator CaptureDetail(Camera camera,string name,Vector3 eye,Vector3 target)
         {
