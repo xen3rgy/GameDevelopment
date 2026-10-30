@@ -16,6 +16,8 @@ namespace ZeroRise
         public float ActionProgress { get; private set; }
         public float InteractionSide { get; private set; }=-1;
         public float SeatTransferProgress { get; private set; }=-1;
+        public float AudioThrottle { get; private set; }
+        public bool AudioBraking { get; private set; }
         bool seatTransferCompleted;
         public const float EnterDuration=2.05f,ExitDuration=1.75f,SeatTransferDuration=1.55f;
         Rigidbody body;
@@ -441,6 +443,7 @@ namespace ZeroRise
         {
             if(!body)body=GetComponent<Rigidbody>();
             if(State==Occupancy.Entering||State==Occupancy.Exiting){throttle=steer=0;brake=true;}
+            AudioThrottle=throttle;AudioBraking=brake;
             steerValue=steer;
             for (int i = 0; i < wheels.Length; i++)
             {

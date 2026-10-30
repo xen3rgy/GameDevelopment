@@ -1,0 +1,72 @@
+[
+  {
+    "clip": "RainRoad",
+    "source": "RainTerrace",
+    "start": 118,
+    "end": 151,
+    "seconds": 31.5,
+    "highpass": 160,
+    "lowpass": 7500,
+    "rms": 0.049780663789187406,
+    "peak": 0.72,
+    "loopOverlap": 1.5,
+    "fade": 0,
+    "pcmSha256": "28be42ca73c29554f587737f4ee2aa540221b1acfb591294ff61ef6c0a4194f7"
+  },
+  {
+    "clip": "RainRoof",
+    "source": "RainRoof",
+    "start": 10,
+    "end": 38,
+    "seconds": 26.5,
+    "highpass": 130,
+    "lowpass": 4800,
+    "rms": 0.05999999999999999,
+    "peak": 0.37578719231952246,
+    "loopOverlap": 1.5,
+    "fade": 0,
+    "pcmSha256": "30f2f55c0ef37dc10bde9424bfe5a61a1118438cf8a5dfe9a02efad9fb8857ed"
+  },
+  {
+    "clip": "RainLeaves",
+    "source": "RainLeaves",
+    "start": 5,
+    "end": 36,
+    "seconds": 29.5,
+    "highpass": 190,
+    "lowpass": 7200,
+    "rms": 0.030286336703517457,
+    "peak": 0.72,
+    "loopOverlap": 1.5,
+    "fade": 0,
+    "pcmSha256": "a54d55bb4c63e5645fbfb43c9d1f56d0b4829593b084b9f3cb9e7fc9b9e12265"
+  },
+  {
+    "clip": "Thunder",
+    "source": "Thunder",
+    "start": 0,
+    "end": 5,
+    "seconds": 5.0,
+    "highpass": 35,
+    "lowpass": 3200,
+    "rms": 0.06669650671035056,
+    "peak": 0.72,
+    "loopOverlap": 0,
+    "fade": 0.2,
+    "pcmSha256": "0a8a113b7fffb603329849608c370f8d4fb8f3d81d1ab1365a2c55e8b07f5780"
+  },
+  {
+    "clip": "WetTyres",
+    "source": "WetTyres",
+    "start": 7.2,
+    "end": 10.4,
+    "seconds": 2.85,
+    "highpass": 1900,
+    "lowpass": 7600,
+    "rms": 0.05,
+    "peak": 0.3481059523074875,
+    "loopOverlap": 0.35,
+    "fade": 0,
+    "pcmSha256": "a81d61f355c8900cc91970c271aa5f3eb1784d2979ad229fafc6138695d3a28f"
+  }
+]

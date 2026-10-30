@@ -1,4 +1,5 @@
 // Derived from Unity HDRP 17.6 TerrainLit_Splatmap; see HDRP-LICENSE.md.
+#include "WeatherSurface.hlsl"
 #if defined(_NORMALMAP) && defined(SURFACE_GRADIENT)
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/NormalSurfaceGradient.hlsl"
 #endif
@@ -291,6 +292,11 @@ void TerrainLitShade(float2 uv, inout TerrainLitSurfaceData surfaceData)
     surfaceData.ao=sa.ao*w.x+sb.ao*w.y+sc.ao*w.z;
     float macro=lerp(.79,1.12,ZRGroundNoise(metres*.065))+lerp(-.045,.045,ZRGroundNoise(metres*.31));
     surfaceData.albedo*=macro;
+    float exposure=ZRWeatherTerrainExposure(metres+_ZRWeatherTerrainOrigin);
+    float wet=_ZRWeatherWetness*exposure;
+    float damp=max(_ZRWeatherWetness,_ZRWeatherSoilMoisture*.85)*exposure;
+    surfaceData.albedo*=lerp(1,.72,damp);
+    surfaceData.smoothness=lerp(surfaceData.smoothness,max(surfaceData.smoothness,.34),wet);
 }
 
 void TerrainLitDebug(float2 uv, uint2 screenSpaceCoords, out float3 baseColor)

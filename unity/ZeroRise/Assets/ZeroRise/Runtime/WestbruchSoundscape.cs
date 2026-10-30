@@ -13,11 +13,15 @@ namespace ZeroRise
         public AudioClip[] pavingSteps,soilSteps;
         public AudioLowPassFilter cityMuffle,windMuffle;
         public AudioReverbFilter footReflections;
+        public GameAudioLibrary gameAudio;
         public float BridgeBlend { get; private set; }
         public int FootstepCount { get; private set; }
         public int LocalEventCount { get; private set; }
         public float AmbienceGain { get; private set; }
         public float FootstepGain { get; private set; }
+        public float MasterGain { get; private set; }
+        public float VehicleGain { get; private set; }
+        public float EffectsGain { get; private set; }
         public float MixCityGain=>city?city.volume:0;
         public float MixWindGain=>wind?wind.volume:0;
         ThirdPersonMotor player;Transform listener;
@@ -25,8 +29,8 @@ namespace ZeroRise
         float nextDrain,nextFence,lastPhase,stepCooldown;
         bool initialized,settingsDirty;float saveAt;
         static WestbruchSoundscape active;
-        static Rect ControlsRect=>new Rect(Screen.width-246,28,226,154);
-        public static bool PointerOverControls=>active&&Cursor.visible&&ControlsRect.Contains(new Vector2(Input.mousePosition.x,Screen.height-Input.mousePosition.y));
+        static Rect ControlsRect=>new Rect(Screen.width-266,28,246,296);
+        public static bool PointerOverControls=>WorldWeatherClock.PointerOverControls||active&&Cursor.visible&&ControlsRect.Contains(new Vector2(Input.mousePosition.x,Screen.height-Input.mousePosition.y));
         void OnEnable()=>active=this;
         void OnDisable(){if(active==this)active=null;}
 
@@ -43,6 +47,9 @@ namespace ZeroRise
             player=FindAnyObjectByType<ThirdPersonMotor>();var audioListener=FindAnyObjectByType<AudioListener>();listener=audioListener?audioListener.transform:null;
             AmbienceGain=Mathf.Clamp01(PlayerPrefs.GetFloat("ZeroRise.Sound.Ambience",.70f));
             FootstepGain=Mathf.Clamp01(PlayerPrefs.GetFloat("ZeroRise.Sound.Steps",.75f));
+            MasterGain=Mathf.Clamp01(PlayerPrefs.GetFloat("ZeroRise.Sound.Master",1));
+            VehicleGain=Mathf.Clamp01(PlayerPrefs.GetFloat("ZeroRise.Sound.Vehicles",.85f));
+            EffectsGain=Mathf.Clamp01(PlayerPrefs.GetFloat("ZeroRise.Sound.Effects",.85f));
             foreach(var source in new[]{city,wind,shop})if(source&&source.clip){source.volume=0;source.time=(source==shop?3.8f:source==wind?11.3f:0)%source.clip.length;source.Play();}
             nextDrain=Time.time+12;nextFence=Time.time+28;initialized=true;
         }
@@ -50,10 +57,15 @@ namespace ZeroRise
         {
             if(!initialized||!listener)return;
             float dt=Time.unscaledDeltaTime,fade=1-Mathf.Exp(-dt/1.1f);
+            AudioListener.volume=MasterGain;
+            float outside=GameplayAudioDirector.Active?GameplayAudioDirector.Active.OutsideDuck:1;
             BridgeBlend=Mathf.Lerp(BridgeBlend,BridgeWeight(listener.position),fade);
-            if(city)city.volume=Mathf.Lerp(city.volume,.18f*AmbienceGain*Mathf.Lerp(1,.56f,BridgeBlend),fade);
-            if(wind)wind.volume=Mathf.Lerp(wind.volume,.105f*AmbienceGain*Mathf.Lerp(1,.22f,BridgeBlend),fade);
-            if(shop)shop.volume=Mathf.Lerp(shop.volume,.16f*AmbienceGain,fade);
+            var world=WorldWeatherClock.Instance;
+            float dailyCity=world?Mathf.Lerp(.32f,1,world.Daylight)*Mathf.Lerp(1,.82f,world.RainIntensity):1;
+            float openShop=world?(world.Hour>=7&&world.Hour<21?1:.12f):1;
+            if(city)city.volume=Mathf.Lerp(city.volume,.18f*AmbienceGain*Mathf.Lerp(1,.56f,BridgeBlend)*outside*dailyCity,fade);
+            if(wind)wind.volume=Mathf.Lerp(wind.volume,.14f*AmbienceGain*Mathf.Lerp(1,.22f,BridgeBlend)*outside,fade);
+            if(shop)shop.volume=Mathf.Lerp(shop.volume,.24f*AmbienceGain*outside*openShop,fade);
             if(cityMuffle)cityMuffle.cutoffFrequency=Mathf.Lerp(6500,1250,BridgeBlend);
             if(windMuffle)windMuffle.cutoffFrequency=Mathf.Lerp(8200,1550,BridgeBlend);
             if(footReflections){footReflections.enabled=BridgeBlend>.005f;footReflections.reverbLevel=Mathf.Lerp(-10000,-1750,BridgeBlend);}
@@ -63,7 +75,7 @@ namespace ZeroRise
         }
         void LateUpdate()
         {
-            if(!initialized||!player||!player.avatar)return;
+            if(!initialized||!player||!player.avatar||GameplayAudioDirector.Active)return;
             float phase=player.avatar.GaitPhase;bool contact=(lastPhase<.5f&&phase>=.5f)||lastPhase>phase+.1f;lastPhase=phase;
             if(!contact||Time.time<stepCooldown||player.driving||player.Interacting||!player.IsGrounded||player.avatar.ActualSpeed<.35f)return;
             stepCooldown=Time.time+.13f;
@@ -76,10 +88,12 @@ namespace ZeroRise
         }
         public void EmitFootstep(Vector3 point,bool soil)
         {
+            if(GameplayAudioDirector.Active){GameplayAudioDirector.Active.PlayerStep(point,soil?GroundSound.Soil:GroundSound.Concrete);return;}
             var clips=soil?soilSteps:pavingSteps;if(!footsteps||clips==null||clips.Length==0)return;
             footsteps.transform.position=point+Vector3.up*.04f;footsteps.pitch=.96f+(float)random.NextDouble()*.08f;
             footsteps.PlayOneShot(clips[random.Next(clips.Length)],.34f*FootstepGain);FootstepCount++;
         }
+        internal void RegisterFootstep()=>FootstepCount++;
         public void PlayDrain()
         {
             if(!drain||!drainClip)return;drain.pitch=.94f+(float)random.NextDouble()*.1f;drain.PlayOneShot(drainClip,.18f*AmbienceGain);LocalEventCount++;
@@ -94,12 +108,14 @@ namespace ZeroRise
             // Esc already releases the game's cursor. The compact panel adds
             // audio control without pausing or taking ownership of gameplay.
             GUILayout.BeginArea(ControlsRect,GUI.skin.box);
-            GUILayout.Label("TON · WESTBRUCH");GUILayout.Label("Umgebung");
-            float ambience=GUILayout.HorizontalSlider(AmbienceGain,0,1);GUILayout.Label("Schritte");float steps=GUILayout.HorizontalSlider(FootstepGain,0,1);
-            if(Mathf.Abs(ambience-AmbienceGain)>.001f||Mathf.Abs(steps-FootstepGain)>.001f){AmbienceGain=ambience;FootstepGain=steps;settingsDirty=true;saveAt=Time.unscaledTime+.6f;}
+            GUILayout.Label("TON · ZERO // RISE");
+            float Slider(string label,float value){GUILayout.Label(label+"  "+Mathf.RoundToInt(value*100)+" %");return GUILayout.HorizontalSlider(value,0,1);}
+            float master=Slider("Gesamt",MasterGain),vehicles=Slider("Fahrzeuge",VehicleGain),effects=Slider("Aktionen & Details",EffectsGain),steps=Slider("Schritte",FootstepGain),ambience=Slider("Umgebung",AmbienceGain);
+            if(Mathf.Abs(master-MasterGain)>.001f||Mathf.Abs(vehicles-VehicleGain)>.001f||Mathf.Abs(effects-EffectsGain)>.001f||Mathf.Abs(ambience-AmbienceGain)>.001f||Mathf.Abs(steps-FootstepGain)>.001f)
+            {MasterGain=master;VehicleGain=vehicles;EffectsGain=effects;AmbienceGain=ambience;FootstepGain=steps;settingsDirty=true;saveAt=Time.unscaledTime+.6f;}
             GUILayout.EndArea();
         }
-        void SaveSettings(){if(!settingsDirty)return;PlayerPrefs.SetFloat("ZeroRise.Sound.Ambience",AmbienceGain);PlayerPrefs.SetFloat("ZeroRise.Sound.Steps",FootstepGain);PlayerPrefs.Save();settingsDirty=false;}
+        void SaveSettings(){if(!settingsDirty)return;PlayerPrefs.SetFloat("ZeroRise.Sound.Ambience",AmbienceGain);PlayerPrefs.SetFloat("ZeroRise.Sound.Steps",FootstepGain);PlayerPrefs.SetFloat("ZeroRise.Sound.Master",MasterGain);PlayerPrefs.SetFloat("ZeroRise.Sound.Vehicles",VehicleGain);PlayerPrefs.SetFloat("ZeroRise.Sound.Effects",EffectsGain);PlayerPrefs.Save();settingsDirty=false;}
         void OnApplicationQuit()=>SaveSettings();
     }
 }

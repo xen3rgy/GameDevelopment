@@ -24,6 +24,7 @@ namespace ZeroRise
         public int BlockedReservations { get; private set; }
         public int YieldEvents { get; private set; }
         public float SimulatedTime=>clock;
+        public int ActiveVehicles { get { int count=0;if(vehicles!=null)foreach(var car in vehicles)if(car&&car.DailyActive)count++;return count; } }
         public void Initialize(int seed=17301)
         {
             player=FindAnyObjectByType<ThirdPersonMotor>();random=new System.Random(seed);clock=0;BlockedReservations=YieldEvents=0;
@@ -33,7 +34,7 @@ namespace ZeroRise
             for(int i=0;i<vehicles.Length;i++)
             {
                 var car=vehicles[i];int link=i%links.Length;var edge=links[link];
-                car.from=i%2==0?edge.a:edge.b;car.to=i%2==0?edge.b:edge.a;car.next=Choose(car.from,car.to);
+                car.from=i%2==0?edge.a:edge.b;car.to=i%2==0?edge.b:edge.a;car.next=Choose(car.from,car.to,car);
                 car.turning=false;car.heldJunction=-1;car.speed=car.desiredSpeed=0;car.progress=10+(i/links.Length)*24;
                 car.travelled=car.waitingTime=car.maxWait=0;car.waitingSince=-1;car.completedTurns=car.leftTurns=car.rightTurns=car.straightMoves=0;
                 PlanCurve(car);Evaluate(car,car.progress,out var at,out var heading);car.Pose(at,heading,0,0,.02f,true);
@@ -42,14 +43,33 @@ namespace ZeroRise
         }
         void Start(){Initialize();}
         void FixedUpdate(){Step(Time.fixedDeltaTime);}
-        int Choose(int previous,int junction)
+        int Choose(int previous,int junction,TrafficVehicle car)
         {
-            var choices=neighbours[junction];int straight=-1;var incoming=(nodes[junction]-nodes[previous]).normalized;
-            foreach(int node in choices)if(node!=previous&&Vector3.Dot(incoming,(nodes[node]-nodes[junction]).normalized)>.9f)straight=node;
-            if(straight>=0&&random.NextDouble()<.56)return straight;
-            int count=0;foreach(int node in choices)if(node!=previous)count++;
-            int pick=random.Next(Mathf.Max(1,count));foreach(int node in choices)if(node!=previous&&pick--==0)return node;
+            var choices=neighbours[junction];var incoming=(nodes[junction]-nodes[previous]).normalized;float total=0;
+            foreach(int node in choices)if(node!=previous)total+=ChoiceWeight(car,junction,node,incoming);
+            float pick=(float)random.NextDouble()*total;
+            foreach(int node in choices)if(node!=previous){pick-=ChoiceWeight(car,junction,node,incoming);if(pick<=0){if(CityDailyRhythm.Instance)CityDailyRhythm.Instance.RecordRouteChoice(car,IsSideStreet(junction,node));return node;}}
             return previous;
+        }
+        float ChoiceWeight(TrafficVehicle car,int junction,int node,Vector3 incoming)
+        {
+            bool straight=Vector3.Dot(incoming,(nodes[node]-nodes[junction]).normalized)>.9f;
+            return (straight?2.5f:1)* (CityDailyRhythm.Instance?CityDailyRhythm.Instance.RouteWeight(car,IsSideStreet(junction,node)):1);
+        }
+        public bool IsSideStreet(int a,int b)=>!((Mathf.Abs(nodes[a].x-94)<.1f&&Mathf.Abs(nodes[b].x-94)<.1f)||(Mathf.Abs(nodes[a].z)<.1f&&Mathf.Abs(nodes[b].z)<.1f));
+        public bool TryDailyPark(TrafficVehicle car)
+        {
+            if(!car||!car.DailyActive||car.turning||car.heldJunction>=0||car.progress<12||RoadLength(car.from,car.to)-car.progress<24)return false;
+            car.DailyParked=true;car.speed=car.desiredSpeed=0;car.waitingSince=-1;car.gameObject.SetActive(false);return true;
+        }
+        public bool TryDailyReturn(TrafficVehicle car)
+        {
+            if(!car||!car.DailyParked)return false;
+            Evaluate(car,car.progress,out var position,out var heading);
+            if(Occupied(car,position,heading,car.length*.5f+MinimumGap+2))return false;
+            foreach(var other in vehicles)if(other&&other!=car&&other.DailyActive&&Vector3.Distance(position,other.transform.position)<car.length+MinimumGap+4)return false;
+            car.DailyParked=false;car.speed=car.desiredSpeed=0;car.waitingSince=-1;car.gameObject.SetActive(true);
+            car.Pose(position,heading,0,0,.02f,true);Physics.SyncTransforms();return true;
         }
         public Link Edge(int a,int b)
         {foreach(var link in links)if((link.a==a&&link.b==b)||(link.a==b&&link.b==a))return link;throw new InvalidOperationException("Missing traffic connection");}
@@ -99,7 +119,7 @@ namespace ZeroRise
         {
             foreach(var other in vehicles)
             {
-                if(other==car)continue;
+                if(other==car||!other.DailyActive)continue;
                 if(!other.turning&&other.from==car.to&&other.to==car.next&&other.progress<car.length+other.length*.5f+MinimumGap+3)return false;
             }
             var direction=(nodes[car.next]-nodes[car.to]).normalized;
@@ -127,7 +147,7 @@ namespace ZeroRise
                 int winner=-1;float oldest=float.MaxValue;bool main=false;
                 for(int i=0;i<vehicles.Length;i++)
                 {
-                    var car=vehicles[i];if(car.turning||car.to!=junction||car.waitingSince<0||car.heldJunction>=0)continue;
+                    var car=vehicles[i];if(!car.DailyActive||car.turning||car.to!=junction||car.waitingSince<0||car.heldJunction>=0)continue;
                     if(!ExitClear(car,i)){BlockedReservations++;continue;}
                     bool priority=MainPriority(car);
                     // Aged arrivals also get a turn; the low-priority approach
@@ -137,7 +157,7 @@ namespace ZeroRise
                     if(!priority)
                         foreach(var other in vehicles)
                         {
-                            if(other==car||other.turning||other.to!=junction||other.waitingSince<0)continue;
+                            if(other==car||!other.DailyActive||other.turning||other.to!=junction||other.waitingSince<0)continue;
                             var otherApproach=(nodes[other.from]-nodes[junction]).normalized;
                             if(Vector3.Dot(Vector3.Cross(Vector3.up,direction),otherApproach)>.8f&&clock-car.waitingSince<8)yieldRight=true;
                         }
@@ -170,7 +190,7 @@ namespace ZeroRise
             if(owners==null)Initialize();clock+=dt;
             for(int i=0;i<vehicles.Length;i++)
             {
-                var car=vehicles[i];
+                var car=vehicles[i];if(!car.DailyActive)continue;
                 if(!car.turning&&car.heldJunction>=0&&car.heldJunction!=car.to&&car.progress>car.length*.5f+1)
                 {owners[car.heldJunction]=-1;car.heldJunction=-1;}
                 float remaining=RoadLength(car.from,car.to)-car.progress;
@@ -181,7 +201,8 @@ namespace ZeroRise
             // execution-order advantage for the first vehicle in the array.
             for(int i=0;i<vehicles.Length;i++)
             {
-                var car=vehicles[i];float target=Edge(car.from,car.to).speed*(car.kind==3?.82f:1);
+                var car=vehicles[i];if(!car.DailyActive){decisions[i]=0;continue;}float target=Edge(car.from,car.to).speed*(car.kind==3?.82f:1);
+                if(CityDailyRhythm.Instance&&IsSideStreet(car.from,car.to))target*=CityDailyRhythm.Instance.SideStreetSpeed;
                 float available=35;
                 float remaining=RoadLength(car.from,car.to)-car.progress;
                 bool owns=owners[car.to]==i;
@@ -199,7 +220,7 @@ namespace ZeroRise
             }
             for(int i=0;i<vehicles.Length;i++)
             {
-                var car=vehicles[i];float before=car.progress;car.speed=decisions[i];float travel=car.speed*dt;car.progress+=travel;car.travelled+=travel;
+                var car=vehicles[i];if(!car.DailyActive)continue;float before=car.progress;car.speed=decisions[i];float travel=car.speed*dt;car.progress+=travel;car.travelled+=travel;
                 if(car.speed<.25f){car.waitingTime+=dt;car.maxWait=Mathf.Max(car.maxWait,car.waitingTime);}else car.waitingTime=0;
                 if(!car.turning&&car.progress>=RoadLength(car.from,car.to)-.001f)
                 {
@@ -212,7 +233,7 @@ namespace ZeroRise
                     var incoming=(nodes[car.to]-nodes[car.from]).normalized;var outgoing=(nodes[car.next]-nodes[car.to]).normalized;
                     float turn=Vector3.Cross(incoming,outgoing).y;
                     if(turn>.1f)car.rightTurns++;else if(turn<-.1f)car.leftTurns++;else car.straightMoves++;
-                    car.progress-=car.curveLength;car.from=car.to;car.to=car.next;car.next=Choose(car.from,car.to);car.turning=false;car.waitingSince=-1;car.completedTurns++;PlanCurve(car);
+                    car.progress-=car.curveLength;car.from=car.to;car.to=car.next;car.next=Choose(car.from,car.to,car);car.turning=false;car.waitingSince=-1;car.completedTurns++;PlanCurve(car);
                 }
                 Evaluate(car,car.progress,out var position,out var forward);
                 Evaluate(car,car.progress+.9f,out _,out var ahead);

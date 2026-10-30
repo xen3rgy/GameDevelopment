@@ -4,6 +4,7 @@
 #undef GetSurfaceAndBuiltinData
 
 #include "VegetationBend.hlsl"
+#include "WeatherSurface.hlsl"
 
 #if defined(_ZR_FOLIAGE) || defined(_ZR_TREE) || defined(_ZR_SHRUB)
 AttributesMesh ApplyMeshModification(AttributesMesh input, float3 timeParameters)
@@ -105,5 +106,12 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     surfaceData.ambientOcclusion = lerp(_AORemapMin,_AORemapMax,mask.g);
     surfaceData.perceptualSmoothness = lerp(_SmoothnessRemapMin,_SmoothnessRemapMax,mask.a);
     #endif
+#endif
+#if defined(_ZR_ROAD)
+    // Height atlas excludes covered bridge fragments without splitting batches.
+    float rainFacing=smoothstep(.55,.93,input.tangentToWorld[2].y);
+    float wet=_ZRWeatherWetness*rainFacing*ZRWeatherExposure(GetAbsolutePositionWS(input.positionRWS));
+    surfaceData.baseColor*=lerp(1,.71,wet);
+    surfaceData.perceptualSmoothness=lerp(surfaceData.perceptualSmoothness,max(surfaceData.perceptualSmoothness,.68),wet);
 #endif
 }

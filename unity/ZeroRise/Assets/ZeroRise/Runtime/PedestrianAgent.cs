@@ -9,6 +9,8 @@ namespace ZeroRise
         public NavMeshAgent agent;public PlayerAvatar avatar;public CapsuleCollider capsule;public PedestrianWorld world;public int personality;
         public int destination=-1,previousPlace=-1,initialPlace=-1,activities,roadCrossings,recoveries;public float walkedSinceRest,totalDistance;
         public Behaviour state;public GameObject phone;public NavMeshObstacle manualObstacle;public float StateTime=>Time.time-stateStarted;
+        public bool DailyOffDuty { get; private set; }
+        public bool AtHomeDoor=>destination>=0&&state==Behaviour.Activity&&world.places[destination].activity==PedestrianWorld.Activity.Visit&&StateTime>2;
         float stateStarted,chooseAt,stillTime,probeAt,poseBlend,transitionTime,walkingRadius;Vector3 lastPosition,activityOrigin,linkStart,linkEnd;int crossing=-1;
         Vector3 yieldTarget;float yieldUntil;
         NavMeshPath route;readonly RaycastHit[] hits=new RaycastHit[12];
@@ -35,6 +37,22 @@ namespace ZeroRise
             agent.nextPosition=transform.position;agent.updatePosition=agent.updateRotation=true;agent.isStopped=false;
         }
         void OnDisable(){if(world)world.Release(this);}
+        public bool TryDailyRest()
+        {
+            if(DailyOffDuty||!AtHomeDoor)return false;
+            // The manager checks visibility and distance first. Finish walking
+            // to an existing home entrance before leaving the public street.
+            world.Release(this);previousPlace=destination;destination=-1;agent.ResetPath();DailyOffDuty=true;gameObject.SetActive(false);return true;
+        }
+        public bool TryDailyWake()
+        {
+            if(!DailyOffDuty||!world||!NavMesh.SamplePosition(transform.position,out var ground,.4f,agent.areaMask))return false;
+            if(Physics.CheckCapsule(ground.position+Vector3.up*.4f,ground.position+Vector3.up*1.45f,.30f,1|(1<<2)|(1<<8)|(1<<9),QueryTriggerInteraction.Ignore))return false;
+            transform.position=ground.position;gameObject.SetActive(true);agent.enabled=true;
+            if(!agent.isOnNavMesh){gameObject.SetActive(false);return false;}
+            DailyOffDuty=false;capsule.height=1.8f;capsule.center=Vector3.up*.9f;poseBlend=0;avatar.enabled=true;avatar.ResetMotion();
+            lastPosition=transform.position;AnchorHere();chooseAt=Time.time+.25f+(personality%5)*.13f;SetState(Behaviour.WaitingForRoute);return true;
+        }
         void Plan()
         {
             if(destination>=0){previousPlace=destination;world.Release(this);destination=-1;}

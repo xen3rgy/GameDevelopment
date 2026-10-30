@@ -38,6 +38,7 @@ namespace ZeroRise.Editor
             sound.footReflections=Reflections(sound.footsteps);sound.footReflections.enabled=false;
             Reflections(sound.drain);
             WestbruchAtmosphereLighting.Build(root);
+            GameplayAudioAssets.Bind(sound);
             Physics.SyncTransforms();EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());
             EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
         }

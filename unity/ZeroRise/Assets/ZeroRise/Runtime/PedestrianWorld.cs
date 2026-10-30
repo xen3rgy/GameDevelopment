@@ -51,6 +51,7 @@ namespace ZeroRise
                 float distance=Vector3.Distance(person.transform.position,place.approach);if(distance<5||distance>220)continue;
                 if(!person.CanReach(place.approach))continue;
                 float preference=place.activity==Activity.Sit?Mathf.Min(5,person.walkedSinceRest/40):place.activity==Activity.Visit&&i%3==person.personality%3?2:0;
+                if(CityDailyRhythm.Instance)preference+=CityDailyRhythm.Instance.PlacePreference(person,place.activity);
                 if(place.activity==Activity.Talk&&place.partner>=0&&places[place.partner].owner)preference+=4;
                 float score=(float)random.NextDouble()*3+preference-distance*.013f;
                 if(score>best){best=score;selected=i;}
@@ -73,6 +74,7 @@ namespace ZeroRise
             var traffic=FindAnyObjectByType<WestbruchTraffic>();
             if(traffic)foreach(var car in traffic.vehicles)
             {
+                if(!car.DailyActive)continue;
                 float gap=SegmentDistance(car.transform.position,crossing.a,crossing.b)-car.length*.5f;
                 if(gap<Mathf.Max(3,car.speed*car.speed/9.6f+car.speed*.35f+1.5f)){blockedCrossings++;return false;}
             }
@@ -89,6 +91,9 @@ namespace ZeroRise
         public bool BlocksTraffic(Vector3 position,float radius)
         {foreach(var crossing in crossings)if(crossing.owner&&SegmentDistance(position,crossing.a,crossing.b)<radius+.65f)return true;return false;}
         public float Duration(Activity activity,int personality)
-        {return activity==Activity.Sit?22+personality%5*4:activity==Activity.Wait?16+personality%4*3:activity==Activity.Talk?15:8+personality%5*2;}
+        {
+            float seconds=activity==Activity.Sit?22+personality%5*4:activity==Activity.Wait?16+personality%4*3:activity==Activity.Talk?15:8+personality%5*2;
+            return seconds*(CityDailyRhythm.Instance?CityDailyRhythm.Instance.ActivityDurationScale(activity):1);
+        }
     }
 }

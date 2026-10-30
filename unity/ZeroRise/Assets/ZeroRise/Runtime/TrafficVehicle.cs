@@ -18,6 +18,10 @@ namespace ZeroRise
         [System.NonSerialized] public float[] arc;
         [System.NonSerialized] public float curveLength;
         [System.NonSerialized] public Rigidbody body;
+        // The fleet remains authored once. Daily scheduling only parks an
+        // off-camera car between junctions, never during an occupied crossing.
+        [System.NonSerialized] public bool DailyParked;
+        public bool DailyActive=>!DailyParked&&gameObject.activeInHierarchy;
         float wheelAngle;
         public void Pose(Vector3 position,Vector3 forward,float distance,float turn,float dt,bool immediate,float indicatorTurn=0)
         {

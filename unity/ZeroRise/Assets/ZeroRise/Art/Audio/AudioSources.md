@@ -9,3 +9,13 @@ The following source recordings/assets are CC0. They may be used commercially an
 `DrainResonance.wav`, `FenceTick.wav`, and the `Footstep*.wav` variations are original deterministic modal/noise synthesis for ZERO // RISE, generated offline by `WestbruchAudioAssets.cs`. No speech, music or train-pass recording is used. The empty freight line never produces a phantom passing train.
 
 Audio is mixed by `WestbruchSoundscape`: outdoor wind/remote traffic, sheltered attenuation, spatial grocer machinery, infrequent drainage/fence detail and surface-aware player footsteps. It does not change locomotion, traffic or NPC decisions. Sound controls are available while the cursor is released with Esc.
+
+## Recorded gameplay sound upgrade
+
+The saved scene now references `GameSfx/GameplayAudio.asset`. Its recorded
+footsteps, wind, drainage and fence clips supersede the earlier synthesized
+versions in normal play. Vehicle, traffic, actor and interaction sound is mixed
+by `GameplayAudioDirector`, `VehicleSoundFx` and `TrafficSoundFx`. The older
+synthetic clips remain for source history and legacy generation; they are not
+selected by the upgraded soundscape. Full recording provenance and edits are
+documented in [GameSfx/README.md](GameSfx/README.md).

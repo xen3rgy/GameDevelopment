@@ -86,6 +86,7 @@ namespace ZeroRise.Editor
             WestbruchOverpassDetailQA.Validate(Record);
             WestbruchUrbanRenewal.Validate(Record);
             WestbruchAtmospherePass.Validate(Record);
+            if(GameplayAudioAssets.Library)GameplayAudioAssets.Validate(Record);
             SessionState.SetString(AuthoredReport,string.Join("\n",lines));SessionState.SetBool(AuthoredFailed,failed);
             File.WriteAllLines("QA/overpass-authored-assets.txt",lines);
         }
@@ -296,6 +297,8 @@ namespace ZeroRise.Editor
             while(player.Interacting&&Time.time-began<15)yield return null;
             bool entered=player.driving&&testCar.State==SimpleCar.Occupancy.Driving;
             Check(name+" real animated entry",entered,player.InteractionHint??"");if(!entered)yield break;
+            var soundFx=testCar.GetComponent<VehicleSoundFx>();
+            if(soundFx){for(int i=0;i<8;i++)yield return null;soundFx.PlayHorn();}
             orbit.Rotate(yaw-orbitYaw,0);orbitYaw=yaw;orbit.enabled=true;
             var from=carBody.position;maximumTilt=maximumLaneError=airborneTime=maximumAirborne=0;
             driveControl=true;began=Time.time;bool crossed=false,captured=false;
@@ -327,6 +330,12 @@ namespace ZeroRise.Editor
                 "Travel "+Vector3.Distance(from,carBody.position).ToString("F2")+" m; tilt "+maximumTilt.ToString("F2")+"°; lane deviation "+maximumLaneError.ToString("F3")+" m; maximum airborne "+maximumAirborne.ToString("F3")+" s; end "+carBody.position.ToString("F3"));
             testCar.TryExit(player);began=Time.time;while(player.Interacting&&Time.time-began<15)yield return null;
             Check(name+" real animated exit after stopping",!player.driving&&!player.Interacting&&controller.enabled,player.InteractionHint??"");
+            if(soundFx)
+            {
+                for(int i=0;i<8;i++)yield return null;
+                Check(name+" actual vehicle actions produce recorded sound FX",soundFx.Starts>0&&soundFx.Stops>0&&soundFx.Opens>=2&&soundFx.Closes>=2&&soundFx.RollingFrames>0&&soundFx.Horns>0&&soundFx.HighestRpm>1200,
+                    "Ignitions "+soundFx.Starts+"; stops "+soundFx.Stops+"; door open/close "+soundFx.Opens+"/"+soundFx.Closes+"; rolling frames "+soundFx.RollingFrames+"; horns "+soundFx.Horns+"; highest audio RPM "+soundFx.HighestRpm.ToString("F0"));
+            }
         }
         void FixedUpdate()
         {

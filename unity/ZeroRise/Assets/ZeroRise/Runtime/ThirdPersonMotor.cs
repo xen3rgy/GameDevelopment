@@ -42,6 +42,9 @@ namespace ZeroRise
         public bool IsGrounded => controller && controller.isGrounded;
         public bool CanInteract => IsGrounded||groundGrace>0;
         public float VerticalSpeed => fall;
+        public event System.Action Jumped;
+        public event System.Action<float> Landed;
+        float soundAirTime;
         public void MoveStep(Vector2 input,bool running,bool jump,float dt,bool jogging=false)
         {
             if(driving||Interacting||dt<=0)return;
@@ -52,7 +55,7 @@ namespace ZeroRise
             groundGrace=controller.isGrounded&&fall<=0?.12f:Mathf.Max(0,groundGrace-dt);
             jumpBuffer=jump?.12f:Mathf.Max(0,jumpBuffer-dt);
             if (controller.isGrounded && fall < 0) fall = -2;
-            if (groundGrace>0 && jumpBuffer>0){fall=5;groundGrace=0;jumpBuffer=0;}
+            if (groundGrace>0 && jumpBuffer>0){fall=5;groundGrace=0;jumpBuffer=0;soundAirTime=0;Jumped?.Invoke();}
             fall -= 18 * dt;
             var oldVelocity=velocity;
             float turn=0,remaining=0;
@@ -75,6 +78,8 @@ namespace ZeroRise
             // contact, while jumping and gravity keep their vertical motion.
             var horizontal=ConstrainActors(velocity*dt);
             controller.Move(horizontal+Vector3.up*fall*dt);
+            if(!controller.isGrounded)soundAirTime+=dt;
+            else {if(soundAirTime>.13f&&fall< -2.5f)Landed?.Invoke(-fall);soundAirTime=0;}
             float actual=Vector3.ProjectOnPlane(transform.position-before,Vector3.up).magnitude/Mathf.Max(dt,.0001f);
             if(velocity.sqrMagnitude>.04f&&actual<velocity.magnitude*.1f&&direction.sqrMagnitude>.01f)velocity=Vector3.zero;
             if(avatar)avatar.Motion(actual,fall,controller.isGrounded,dt,turn,Vector3.Dot(velocity-oldVelocity,visual.forward)/dt);
@@ -136,8 +141,8 @@ namespace ZeroRise
         {
             GUI.Label(new Rect(22, 20, 550, 32), "ZERO // RISE  ·  WESTBRUCH  ·  UNITY WINDOWS PROTOTYP");
             GUI.Label(new Rect(22, Screen.height - 44, 900, 32), Interacting?"Ein-/Aussteigen …":driving
-                ? "W/S Fahren · A/D Lenken · Leertaste Bremse · E Aussteigen · Maus Kamera · Esc Maus freigeben"
-                : "WASD Gehen · Alt Joggen · Shift Sprinten · Leertaste Springen · E Auto · Rechte Maustaste Ausrichten · Esc Maus freigeben");
+                ? "W/S Fahren · A/D Lenken · Leertaste Bremse · H Hupe · E Aussteigen · Maus Kamera · Esc Einstellungen"
+                : "WASD Gehen · Alt Joggen · Shift Sprinten · Leertaste Springen · E Auto · Rechte Maustaste Ausrichten · Esc Einstellungen");
             if(!Interacting&&Time.time<hintUntil&&!string.IsNullOrEmpty(InteractionHint))GUI.Label(new Rect(22,Screen.height-76,800,28),InteractionHint);
             else if(!driving&&!Interacting&&nearbyCar&&Vector3.Distance(transform.position,nearbyCar.transform.position)<4)GUI.Label(new Rect(22,Screen.height-76,800,28),"E · Einsteigen");
         }
