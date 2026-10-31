@@ -20,7 +20,7 @@ namespace ZeroRise.Editor
             Component<WorldWeatherClock>();Component<CityDailyRhythm>();
             var visuals=Component<WestbruchWeatherVisuals>();var audio=Component<WestbruchWeatherAudio>();
             Directory.CreateDirectory(Materials);AssetDatabase.Refresh();
-            visuals.rainMaterial=Material("Rain","ZeroRise/WeatherRain");visuals.puddleMaterial=Material("Puddle","ZeroRise/WeatherPuddle");
+            visuals.rainMaterial=Material("Rain","ZeroRise/WeatherRain");visuals.puddleMaterial=WeatherSurfaceAssets.Prepare();
             AudioClip Clip(string path)
             {
                 string full="Assets/ZeroRise/Art/Audio/"+path+".wav";

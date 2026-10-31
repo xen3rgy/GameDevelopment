@@ -10,7 +10,7 @@ namespace ZeroRise
     // Only runs through the explicit editor command or -world-weather-qa path.
     public sealed class WorldWeatherQA : MonoBehaviour
     {
-        string output;bool failed,drive,visualOnly,nightOnly,twilightOnly;int errors;float throttle;WorldWeatherClock clock;
+        string output;bool failed,drive,visualOnly,nightOnly,twilightOnly,skyOnly,sunsetOnly;int errors;float throttle;WorldWeatherClock clock;
         ThirdPersonMotor player;SimpleCar car;Camera camera;Rigidbody body;
         readonly List<string> report=new List<string>();
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -18,11 +18,16 @@ namespace ZeroRise
         {
             var args=Environment.GetCommandLineArgs();int index=Array.IndexOf(args,"-world-weather-qa");
             if(index>=0)Launch(index+1<args.Length?args[index+1]:Path.Combine(Application.persistentDataPath,"WorldWeatherQA"));
+            else if(Array.IndexOf(args,"-sunset-transition-qa") is int sunsetReview && sunsetReview>=0)Launch(args[sunsetReview+1],true);
+            else if(Array.IndexOf(args,"-night-sky-qa") is int skyReview && skyReview>=0)Launch(args[skyReview+1],true,true);
+            else if(Array.IndexOf(args,"-night-lighting-qa") is int nightReview && nightReview>=0)Launch(args[nightReview+1],true,true);
+            else if(Array.IndexOf(args,"-world-weather-visual-review") is int review && review>=0)Launch(args[review+1],true);
             else {index=Array.IndexOf(args,"-world-twilight-qa");if(index>=0)Launch(index+1<args.Length?args[index+1]:Path.Combine(Application.persistentDataPath,"WorldTwilightQA"),false,false,true);}
         }
         public static void Launch(string folder,bool visualsOnly=false,bool nightsOnly=false,bool twilight=false)
         {
-            var qa=new GameObject("Explicit world weather verification").AddComponent<WorldWeatherQA>();qa.output=folder;qa.visualOnly=visualsOnly;qa.nightOnly=nightsOnly;qa.twilightOnly=twilight;Directory.CreateDirectory(folder);
+            Application.runInBackground=true;
+            var qa=new GameObject("Explicit world weather verification").AddComponent<WorldWeatherQA>();qa.output=folder;qa.visualOnly=visualsOnly;qa.nightOnly=nightsOnly;qa.twilightOnly=twilight;qa.skyOnly=Array.IndexOf(Environment.GetCommandLineArgs(),"-night-sky-qa")>=0;qa.sunsetOnly=Array.IndexOf(Environment.GetCommandLineArgs(),"-sunset-transition-qa")>=0;Directory.CreateDirectory(folder);
             var world=WorldWeatherClock.Instance;if(world)world.SuppressSave=true;
         }
         void OnEnable()=>Application.logMessageReceived+=Log;
@@ -38,33 +43,36 @@ namespace ZeroRise
             Check("Saved scene contains all world systems",systems);
             if(!systems){Finish();yield break;}
             clock.SuppressSave=true;clock.enabled=false;player.enabled=false;player.orbit.enabled=false;car.enabled=false;body=car.GetComponent<Rigidbody>();
-            Cursor.lockState=CursorLockMode.None;Cursor.visible=true;
+            Cursor.lockState=CursorLockMode.None;Cursor.visible=false;
             CoreChecks();
             clock.state=new WorldWeatherClock.WorldState();clock.SetHour(12);clock.SetWeather(WeatherKind.Clear);clock.SetSpeed(1);clock.Advance(20);
             Place(new Vector3(111,0,70));View(new Vector3(103,2.8f,67),new Vector3(123,3,81));
             yield return Hold(12);
             float readyUntil=Time.unscaledTime+20;while(!visual.RoofMapReady&&Time.unscaledTime<readyUntil)yield return null;
             Check("Runtime weather geometry and roof cache initialize",visual.Initialized&&visual.RoofMapReady&&visual.PuddleCount>0&&visual.WetMaterialCount>0&&weatherSound.Ready,"Puddles "+visual.PuddleCount+"; materials "+visual.WetMaterialCount);
+            Check("Puddles use HDRP environment reflections",visual.ReflectivePuddles,"Native HDRP/Lit shallow water");
             float daySun=SunIntensity();
             Check("Weather materials survive runtime shader stripping",visual.rainMaterial&&visual.puddleMaterial&&visual.rainMaterial.shader.isSupported&&visual.puddleMaterial.shader.isSupported);
+            if(sunsetOnly){weatherSound.enabled=false;yield return SunsetTransitionReview(visual);Finish();yield break;}
             if(twilightOnly){yield return TwilightRegression(visual);Finish();yield break;}
-            if(nightOnly)
-            {
-                clock.SetHour(0);yield return Hold(9);yield return Capture("07-night.png");yield return NightWindow("night-window.png");
-                visual.nightMoonLux=2;visual.nightFillLux=.6f;yield return Hold(7);yield return Capture("night-lower-fill.png");
-                visual.nightMoonLux=6;visual.nightFillLux=1.5f;yield return Hold(7);yield return Capture("night-higher-fill.png");
-                LogSystem("Night proof",visual,weatherSound,rhythm);Finish();yield break;
-            }
+            if(nightOnly){if(skyOnly)yield return NightSkyReview(visual);else yield return NightLightingReview(visual);Finish();yield break;}
             yield return Capture("01-clear-noon.png");
             LogSystem("Noon",visual,weatherSound,rhythm);
             Check("Noon schedule increases population",rhythm.TargetPedestrians==18&&rhythm.TargetTraffic>=9,"Residents "+rhythm.ActivePedestrians+" / target "+rhythm.TargetPedestrians+"; traffic "+rhythm.ActiveTraffic+" / target "+rhythm.TargetTraffic);
 
-            clock.SetWeather(WeatherKind.Rain);clock.SetSpeed(20);clock.Advance(20);clock.SetHour(12);
+            clock.SetWeather(WeatherKind.Rain);clock.SetSpeed(20);clock.Advance(60);clock.SetHour(12);
             yield return Hold(7);
             Check("Rain mesh is visible in outdoor weather",visual.RainDropCount>10,"Streaks "+visual.RainDropCount);
             Check("Rain leaves persistent surface water",clock.RainIntensity>.5f&&clock.Wetness>.8f&&clock.PuddleAmount>.35f,"Rain "+clock.RainIntensity+"; wet "+clock.Wetness+"; puddles "+clock.PuddleAmount);
             var take=Application.isEditor?null:GameplayAudioRecording.Begin(camera,32);
             yield return Hold(visualOnly?1:10);yield return Capture("02-rain-wet-street.png");EndTake(take,"rain-outside.wav");
+            Check("Rain impacts create bounded surface splashes",visual.SplashCount>0&&visual.SplashCount<=256,"Live impact particles "+visual.SplashCount);
+            var puddle=visual.PuddleInspectionPoint;
+            if(puddle!=Vector3.zero)
+            {
+                View(puddle+new Vector3(-2,.35f,-2),puddle+Vector3.up*.08f);yield return Hold(3);yield return Capture("02b-reflective-puddle.png");
+                View(new Vector3(103,2.8f,67),new Vector3(123,3,81));
+            }
             LogSystem("Rain outdoors",visual,weatherSound,rhythm);
             float outsideRain=weatherSound.RainGain;
             Place(new Vector3(118,0,80));View(new Vector3(118,2.1f,80),new Vector3(108,2,79));
@@ -122,7 +130,10 @@ namespace ZeroRise
             clock.Advance(65);clock.SetHour(12);yield return Hold(5);yield return Capture("09-dried.png");
             Check("Remaining water evaporates and drains in game time",clock.Wetness<.01f&&clock.PuddleAmount<.01f&&wetBefore>.1f&&puddleBefore>.1f,"Before "+wetBefore+" / "+puddleBefore+"; after "+clock.Wetness+" / "+clock.PuddleAmount);
             Check("Time acceleration keeps original physics clocks",Mathf.Approximately(Time.timeScale,1)&&Mathf.Approximately(Time.fixedDeltaTime,.02f),"Time scale "+Time.timeScale+"; fixed delta "+Time.fixedDeltaTime);
-            string manifest=Path.Combine(Path.GetDirectoryName(Application.dataPath),"Westbruch-build.json");
+            string manifestRoot=Application.platform==RuntimePlatform.OSXPlayer
+                ?Path.GetFullPath(Path.Combine(Application.dataPath,"../.."))
+                :Path.GetDirectoryName(Application.dataPath);
+            string manifest=Path.Combine(manifestRoot,"Westbruch-build.json");
             if(!Application.isEditor)
             {
                 string json=File.Exists(manifest)?File.ReadAllText(manifest):"";
@@ -136,7 +147,7 @@ namespace ZeroRise
             Check("Clock wraps midnight into the next day",clock.DayNumber==day+1&&clock.Hour<.1f,"Day "+clock.DayNumber+"; hour "+clock.Hour);
             foreach(float speed in new[]{1f,2f,5f,10f,20f})
             {clock.SetSpeed(speed);double before=clock.TotalGameMinutes;clock.Advance(2);Check("World clock "+speed+"x",Math.Abs(clock.TotalGameMinutes-before-speed)<.001,"Game minutes "+(clock.TotalGameMinutes-before));}
-            clock.SetSpeed(20);clock.SetHour(12);clock.SetWeather(WeatherKind.Rain);clock.Advance(20);
+            clock.SetSpeed(20);clock.SetHour(12);clock.SetWeather(WeatherKind.Rain);clock.Advance(60);
             string saved=clock.ExportState();float wet=clock.Wetness,puddle=clock.PuddleAmount,soil=clock.SoilMoisture;
             Check("Rain saturates different surface reservoirs",wet>.8f&&puddle>.3f&&soil>.4f,saved);
             clock.SetWeather(WeatherKind.Clear);clock.Advance(1);
@@ -201,6 +212,181 @@ namespace ZeroRise
             }
         }
         IEnumerator Hold(float seconds){float until=Time.unscaledTime+seconds;while(Time.unscaledTime<until)yield return null;}
+        IEnumerator SunsetTransitionReview(WestbruchWeatherVisuals visual)
+        {
+            // HDRP advances its sky environment with scaled renderer time.
+            // Freeze scene activity and cloud drift, never the renderer clock.
+            Time.timeScale=1;
+            var trafficSystem=FindAnyObjectByType<WestbruchTraffic>();if(trafficSystem)trafficSystem.enabled=false;
+            if(CityDailyRhythm.Instance)CityDailyRhythm.Instance.enabled=false;
+            var atmosphere=GameObject.Find("Westbruch atmosphere").GetComponent<UnityEngine.Rendering.Volume>();
+            if(atmosphere.sharedProfile.TryGet<UnityEngine.Rendering.HighDefinition.VolumetricClouds>(out var cloudField))
+            {
+                cloudField.globalWindSpeed.Override(new UnityEngine.Rendering.HighDefinition.WindParameter.WindParamaterValue{mode=UnityEngine.Rendering.HighDefinition.WindParameter.WindOverrideMode.Custom,customValue=0});
+                cloudField.verticalShapeWindSpeed.Override(0);cloudField.verticalErosionWindSpeed.Override(0);
+            }
+            var csv=new List<string>{"mode,weather,hour,skyMean,exposureEV,sunLux"};
+            var skyAt=new Vector3(100,28,70);var skyTarget=skyAt+new Vector3(-86.6f,35,50);
+            foreach(var weather in new[]{WeatherKind.Clear,WeatherKind.Cloudy,WeatherKind.Storm})
+            {
+                clock.SetSpeed(1);clock.SetWeather(weather);clock.Advance(90);clock.SetHour(12);
+                View(new Vector3(103,2.8f,67),new Vector3(123,3,81));yield return Hold(2);yield return Capture("sunset-noon-"+weather+".png");
+                View(skyAt,skyTarget);float previous=-1,largestRise=0;bool monotone=true;
+                for(int step=0;step<=12;step++)
+                {
+                    float hour=19.75f+step/12f;clock.SetHour(hour);yield return Hold(1.3f);
+                    string filename="sunset-"+weather+"-"+Mathf.RoundToInt(hour*60).ToString("0000")+".png";
+                    yield return Capture(filename);
+                    var shot=new Texture2D(2,2);shot.LoadImage(File.ReadAllBytes(Path.Combine(output,filename)));float mean=UpperSkyMean(shot);Destroy(shot);
+                    csv.Add(SunsetRow("fixed",weather,hour,mean,visual));
+                    if(hour>=20&&hour<=20.667f)
+                    {
+                        if(previous>=0){float rise=mean-previous;largestRise=Mathf.Max(largestRise,rise);monotone&=rise<=Mathf.Max(.0015f,previous*.03f);}
+                        previous=mean;
+                    }
+                }
+                Check("Evening sky fades without rebrightening in "+weather,monotone,"Largest 5-minute increase "+largestRise);
+            }
+            clock.SetWeather(WeatherKind.Clear);clock.Advance(90);
+            foreach(float speed in new[]{1f,20f})
+            {
+                clock.SetHour(20);clock.SetSpeed(speed);View(skyAt,skyTarget);yield return Hold(2);
+                clock.enabled=true;float nextHour=20,previous=-1,largestRise=0,largestDrop=0,first=-1;bool monotone=true;int samples=0;
+                while(clock.Hour<20.69f)
+                {
+                    if(clock.Hour>=nextHour)
+                    {
+                        yield return new WaitForEndOfFrame();var shot=ScreenCapture.CaptureScreenshotAsTexture();float mean=UpperSkyMean(shot);float hour=clock.Hour;
+                        if(samples%5==0||hour>20.65f)File.WriteAllBytes(Path.Combine(output,"sunset-live-"+speed+"x-"+Mathf.RoundToInt(hour*60)+".png"),shot.EncodeToPNG());Destroy(shot);
+                        csv.Add(SunsetRow("live-"+speed+"x",WeatherKind.Clear,hour,mean,visual));
+                        if(first<0)first=mean;
+                        if(previous>=0){float rise=mean-previous;largestRise=Mathf.Max(largestRise,rise);largestDrop=Mathf.Max(largestDrop,-rise);monotone&=rise<=Mathf.Max(.0015f,previous*.03f);}
+                        previous=mean;nextHour=hour+2f/60;samples++;
+                    }
+                    yield return null;
+                }
+                clock.enabled=false;
+                Check("Running "+speed+"x sunset has no sky brightness reversal",monotone&&samples>=12,"Samples "+samples+"; maximum rise "+largestRise);
+                Check("Running "+speed+"x sunset has no abrupt sky blackout",largestDrop<=Mathf.Max(.015f,first*.45f),"Largest 2-minute drop "+largestDrop+"; initial sky mean "+first);
+            }
+            clock.SetSpeed(1);clock.SetHour(20+40f/60);View(new Vector3(103,2.8f,67),new Vector3(123,3,81));yield return Hold(2);yield return Capture("sunset-final-street.png");
+            Time.timeScale=1;File.WriteAllLines(Path.Combine(output,"sunset-luminance.csv"),csv);
+        }
+        static string SunsetRow(string mode,WeatherKind weather,float hour,float mean,WestbruchWeatherVisuals visual)
+        {
+            var culture=System.Globalization.CultureInfo.InvariantCulture;
+            return mode+","+weather+","+hour.ToString("F5",culture)+","+mean.ToString("F7",culture)+","+visual.Exposure.ToString("F5",culture)+","+visual.SunIntensity.ToString("F5",culture);
+        }
+        static float UpperSkyMean(Texture2D image)
+        {
+            // Average an unobstructed sky region above the sun disk and horizon; individual stars do not dominate it.
+            var pixels=image.GetPixels32();float sum=0;int count=0;
+            for(int y=image.height/2;y<image.height-8;y+=4)for(int x=8;x<image.width-8;x+=4)
+            {sum+=SkyLuma(pixels[y*image.width+x]);count++;}
+            return sum/Mathf.Max(1,count);
+        }
+        IEnumerator NightSkyReview(WestbruchWeatherVisuals visual)
+        {
+            clock.SetWeather(WeatherKind.Clear);clock.Advance(90);clock.SetHour(0);yield return Hold(8);
+            View(new Vector3(103,2.8f,67),new Vector3(123,3,81));yield return Hold(3);yield return Capture("night-map-overview.png");
+            View(new Vector3(94,1.8f,42),new Vector3(94,2.5f,80));yield return Hold(3);yield return Capture("night-main-street.png");
+            var shelter=GameObject.Find("Old Westbruch bus shelter");
+            if(shelter){View(shelter.transform.position-shelter.transform.forward*6+Vector3.up*1.6f,shelter.transform.position+Vector3.up*1.4f);yield return Hold(3);yield return Capture("night-bus-shelter.png");}
+            foreach(var fixture in FindObjectsByType<Transform>())if(fixture.name=="Shop display window")
+            {View(fixture.position-fixture.forward*8+Vector3.up*.6f,fixture.position);yield return Hold(3);yield return Capture("night-shopfront.png");break;}
+            View(new Vector3(100,28,70),new Vector3(100,78,-16.6f));yield return Hold(5);yield return Capture("night-clear-sky.png");
+            Check("Native star cubemap is included",visual.StarMapLoaded);
+            Check("Clear weather reveals stars",visual.StarVisibility>.9f,"Star visibility "+visual.StarVisibility);
+            Check("Moon illumination remains subtle",visual.MoonIntensity>0&&visual.MoonIntensity<=.31f,"Moon lux "+visual.MoonIntensity);
+            var image=new Texture2D(2,2);image.LoadImage(File.ReadAllBytes(Path.Combine(output,"night-clear-sky.png")));var pixels=image.GetPixels32();
+            float sum=0;int count=0,peaks=0;int width=image.width,height=image.height;
+            for(int y=height/3;y<height-5;y++)for(int x=5;x<width-5;x++)
+            {
+                float value=SkyLuma(pixels[y*width+x]);sum+=value;count++;
+                if(value<.035f)continue;
+                if(value<SkyLuma(pixels[y*width+x-1])||value<SkyLuma(pixels[y*width+x+1])||value<SkyLuma(pixels[(y-1)*width+x])||value<SkyLuma(pixels[(y+1)*width+x]))continue;
+                float surround=(SkyLuma(pixels[y*width+x-4])+SkyLuma(pixels[y*width+x+4])+SkyLuma(pixels[(y-4)*width+x])+SkyLuma(pixels[(y+4)*width+x]))*.25f;
+                if(value>surround*1.8f+.005f)peaks++;
+            }
+            Destroy(image);
+            Check("Rendered midnight sky stays dark",sum/Mathf.Max(1,count)<.025f,"Mean sky luminance "+sum/Mathf.Max(1,count));
+            Check("Rendered clear sky contains distinct stars",peaks>20,"Bright local peaks "+peaks);
+            clock.SetWeather(WeatherKind.Storm);clock.Advance(90);clock.SetHour(0);yield return Hold(8);yield return Capture("night-overcast-sky.png");
+            Check("Overcast weather hides stars",visual.StarVisibility<.01f,"Star visibility "+visual.StarVisibility);
+            View(new Vector3(103,2.8f,67),new Vector3(123,3,81));yield return Hold(3);yield return Capture("night-overcast-street.png");
+            clock.SetWeather(WeatherKind.Clear);clock.Advance(90);clock.SetHour(0);yield return Hold(5);yield return Capture("07-night.png");
+            LogSystem("Night atmosphere",visual);
+        }
+        static float SkyLuma(Color32 p)=>(p.r*.2126f+p.g*.7152f+p.b*.0722f)/255f;
+        IEnumerator NightLightingReview(WestbruchWeatherVisuals visual)
+        {
+            clock.SetHour(0);clock.SetWeather(WeatherKind.Clear);clock.Advance(30);clock.SetHour(0);
+            yield return Hold(5);yield return Capture("night-overview.png");
+            float measuredUntil=Time.unscaledTime+3,frameTotal=0;int frameSamples=0;
+            while(Time.unscaledTime<measuredUntil){yield return null;frameTotal+=Time.unscaledDeltaTime;frameSamples++;}
+            report.Add("Stable night overview frame time: "+(frameTotal/Mathf.Max(1,frameSamples)*1000).ToString("F2")+" ms; samples "+frameSamples+"; resolution "+Screen.width+"x"+Screen.height);
+            Check("Combined vehicle lenses have individual emissive materials",visual.HeadlampEmitterMaterials>1,"Emitter groups "+visual.HeadlampEmitterMaterials);
+            Check("Street lighting extends beyond nearest-eight budget",visual.ActiveStreetLights>8,"Active street lights "+visual.ActiveStreetLights);
+            foreach(float distance in new[]{30f,64f,66f,90f,130f})
+            {
+                Check("No headlamp cutoff at "+distance+" metres",WestbruchWeatherVisuals.HeadlightVisibility(distance)>.99f);
+                Check("No streetlamp cutoff at "+distance+" metres",WestbruchWeatherVisuals.StreetlightVisibility(distance)>.99f);
+            }
+            Check("Light distance tails fade gradually",WestbruchWeatherVisuals.HeadlightVisibility(180)>.3f&&WestbruchWeatherVisuals.HeadlightVisibility(180)<.9f&&WestbruchWeatherVisuals.StreetlightVisibility(220)>.3f&&WestbruchWeatherVisuals.StreetlightVisibility(220)<.9f);
+            Time.timeScale=0;
+            var trafficSystem=FindAnyObjectByType<WestbruchTraffic>();if(trafficSystem)trafficSystem.enabled=false;
+            if(CityDailyRhythm.Instance)CityDailyRhythm.Instance.enabled=false;
+            TrafficVehicle subject=null;float best=float.PositiveInfinity;
+            foreach(var vehicle in FindObjectsByType<TrafficVehicle>())if(vehicle.DailyActive)
+            {float d=(vehicle.transform.position-new Vector3(85,0,77.5f)).sqrMagnitude;if(d<best){best=d;subject=vehicle;}}
+            Check("Night review has an active traffic car",subject);
+            if(subject)
+            {
+                var reviewPosition=new Vector3(85,subject.transform.position.y,77.5f);var reviewRotation=Quaternion.Euler(0,90,0);
+                if(subject.TryGetComponent<Rigidbody>(out var reviewBody)){reviewBody.interpolation=RigidbodyInterpolation.None;reviewBody.position=reviewPosition;reviewBody.rotation=reviewRotation;}
+                subject.transform.SetPositionAndRotation(reviewPosition,reviewRotation);Physics.SyncTransforms();
+                var front=subject.transform.forward;var center=subject.transform.position;
+                var headlamps=subject.GetComponentsInChildren<Light>();
+                View(center+front*11+Vector3.up*1.3f+subject.transform.right*2,center+Vector3.up*.6f);yield return Hold(3);yield return Capture("night-dipped-beam-front.png");
+                foreach(float distance in new[]{15f,35f,64f,66f,95f,150f})
+                {
+                    View(center-front*distance+Vector3.up*2.4f+subject.transform.right*3,center+front*15);yield return Hold(2);
+                    int active=0;float intensity=0;
+                    foreach(var lamp in headlamps)if(lamp.name=="Mounted automatic dipped headlamp"&&lamp.enabled){active++;intensity+=lamp.intensity;}
+                    Check("Actual traffic headlamps remain present at "+distance+"m",active==2,"Enabled "+active+"; total intensity "+intensity);
+                    string shot="night-range-"+distance.ToString("000")+"m.png";
+                    yield return Capture(shot);
+                    if(distance==64||distance==66||distance==95)
+                    {
+                        var sample=camera.WorldToScreenPoint(center+front*18+Vector3.up*.05f);
+                        float on=GroundPatch(Path.Combine(output,shot),sample);
+                        foreach(var lamp in headlamps)if(lamp.TryGetComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalLightData>(out var data)){data.affectDiffuse=false;data.affectSpecular=false;}
+                        yield return Hold(1);string control="night-control-"+distance.ToString("000")+"m.png";yield return Capture(control);
+                        float off=GroundPatch(Path.Combine(output,control),sample);
+                        Check("Rendered road receives headlamp light at "+distance+"m",on-off>.0001f,"On "+on+"; off "+off+"; difference "+(on-off));
+                        foreach(var lamp in headlamps)if(lamp.TryGetComponent<UnityEngine.Rendering.HighDefinition.HDAdditionalLightData>(out var data)){data.affectDiffuse=true;data.affectSpecular=true;}
+                        yield return Hold(1);
+                    }
+                }
+                View(center-front*7+Vector3.up*2+subject.transform.right*3,center+front*20);yield return Hold(3);yield return Capture("night-dry-road-beams.png");
+                clock.state.wetness=1;clock.state.puddles=1;
+                yield return Hold(4);yield return Capture("night-wet-road-beams.png");
+                var puddle=visual.PuddleInspectionPoint;View(puddle+new Vector3(-2,.35f,-2),puddle+Vector3.up*.08f);yield return Hold(3);yield return Capture("night-water-reflections.png");
+            }
+            Time.timeScale=1;
+            View(new Vector3(103,2.8f,67),new Vector3(123,3,81));yield return Hold(3);yield return Capture("07-night.png");
+            yield return NightWindow("night-window-spill.png");
+            LogSystem("Final night lighting",visual);
+        }
+        static float GroundPatch(string path,Vector3 sample)
+        {
+            var texture=new Texture2D(2,2);texture.LoadImage(File.ReadAllBytes(path));float sum=0;int count=0;
+            int cx=Mathf.RoundToInt(sample.x),cy=Mathf.RoundToInt(sample.y);
+            // Integrate the road region: a tiny patch is dominated by temporal jitter on gravel and painted markings.
+            for(int y=cy-40;y<=cy+40;y++)for(int x=cx-40;x<=cx+40;x++)
+            {var p=texture.GetPixel(Mathf.Clamp(x,0,texture.width-1),Mathf.Clamp(y,0,texture.height-1));sum+=p.r*.2126f+p.g*.7152f+p.b*.0722f;count++;}
+            Destroy(texture);return sum/count;
+        }
         IEnumerator TwilightRegression(WestbruchWeatherVisuals visual)
         {
             // Intermediate twilight states must remain playable; noon and

@@ -111,7 +111,7 @@ namespace ZeroRise
             SetBed(roadVoice,rain*.30f*ambient*outside*Mathf.Lerp(1,.67f,FoliageBlend),fade);
             SetBed(roofVoice,rain*.24f*ambient*Mathf.Max(metalBlend,cabin*(1-ShelterBlend)),fade);
             SetBed(leavesVoice,rain*.34f*ambient*FoliageBlend*(1-ShelterBlend)*Mathf.Lerp(1,.22f,cabin),fade);
-            float gust=.84f+.16f*Mathf.Sin(Time.unscaledTime*.173f+2.1f);
+            float gust=clock.GustStrength;
             SetBed(windVoice,Mathf.Max(0,clock.WindStrength-.25f)*.11f*ambient*outside*gust,fade);
             roadFilter.cutoffFrequency=Mathf.Lerp(10000,2300,Mathf.Max(ShelterBlend,cabin));
             leavesFilter.cutoffFrequency=Mathf.Lerp(11000,2400,cabin);

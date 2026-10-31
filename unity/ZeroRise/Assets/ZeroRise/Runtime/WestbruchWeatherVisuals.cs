@@ -13,12 +13,17 @@ namespace ZeroRise
     public sealed class WestbruchWeatherVisuals : MonoBehaviour
     {
         public Material rainMaterial, puddleMaterial;
-        [Min(0)] public float nightMoonLux=4,nightFillLux=1.2f;
+        [Min(0)] public float nightMoonLux=.22f,nightFillLux=1.2f;
+        [Range(0,12)] public float urbanBounceLux=6;
         [Tooltip("Minimum camera EV at night; the solar exposure curve can remain slightly higher.")]
         public float nightExposureEV=0;
         public int RainDropCount { get; private set; }
         public int WetMaterialCount => wetMaterials.Count;
-        public int PuddleCount { get; private set; }
+        WeatherSurfaceWater surfaceWater;
+        public int PuddleCount => surfaceWater?surfaceWater.PuddleCount:0;
+        public int SplashCount => surfaceWater?surfaceWater.SplashCount:0;
+        public bool ReflectivePuddles => surfaceWater&&surfaceWater.UsesLitReflections;
+        public Vector3 PuddleInspectionPoint => surfaceWater?surfaceWater.InspectionPoint:Vector3.zero;
         public int LitWindowCount { get; private set; }
         public float SunIntensity => sun ? sun.intensity : 0;
         public float MoonIntensity => moon ? moon.intensity : 0;
@@ -28,7 +33,14 @@ namespace ZeroRise
         public float NightLightBlend { get; private set; }
         public float LightningBoostLux { get; private set; }
         public int ActiveHeadlights { get; private set; }
-        const int DropLimit=640, AtlasSize=256;
+        public int ActiveStreetLights { get; private set; }
+        public int HeadlampEmitterMaterials { get; private set; }
+        public float StarVisibility { get; private set; }
+        public bool StarMapLoaded { get; private set; }
+        public static float HeadlightVisibility(float metres)=>1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(140,240,metres));
+        public static float StreetlightVisibility(float metres)=>1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(170,270,metres));
+        Texture2D dippedBeamCookie,streetCookie;
+        const int DropLimit=1024, AtlasSize=256;
         static readonly Vector4 AtlasBounds=new Vector4(-160,-150,1f/340,1f/300);
         struct Drop { public Vector3 position;public float floor,speed,length,width,alpha;public bool alive; }
         sealed class WetMaterial
@@ -36,13 +48,13 @@ namespace ZeroRise
             public Material material; public Color[] colors; public float[] smoothness,min,max;
             public bool shaderWet,layered,soil;public float exposure=1;
         }
-        sealed class WindowMaterial { public Material material;public Color emission,color;public int group;public bool lamp; }
+        sealed class WindowMaterial { public Material material;public Color emission,color;public int group;public bool lamp,shop; }
         sealed class RendererMaterials { public Renderer renderer;public Material[] original; }
-        sealed class LightState { public Light light;public float intensity;public bool enabled;public bool street; }
+        sealed class LightState { public Light light;public float intensity;public bool enabled;public bool street,bounce;public float fade=1;public Material emitter;public Color emission; }
         sealed class VehicleLight
         {
             public Light light;public Renderer lens;public MaterialPropertyBlock original,block;
-            public Transform body;public SimpleCar car;public TrafficVehicle traffic;public float intensity;
+            public Transform body;public SimpleCar car;public TrafficVehicle traffic;public float intensity,fade;public bool rear;public Material emitter;public Color idleEmission;
         }
         readonly List<WetMaterial> wetMaterials=new List<WetMaterial>();
         readonly List<WindowMaterial> windowMaterials=new List<WindowMaterial>();
@@ -57,11 +69,11 @@ namespace ZeroRise
         readonly Drop[] drops=new Drop[DropLimit];
         Vector3[] rainVertices;Color[] rainColors;
         Mesh rainMesh,puddleMesh;GameObject rainObject,puddleObject;Texture2D roofMap;
-        Volume atmosphere;VolumeProfile originalProfile,weatherProfile;Light sun,moon,nightFill;Quaternion sunRotation;Color sunColor;float sunOriginalIntensity;bool sunOriginalEnabled;LightShadows sunOriginalShadows;
+        Volume atmosphere;VolumeProfile originalProfile,weatherProfile;Light sun,moon,nightFill,dayFill,nightReturn,skySun;HDAdditionalLightData sunData;bool originalSunSky;Quaternion sunRotation;Color sunColor;float sunOriginalIntensity;bool sunOriginalEnabled;LightShadows sunOriginalShadows;
         Exposure exposure;Fog fog;VolumetricClouds clouds;PhysicallyBasedSky sky;
         Transform listener;Camera view;Terrain terrain;WestbruchWeatherAudio weatherAudio;
         float applyAt,spawnRemainder,lightningUntil,lightningStrength,fogDistance=340,fogHeight=50;int authoredWindowCount;bool moonOwnsShadows;
-        VolumetricClouds.CloudPresets currentCloudPreset=(VolumetricClouds.CloudPresets)(-1);
+
 
         IEnumerator Start()
         {
@@ -78,11 +90,17 @@ namespace ZeroRise
                 {var copy=Instantiate(component);weatherProfile.components.Add(copy);ownedComponents.Add(copy);}
                 atmosphere.sharedProfile=weatherProfile;
                 weatherProfile.TryGet(out exposure);weatherProfile.TryGet(out fog);weatherProfile.TryGet(out clouds);weatherProfile.TryGet(out sky);
-                if(clouds!=null){clouds.cloudControl.Override(VolumetricClouds.CloudControl.Simple);clouds.cloudSimpleMode.Override(VolumetricClouds.CloudSimpleMode.Quality);}
-                if(sky!=null){sky.updateMode.Override(EnvironmentUpdateMode.Realtime);sky.updatePeriod.Override(1);}
+                if(clouds!=null){clouds.cloudControl.Override(VolumetricClouds.CloudControl.Simple);clouds.cloudSimpleMode.Override(VolumetricClouds.CloudSimpleMode.Quality);clouds.cloudPreset=VolumetricClouds.CloudPresets.Custom;}
+                if(sky!=null)
+                {
+                    sky.updateMode.Override(EnvironmentUpdateMode.Realtime);sky.updatePeriod.Override(.25f);
+                    var stars=Resources.Load<Cubemap>("WestbruchStars");StarMapLoaded=stars;
+                    if(stars)sky.spaceEmissionTexture.Override(stars);
+                }
             }
             var sunObject=GameObject.Find("Late afternoon sun");sun=sunObject?sunObject.GetComponent<Light>():null;
-            if(sun){sunRotation=sun.transform.rotation;sunColor=sun.color;sunOriginalIntensity=sun.intensity;sunOriginalEnabled=sun.enabled;sunOriginalShadows=sun.shadows;}
+            if(sun){sunRotation=sun.transform.rotation;sunColor=sun.color;sunOriginalIntensity=sun.intensity;sunOriginalEnabled=sun.enabled;sunOriginalShadows=sun.shadows;sunData=sun.GetComponent<HDAdditionalLightData>();if(sunData){originalSunSky=sunData.interactsWithSky;sunData.interactsWithSky=false;}}
+            dippedBeamCookie=BeamCookie(true);streetCookie=BeamCookie(false);
             CaptureMaterialsAndLights();CreateNightLighting();CreateRain();
             weatherAudio=GetComponent<WestbruchWeatherAudio>();if(weatherAudio)weatherAudio.Lightning+=Flash;
             Initialized=true;ApplyWorld();
@@ -100,7 +118,7 @@ namespace ZeroRise
                 for(int i=0;i<materials.Length;i++)
                 {
                     var source=materials[i];if(!source)continue;string name=source.name;
-                    bool wet=IsWeatherSurface(name),window=name.StartsWith("UrbanLife_InteriorWall_",StringComparison.Ordinal)||name.StartsWith("UrbanLife_Curtain_",StringComparison.Ordinal)||name=="StreetlightFrostedGlass"||name=="Atmosphere_WarmBulkheadLens";
+                    bool wet=IsWeatherSurface(name),window=name.StartsWith("UrbanLife_InteriorWall_",StringComparison.Ordinal)||name.StartsWith("UrbanLife_Curtain_",StringComparison.Ordinal)||name=="StreetlightFrostedGlass"||name=="Atmosphere_WarmBulkheadLens"||name=="ShopWindow";
                     if(!wet&&!window)continue;
                     changed??=(Material[])materials.Clone();
                     if(wet)
@@ -127,7 +145,7 @@ namespace ZeroRise
                         if(!windowClones.TryGetValue(source,out var state))
                         {
                             var clone=new Material(source){name=source.name+" (evening instance)"};ownedMaterials.Add(clone);
-                            state=new WindowMaterial{material=clone,color=clone.GetColor("_BaseColor"),emission=clone.GetColor("_EmissiveColor"),group=windowClones.Count%3,lamp=name=="StreetlightFrostedGlass"||name=="Atmosphere_WarmBulkheadLens"};
+                            state=new WindowMaterial{material=clone,color=clone.GetColor("_BaseColor"),emission=clone.GetColor("_EmissiveColor"),group=windowClones.Count%3,shop=name=="ShopWindow",lamp=name=="StreetlightFrostedGlass"||name=="Atmosphere_WarmBulkheadLens"};
                             windowClones.Add(source,state);windowMaterials.Add(state);
                         }
                         changed[i]=state.material;
@@ -140,18 +158,77 @@ namespace ZeroRise
                 if(t.name.StartsWith("Visible apartment interior ",StringComparison.Ordinal))authoredWindowCount++;
                 if(!t.name.StartsWith("Old European streetlight ",StringComparison.Ordinal))continue;
                 var obj=new GameObject("Timed existing streetlamp");obj.transform.SetParent(t,false);obj.transform.localPosition=new Vector3(0,5.62f,1.12f);obj.transform.rotation=Quaternion.Euler(90,0,0);
-                var light=obj.AddComponent<Light>();light.type=LightType.Spot;light.range=15;light.spotAngle=138;light.innerSpotAngle=95;light.shadows=LightShadows.None;light.useColorTemperature=true;light.colorTemperature=3300;light.lightUnit=LightUnit.Lumen;
-                obj.AddComponent<HDAdditionalLightData>().volumetricDimmer=0;
-                light.intensity=LightUnitUtils.ConvertIntensity(light,3800,LightUnit.Lumen,LightUnit.Candela);
+                var light=obj.AddComponent<Light>();light.type=LightType.Spot;light.range=23;light.spotAngle=112;light.innerSpotAngle=82;light.shadows=LightShadows.None;light.useColorTemperature=true;light.colorTemperature=t.position.x< -80?2700:t.position.x>60&&t.position.z<45?4000:3100;light.lightUnit=LightUnit.Candela;
+                var hd=obj.AddComponent<HDAdditionalLightData>();hd.volumetricDimmer=.08f;hd.fadeDistance=320;hd.SetCookie(streetCookie);
+                light.intensity=Mathf.Abs(t.position.x-94)<15||Mathf.Abs(t.position.z)<12?1300:1000;
                 lamps.Add(new LightState{light=light,intensity=light.intensity,enabled=true,street=true});createdLamps.Add(obj);
+                // Approximate warm light reflected by the pavement onto nearby facades.
+                // Diffuse-only: this is bounced light, not a second visible bulb or specular source.
+                var bounceObject=new GameObject("Night bounce street");bounceObject.transform.SetParent(t,false);
+                bounceObject.transform.position=new Vector3(light.transform.position.x,t.position.y+.85f,light.transform.position.z);
+                var bounce=bounceObject.AddComponent<Light>();bounce.type=LightType.Point;bounce.range=13;bounce.lightUnit=LightUnit.Candela;bounce.intensity=26;bounce.shadows=LightShadows.None;bounce.useColorTemperature=true;bounce.colorTemperature=light.colorTemperature;
+                var hdBounce=bounceObject.AddComponent<HDAdditionalLightData>();hdBounce.affectSpecular=false;hdBounce.volumetricDimmer=0;hdBounce.fadeDistance=320;
+                lamps.Add(new LightState{light=bounce,intensity=bounce.intensity,enabled=true,bounce=true});createdLamps.Add(bounceObject);
             }
+            AddNeighbourhoodLights();
             foreach(var light in FindObjectsByType<Light>())
             {
-                if(light.type==LightType.Directional||light.name=="Timed existing streetlamp")continue;
+                if(light.type==LightType.Directional||light.name=="Timed existing streetlamp"||light.name.StartsWith("Night spill")||light.name.StartsWith("Night bounce"))continue;
                 // Existing bridge lamps stay gently lit all day. Timed entrance
                 // and street lamps use their original physical intensity.
                 if(light.name.Contains("entrance light")||light.name.Contains("Street")||light.name.Contains("street")||light.name.Contains("Lantern")||light.name.Contains("Restrained underbridge"))
                     lamps.Add(new LightState{light=light,intensity=light.intensity,enabled=light.enabled});
+            }
+        }
+        Texture2D BeamCookie(bool headlamp)
+        {
+            const int size=256;var texture=new Texture2D(size,size,TextureFormat.RGBA32,true,true){name=headlamp?"Soft asymmetric dipped beam":"Soft street luminaire distribution",wrapMode=TextureWrapMode.Clamp,filterMode=FilterMode.Trilinear};
+            for(int y=0;y<size;y++)for(int x=0;x<size;x++)
+            {
+                float u=x/(float)(size-1)*2-1,v=y/(float)(size-1)*2-1;
+                float value;
+                if(headlamp)
+                {
+                    // Right-hand traffic: a low horizontal cut-off, rising gently toward the verge.
+                    float cutoff=.015f+.11f*Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.1f,.75f,u));
+                    float top=1-Mathf.SmoothStep(cutoff-.035f,cutoff+.025f,v);
+                    float hot=Mathf.Exp(-u*u*2.8f-(v+.11f)*(v+.11f)*15);
+                    float foreground=.24f*Mathf.Exp(-u*u*1.4f-(v+.43f)*(v+.43f)*3);
+                    value=Mathf.Clamp01((hot+foreground)*top)*(1-Mathf.SmoothStep(.82f,1,Mathf.Abs(u)));
+                }
+                else value=Mathf.Exp(-(u*u*.8f+v*v*1.5f)*1.2f)*(1-Mathf.SmoothStep(.65f,1,new Vector2(u,v).magnitude));
+                texture.SetPixel(x,y,new Color(value,value,value,1));
+            }
+            texture.Apply(true,true);return texture;
+        }
+        void AddNeighbourhoodLights()
+        {
+            foreach(var fixture in FindObjectsByType<Transform>())
+            {
+                bool entrance=fixture.name=="Entrance bulkhead",window=fixture.name.StartsWith("Visible apartment interior ",StringComparison.Ordinal),shop=fixture.name=="Shop display window";
+                if(!entrance&&!window&&!shop)continue;
+                // Small pools originate at existing physical fixtures and furnished windows.
+                var obj=new GameObject(shop?"Night spill shop":entrance?"Night spill entrance":"Night spill apartment");obj.transform.SetParent(fixture,false);
+                obj.transform.position=fixture.position-fixture.forward*(window?.40f:.08f)+Vector3.down*(window?.2f:.1f);
+                obj.transform.rotation=Quaternion.LookRotation(-fixture.forward*(window?.85f:.35f)+Vector3.down);
+                var light=obj.AddComponent<Light>();light.type=LightType.Spot;light.range=shop?9:window?6:8;
+                light.spotAngle=window?85:105;light.innerSpotAngle=window?45:65;light.shadows=LightShadows.None;
+                light.useColorTemperature=true;light.colorTemperature=shop?4100:window?2700:3000;light.lightUnit=LightUnit.Candela;light.intensity=shop?200:window?65:230;
+                var hd=obj.AddComponent<HDAdditionalLightData>();hd.fadeDistance=240;hd.volumetricDimmer=0;hd.SetCookie(streetCookie);
+                lamps.Add(new LightState{light=light,intensity=light.intensity,enabled=true});createdLamps.Add(obj);
+            }
+            var shelter=GameObject.Find("Old Westbruch bus shelter");
+            if(shelter)
+            {
+                var diffuser=GameObject.CreatePrimitive(PrimitiveType.Cube);diffuser.name="Attached night shelter light";
+                diffuser.transform.SetParent(shelter.transform,false);diffuser.transform.localPosition=new Vector3(0,2.545f,0);diffuser.transform.localScale=new Vector3(1.5f,.035f,.12f);
+                Destroy(diffuser.GetComponent<Collider>());
+                var material=new Material(Shader.Find("HDRP/Lit")){name="Night shelter frosted diffuser"};material.SetColor("_BaseColor",new Color(.65f,.75f,.80f));material.SetColor("_EmissiveColor",Color.black);HDMaterial.ValidateMaterial(material);ownedMaterials.Add(material);
+                var renderer=diffuser.GetComponent<Renderer>();renderer.sharedMaterial=material;renderer.shadowCastingMode=ShadowCastingMode.Off;createdLamps.Add(diffuser);
+                var lamp=new GameObject("Night spill shelter");lamp.transform.SetParent(shelter.transform,false);lamp.transform.localPosition=new Vector3(0,2.49f,0);lamp.transform.rotation=Quaternion.Euler(90,0,0);
+                var light=lamp.AddComponent<Light>();light.type=LightType.Spot;light.range=8;light.spotAngle=110;light.innerSpotAngle=80;light.lightUnit=LightUnit.Candela;light.intensity=240;light.useColorTemperature=true;light.colorTemperature=4200;light.shadows=LightShadows.None;
+                var hd=lamp.AddComponent<HDAdditionalLightData>();hd.fadeDistance=240;hd.volumetricDimmer=0;hd.SetCookie(streetCookie);
+                lamps.Add(new LightState{light=light,intensity=light.intensity,enabled=true,emitter=material,emission=new Color(.70f,.84f,1)*100});createdLamps.Add(lamp);
             }
         }
         static bool IsWeatherSurface(string name)
@@ -162,32 +239,59 @@ namespace ZeroRise
         }
         void CreateNightLighting()
         {
+            // The atmospheric sun follows solar altitude. Its camera-normalized
+            // radiance must not inherit ground-fill or moon adaptation curves.
+            var skyObject=new GameObject("Weather atmospheric sun");skyObject.transform.SetParent(transform,false);
+            skySun=skyObject.AddComponent<Light>();skySun.type=LightType.Directional;skySun.shadows=LightShadows.None;skySun.lightUnit=LightUnit.Lux;skySun.color=Color.white;skySun.intensity=0;
+            var hdSky=skyObject.AddComponent<HDAdditionalLightData>();hdSky.affectDiffuse=false;hdSky.affectSpecular=false;hdSky.interactsWithSky=true;hdSky.angularDiameter=.55f;hdSky.flareSize=.75f;hdSky.flareFalloff=8;createdLamps.Add(skyObject);
             // An elevated moon remains independent of the horizon sun during
             // twilight, so shaded streets never lose both light sources.
             var moonObject=new GameObject("Weather moonlight");moonObject.transform.SetParent(transform,false);
             moon=moonObject.AddComponent<Light>();moon.type=LightType.Directional;moon.shadows=LightShadows.None;moon.color=new Color(.53f,.63f,.84f);moon.lightUnit=LightUnit.Lux;moon.intensity=0;
-            var hdMoon=moonObject.AddComponent<HDAdditionalLightData>();hdMoon.angularDiameter=.5f;createdLamps.Add(moonObject);
+            var hdMoon=moonObject.AddComponent<HDAdditionalLightData>();hdMoon.angularDiameter=.5f;hdMoon.interactsWithSky=true;hdMoon.surfaceTexture=Resources.Load<Texture2D>("WestbruchMoon");hdMoon.surfaceTint=new Color(.76f,.78f,.82f);hdMoon.flareSize=.3f;hdMoon.flareTint=new Color(.18f,.20f,.23f);createdLamps.Add(moonObject);
             var fillObject=new GameObject("Weather diffuse urban night fill");fillObject.transform.SetParent(transform,false);
             fillObject.transform.rotation=Quaternion.Euler(65,135,0);
             nightFill=fillObject.AddComponent<Light>();nightFill.type=LightType.Directional;nightFill.shadows=LightShadows.None;nightFill.color=new Color(.45f,.56f,.73f);nightFill.lightUnit=LightUnit.Lux;nightFill.intensity=0;
-            var hdFill=fillObject.AddComponent<HDAdditionalLightData>();hdFill.affectSpecular=false;hdFill.volumetricDimmer=0;createdLamps.Add(fillObject);
+            var hdFill=fillObject.AddComponent<HDAdditionalLightData>();hdFill.affectSpecular=false;hdFill.volumetricDimmer=0;hdFill.interactsWithSky=false;createdLamps.Add(fillObject);
+            // A weak opposite diffuse return keeps back-facing facades readable.
+            var returnObject=new GameObject("Weather diffuse city return");returnObject.transform.SetParent(transform,false);returnObject.transform.rotation=Quaternion.Euler(35,315,0);
+            nightReturn=returnObject.AddComponent<Light>();nightReturn.type=LightType.Directional;nightReturn.shadows=LightShadows.None;nightReturn.lightUnit=LightUnit.Lux;nightReturn.color=new Color(.46f,.51f,.60f);nightReturn.intensity=0;
+            var hdReturn=returnObject.AddComponent<HDAdditionalLightData>();hdReturn.affectSpecular=false;hdReturn.volumetricDimmer=0;hdReturn.interactsWithSky=false;createdLamps.Add(returnObject);
+            // Keep the established daylight sky bounce separate from the night-only fill.
+            var dayObject=new GameObject("Weather daylight sky bounce");dayObject.transform.SetParent(transform,false);dayObject.transform.rotation=Quaternion.Euler(65,135,0);
+            dayFill=dayObject.AddComponent<Light>();dayFill.type=LightType.Directional;dayFill.shadows=LightShadows.None;dayFill.lightUnit=LightUnit.Lux;dayFill.color=new Color(.80f,.87f,1);dayFill.intensity=0;
+            var hdDay=dayObject.AddComponent<HDAdditionalLightData>();hdDay.affectSpecular=false;hdDay.volumetricDimmer=0;hdDay.interactsWithSky=false;hdDay.angularDiameter=0;createdLamps.Add(dayObject);
             trafficBodies=FindObjectsByType<TrafficVehicle>();
             foreach(var car in FindObjectsByType<SimpleCar>())MountHeadlights(car.transform,car,null);
             foreach(var traffic in trafficBodies)MountHeadlights(traffic.transform,null,traffic);
         }
         void MountHeadlights(Transform body,SimpleCar car,TrafficVehicle traffic)
         {
+            // Front lenses can be merged into the vehicle's material batches.
+            // Replace their material slot, not only the disabled source renderer's block.
+            Material frontEmitter=null;
+            foreach(var renderer in body.GetComponentsInChildren<Renderer>())
+            {
+                var materials=renderer.sharedMaterials;Material[] replacement=null;
+                for(int i=0;i<materials.Length;i++)if(materials[i]&&(materials[i].name=="VehicleLampHead"||materials[i].name=="HeadlightLens"))
+                {
+                    if(!frontEmitter){frontEmitter=new Material(materials[i]){name="Weather headlamp emitter"};ownedMaterials.Add(frontEmitter);HeadlampEmitterMaterials++;}
+                    replacement??=(Material[])materials.Clone();replacement[i]=frontEmitter;
+                }
+                if(replacement!=null){renderers.Add(new RendererMaterials{renderer=renderer,original=materials});renderer.sharedMaterials=replacement;}
+            }
             foreach(var lens in body.GetComponentsInChildren<Renderer>())
             {
-                if(lens.name!="Headlamp with inset reflector")continue;
-                var obj=new GameObject("Mounted automatic dipped headlamp");obj.transform.SetParent(body,false);
-                obj.transform.position=lens.transform.position+body.forward*.045f;
-                obj.transform.localRotation=Quaternion.Euler(2.2f,0,0);
-                var light=obj.AddComponent<Light>();light.type=LightType.Spot;light.range=42;light.spotAngle=48;light.innerSpotAngle=30;light.color=new Color(1,.91f,.74f);light.shadows=car?LightShadows.Soft:LightShadows.None;light.lightUnit=LightUnit.Lumen;
-                var hd=obj.AddComponent<HDAdditionalLightData>();hd.volumetricDimmer=0;hd.fadeDistance=50;
-                light.intensity=LightUnitUtils.ConvertIntensity(light,1150,LightUnit.Lumen,LightUnit.Candela);light.enabled=false;
+                bool rear=lens.name=="Rear lamp cluster";
+                if(lens.name!="Headlamp with inset reflector"&&!rear)continue;
+                var obj=new GameObject(rear?"Mounted rear running lamp":"Mounted automatic dipped headlamp");obj.transform.SetParent(body,false);
+                obj.transform.position=lens.transform.position+body.forward*(rear?-.045f:.045f);
+                obj.transform.localRotation=rear?Quaternion.Euler(4,180,0):Quaternion.Euler(1.1f,0,0);
+                var light=obj.AddComponent<Light>();light.type=LightType.Spot;light.range=rear?4.8f:62;light.spotAngle=rear?100:52;light.innerSpotAngle=rear?60:45;light.color=rear?new Color(1,.035f,.012f):new Color(1,.95f,.86f);light.shadows=rear?LightShadows.None:LightShadows.Soft;light.lightUnit=LightUnit.Candela;
+                var hd=obj.AddComponent<HDAdditionalLightData>();hd.volumetricDimmer=.06f;hd.fadeDistance=300;hd.shadowFadeDistance=65;hd.SetShadowResolution(256);hd.SetCookie(rear?streetCookie:dippedBeamCookie);
+                light.intensity=rear?8:6500;light.enabled=false;
                 var original=new MaterialPropertyBlock();lens.GetPropertyBlock(original);var block=new MaterialPropertyBlock();lens.GetPropertyBlock(block);
-                vehicleLights.Add(new VehicleLight{light=light,lens=lens,original=original,block=block,body=body,car=car,traffic=traffic,intensity=light.intensity});createdLamps.Add(obj);
+                vehicleLights.Add(new VehicleLight{light=light,lens=lens,original=original,block=block,body=body,car=car,traffic=traffic,intensity=light.intensity,rear=rear,emitter=rear?null:frontEmitter,idleEmission=frontEmitter?frontEmitter.GetColor("_EmissiveColor"):Color.black});createdLamps.Add(obj);
             }
         }
         IEnumerator BakeRoofMap()
@@ -229,74 +333,63 @@ namespace ZeroRise
         }
         void BuildPuddles()
         {
-            if(!puddleMaterial)return;
-            var vertices=new List<Vector3>();var uv=new List<Vector2>();var colors=new List<Color>();var triangles=new List<int>();
-            for(int z=-90;z<=100;z+=10)for(int x=-110;x<=155;x+=10)
-            {
-                if(PuddleCount>=80||random.NextDouble()>.35)continue;
-                var p=new Vector3(x+Range(-3,3),30,z+Range(-3,3));
-                if(!Physics.Raycast(p,Vector3.down,out var hit,45,1,QueryTriggerInteraction.Ignore)||hit.normal.y<.995f||hit.point.y>1.5f||IsSheltered(hit.point))continue;
-                var renderer=hit.collider.GetComponent<Renderer>();if(!renderer)continue;
-                bool paved=false;foreach(var m in renderer.sharedMaterials)if(m&&(m.name.StartsWith("Asphalt",StringComparison.Ordinal)||m.name.StartsWith("Paving",StringComparison.Ordinal)||m.name.StartsWith("RoadRepair",StringComparison.Ordinal)))paved=true;
-                if(!paved)continue;
-                const int sides=18;var ring=new Vector3[sides];float rx=Range(.6f,1.75f),rz=Range(.45f,1.25f),phase=Range(0,6.28f);bool flat=true;
-                for(int n=0;n<sides;n++)
-                {
-                    float a=n*Mathf.PI*2/sides,warp=.82f+.13f*Mathf.Sin(a*3+phase)+.07f*Mathf.Sin(a*5-phase);
-                    var v=hit.point+new Vector3(Mathf.Cos(a)*rx*warp,0,Mathf.Sin(a)*rz*warp);
-                    if(!Physics.Raycast(v+Vector3.up*.2f,Vector3.down,out var edge,.45f,1,QueryTriggerInteraction.Ignore)||Mathf.Abs(edge.point.y-hit.point.y)>.025f||edge.normal.y<.995f){flat=false;break;}
-                    ring[n]=v+Vector3.up*.014f;
-                }
-                if(!flat)continue;
-                int start=vertices.Count;vertices.Add(hit.point+Vector3.up*.014f);uv.Add(Vector2.zero);colors.Add(Color.white);
-                for(int n=0;n<sides;n++){float a=n*Mathf.PI*2/sides;vertices.Add(ring[n]);uv.Add(new Vector2(Mathf.Cos(a),Mathf.Sin(a)));colors.Add(Color.white);triangles.Add(start);triangles.Add(start+1+(n+1)%sides);triangles.Add(start+1+n);}
-                PuddleCount++;
-            }
-            puddleObject=new GameObject("Weather shallow surface water · evaporating");puddleObject.transform.SetParent(transform,false);puddleObject.transform.SetPositionAndRotation(Vector3.zero,Quaternion.identity);
-            puddleMesh=new Mesh{name="Ground checked shallow puddles"};puddleMesh.SetVertices(vertices);puddleMesh.SetUVs(0,uv);puddleMesh.SetColors(colors);puddleMesh.SetTriangles(triangles,0);puddleMesh.RecalculateBounds();
-            puddleObject.AddComponent<MeshFilter>().sharedMesh=puddleMesh;var puddleRenderer=puddleObject.AddComponent<MeshRenderer>();puddleRenderer.sharedMaterial=puddleMaterial;puddleRenderer.shadowCastingMode=ShadowCastingMode.Off;puddleRenderer.receiveShadows=false;
+            if(!puddleMaterial||!rainMaterial)return;
+            surfaceWater=gameObject.AddComponent<WeatherSurfaceWater>();surfaceWater.Initialize(puddleMaterial,rainMaterial);
         }
         void Update()
         {
             if(!Initialized)return;
-            if(Time.unscaledTime>=applyAt){applyAt=Time.unscaledTime+.15f;ApplyWorld();}
+            if(Time.unscaledTime>=applyAt){applyAt=Time.unscaledTime+.05f;ApplyWorld();}
             UpdateRain();
+        }
+        public static float NightBlendAt(float hour)
+        {
+            hour=Mathf.Repeat(hour,24);
+            float dawn=Mathf.SmoothStep(0,1,Mathf.InverseLerp(5.15f,6.3f,hour));
+            float dusk=Mathf.SmoothStep(0,1,Mathf.InverseLerp(19.5f,20+40f/60,hour));
+            return 1-dawn*(1-dusk);
         }
         void ApplyWorld()
         {
             var world=WorldWeatherClock.Instance;if(!world)return;
-            float day=world.Daylight,cloud=Mathf.Clamp01(world.CloudCoverage),night=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.04f,.40f,day));
+            float day=world.Daylight,cloud=Mathf.Clamp01(world.CloudCoverage),night=NightBlendAt(world.Hour);
             NightLightBlend=night;
             float flash=Time.unscaledTime<lightningUntil?lightningStrength:0;
-            float elevation=Mathf.Sin((world.Hour-5.2f)/(20.6f-5.2f)*Mathf.PI)*58;
+            float lowLight=Mathf.Max(night,world.RainIntensity*Mathf.SmoothStep(0,1,Mathf.InverseLerp(.7f,1,cloud))*.65f);
+            Shader.SetGlobalFloat("_ZRWeatherWind",world.WindStrength*world.GustStrength);
+            // Sunset at 20:00; civil twilight continues while the sun descends
+            // below the horizon, reaching about -8 degrees around 20:40.
+            float elevation=Mathf.Sin((world.Hour-5.2f)/(20f-5.2f)*Mathf.PI)*58;
             float solar=Mathf.Sqrt(Mathf.Clamp01(elevation/58));
-            float solarLux=Mathf.Lerp(.55f,85000*Mathf.Pow(day,1.15f)*solar*Mathf.Lerp(1,.17f,cloud),Mathf.Clamp01(day*8));
-            float solarEV=Mathf.Clamp(12+.65f*Mathf.Log(Mathf.Max(.55f,solarLux)/85000,2),nightExposureEV,12);
+            float weatherAttenuation=Mathf.Lerp(1,.012f,Mathf.SmoothStep(0,1,cloud));
             float moonEV=Mathf.Clamp(12+.65f*Mathf.Log(.55f/85000,2),nightExposureEV,12);
-            float adaptedEV=Mathf.Lerp(solarEV,moonEV,night);
-            // Exposure adapts with moonlight. Compensate the fading sun by
-            // the same EV difference to avoid overexposed dusk-lit facades.
-            float solarCompensation=Mathf.Pow(2,adaptedEV-solarEV);
-            // Retain an adapted, readable sky-bounce floor as direct sunlight
-            // disappears. Both endpoints remain unchanged; the exposure
-            // compensation prevents a second dark trough between them.
-            float ambientBlend=Mathf.SmoothStep(0,1,Mathf.Clamp01(night*4));
+            float daylightReferenceEV=Mathf.Clamp(12+.65f*Mathf.Log(weatherAttenuation,2),moonEV,12);
+            float adaptedEV=Mathf.Lerp(daylightReferenceEV,moonEV,night);
+            float daylightCompensation=Mathf.Pow(2,adaptedEV-daylightReferenceEV);
             float moonCompensation=Mathf.Pow(2,adaptedEV-moonEV);
-            float visibleSolarLux=solarLux*(1-night)*solarCompensation;
-            float visibleMoonLux=nightMoonLux*ambientBlend*moonCompensation;
+            float ambientBlend=Mathf.SmoothStep(0,1,Mathf.Clamp01(night*4));
+            float visibleSolarLux=85000*Mathf.Pow(day,1.15f)*solar*weatherAttenuation*daylightCompensation;
+            float visibleMoonLux=Mathf.Min(.3f,nightMoonLux)*ambientBlend*moonCompensation*Mathf.Lerp(1,.18f,cloud);
             if(moonOwnsShadows&&visibleSolarLux>visibleMoonLux*1.2f)moonOwnsShadows=false;
             else if(!moonOwnsShadows&&visibleMoonLux>visibleSolarLux*1.2f)moonOwnsShadows=true;
             float azimuth=world.Hour/24*360-180;
             LightningBoostLux=flash*Mathf.Lerp(28,9000,day);
+            if(skySun)
+            {
+                skySun.transform.rotation=Quaternion.Euler(elevation,azimuth,0);
+                float atmosphereEnvelope=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-16,-10,elevation));
+                skySun.intensity=85000*weatherAttenuation*daylightCompensation*atmosphereEnvelope;
+                skySun.enabled=atmosphereEnvelope>.0001f;
+            }
             if(sun)
             {
-                sun.transform.rotation=Quaternion.Euler(Mathf.Max(-15,elevation),azimuth,0);
-                sun.color=Color.Lerp(new Color(.53f,.63f,.84f),Color.Lerp(new Color(1,.69f,.43f),new Color(1,.97f,.91f),Mathf.SmoothStep(0,1,day)),Mathf.SmoothStep(0,1,day*4));
+                sun.transform.rotation=Quaternion.Euler(elevation,azimuth,0);
+                sun.color=Color.Lerp(Color.Lerp(new Color(1,.73f,.52f),new Color(1,.97f,.94f),Mathf.SmoothStep(0,1,day)),new Color(.89f,.94f,1),cloud*.85f);
                 sun.intensity=visibleSolarLux+LightningBoostLux*(1-night);
                 // HDRP has one cascaded directional shadow atlas. Transfer
                 // it to the moon only once the night light dominates.
                 sun.shadows=moonOwnsShadows?LightShadows.None:sunOriginalShadows;
-                sun.enabled=true;
+                sun.enabled=visibleSolarLux>0||LightningBoostLux>0;
             }
             if(moon)
             {
@@ -305,51 +398,68 @@ namespace ZeroRise
             }
             if(sun)Shader.SetGlobalVector("_ZRWeatherSunDirection",moonOwnsShadows&&moon?-moon.transform.forward:-sun.transform.forward);
             if(exposure!=null)exposure.fixedExposure.Override(adaptedEV-flash*.35f);
-            if(nightFill){nightFill.enabled=night>.005f;nightFill.intensity=nightFillLux*ambientBlend*moonCompensation;}
+            if(nightFill)
+            {
+                // Broad sky bounce maintains readable shadows under an overcast sky.
+                nightFill.enabled=true;
+                nightFill.color=Color.Lerp(new Color(.58f,.62f,.68f),new Color(.80f,.87f,1),day);
+                nightFill.intensity=Mathf.Max(nightFillLux,urbanBounceLux)*ambientBlend*moonCompensation;
+            }
+            if(nightReturn){nightReturn.enabled=night>.001f;nightReturn.intensity=Mathf.Max(nightFillLux,urbanBounceLux)*.5f*ambientBlend*moonCompensation;}
+            if(dayFill){dayFill.enabled=day>.0001f;dayFill.intensity=(1100+6500*cloud)*day*daylightCompensation;}
             ActiveHeadlights=0;
             foreach(var headlamp in vehicleLights)
             {
                 if(!headlamp.body||!headlamp.light)continue;
                 bool on=headlamp.car?headlamp.car.State==SimpleCar.Occupancy.Driving:headlamp.traffic&&headlamp.traffic.enabled&&headlamp.traffic.gameObject.activeInHierarchy;
-                if(on&&headlamp.traffic&&listener)
-                {
-                    float distance=(headlamp.body.position-listener.position).sqrMagnitude;int closer=0;
-                    foreach(var other in trafficBodies)if(other&&other.enabled&&other.gameObject.activeInHierarchy&&(other.transform.position-listener.position).sqrMagnitude<distance)closer++;
-                    on=closer<4&&distance<65*65;
-                }
-                on&=night>.12f;headlamp.light.enabled=on;
-                if(on){headlamp.light.intensity=headlamp.intensity*Mathf.SmoothStep(0,1,night*2);ActiveHeadlights++;}
-                if(headlamp.lens){headlamp.block.SetColor("_EmissiveColor",on?new Color(1,.91f,.74f)*85:headlamp.lens.sharedMaterial.GetColor("_EmissiveColor"));headlamp.lens.SetPropertyBlock(headlamp.block);}
+                float distance=listener?Vector3.Distance(headlamp.body.position,listener.position):0;
+                float target=on&&lowLight>.12f?HeadlightVisibility(distance)*Mathf.SmoothStep(0,1,lowLight*2):0;
+                headlamp.fade=on?Mathf.Lerp(headlamp.fade,target,1-Mathf.Exp(-.05f/.25f)):0;
+                headlamp.light.enabled=headlamp.fade>.001f;
+                bool braking=headlamp.rear&&headlamp.traffic&&headlamp.traffic.desiredSpeed<headlamp.traffic.speed-.2f;
+                headlamp.light.intensity=headlamp.intensity*headlamp.fade*(braking?3:1);
+                if(!headlamp.rear&&headlamp.light.enabled)ActiveHeadlights++;
+                // The visible lens stays lit even when its distant contribution fades away.
+                if(headlamp.emitter)headlamp.emitter.SetColor("_EmissiveColor",on&&lowLight>.12f?new Color(1,.95f,.86f)*750:headlamp.idleEmission);
+                if(headlamp.lens){headlamp.block.SetColor("_EmissiveColor",on&&lowLight>.12f?(headlamp.rear?new Color(1,.035f,.012f)*(braking?6:2):new Color(1,.95f,.86f)*750):headlamp.lens.sharedMaterial.GetColor("_EmissiveColor"));headlamp.lens.SetPropertyBlock(headlamp.block);}
             }
             if(fog!=null)
             {
-                float targetDistance=world.Weather==WeatherKind.Fog?62:Mathf.Lerp(480,world.IsStorm?115:175,cloud),targetHeight=world.Weather==WeatherKind.Fog?11:Mathf.Lerp(50,65,cloud);
-                float blend=1-Mathf.Exp(-.15f/4);fogDistance=Mathf.Lerp(fogDistance,targetDistance,blend);fogHeight=Mathf.Lerp(fogHeight,targetHeight,blend);
+                float targetDistance=Mathf.Lerp(Mathf.Lerp(600,240,cloud),85,world.FogBlend),targetHeight=Mathf.Lerp(55,9,world.FogBlend);
+                float blend=1-Mathf.Exp(-.05f/4);fogDistance=Mathf.Lerp(fogDistance,targetDistance,blend);fogHeight=Mathf.Lerp(fogHeight,targetHeight,blend);
                 fog.meanFreePath.Override(fogDistance);fog.tint.Override(Color.Lerp(new Color(.79f,.86f,.94f),new Color(.63f,.67f,.70f),cloud));fog.maximumHeight.Override(fogHeight);
             }
             if(clouds!=null)
             {
-                // Density alone does not alter the cloud map's spatial
-                // coverage. HDRP's actual weather maps supply an overcast
-                // ceiling for rain and preserve gaps in fair weather.
-                var preset=world.IsStorm&&cloud>.88f?VolumetricClouds.CloudPresets.Stormy:cloud>.72f?VolumetricClouds.CloudPresets.Overcast:cloud>.30f?VolumetricClouds.CloudPresets.Cloudy:VolumetricClouds.CloudPresets.Sparse;
-                if(preset!=currentCloudPreset){currentCloudPreset=preset;clouds.cloudPreset=preset;}
-                clouds.enable.Override(cloud>.16f);clouds.densityMultiplier.Override(Mathf.Lerp(.10f,.72f,cloud));
+                // A single custom cloud field keeps spatial identity across weather changes.
+                clouds.enable.Override(true);
+                clouds.densityMultiplier.Override(Mathf.Lerp(.28f,.52f,cloud));
+                clouds.shapeFactor.Override(Mathf.Lerp(.96f,.48f,Mathf.SmoothStep(0,1,cloud)));
+                clouds.erosionFactor.Override(Mathf.Lerp(.84f,.58f,cloud));
+                clouds.shapeScale.Override(5);
+                clouds.bottomAltitude.Override(1600);
+                clouds.altitudeRange.Override(2200);
+                clouds.multiScattering.Override(.65f);
             }
-            if(sky!=null){sky.aerosolDensity.Override(Mathf.Lerp(.003f,.014f,cloud));sky.airTint.Override(Color.Lerp(Color.white,new Color(.91f,.94f,.98f),cloud));}
-            // Keep only eight nearest existing street fixtures active; all
-            // lenses still glow. No extra shadows or distant light flood.
+            if(sky!=null)
+            {
+                sky.aerosolDensity.Override(Mathf.Lerp(.0025f,.0045f,cloud));
+                sky.aerosolTint.Override(new Color(.88f,.92f,1));
+                sky.airTint.Override(Color.white);
+                float stellarNight=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-2,-8,elevation));
+                StarVisibility=stellarNight*(1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.20f,.80f,cloud)))*(1-world.FogBlend);
+                sky.spaceEmissionMultiplier.Override(.22f*StarVisibility);
+            }
+            ActiveStreetLights=0;
             foreach(var state in lamps)if(state.light)
             {
-                float factor=state.light.name.Contains("underbridge")?Mathf.Lerp(.65f,1,night):night;
-                bool nearby=true;
-                if(state.street&&listener)
-                {
-                    float distance=(state.light.transform.position-listener.position).sqrMagnitude;int closer=0;
-                    foreach(var other in lamps)if(other.street&&other.light&&(other.light.transform.position-listener.position).sqrMagnitude<distance)closer++;
-                    nearby=closer<8&&distance<65*65;
-                }
-                state.light.enabled=state.enabled&&factor>.005f&&nearby;state.light.intensity=state.intensity*factor;
+                float factor=state.light.name.Contains("underbridge")?Mathf.Lerp(.65f,1,lowLight):lowLight;
+                float distance=listener?Vector3.Distance(state.light.transform.position,listener.position):0;
+                float visibility=state.street||state.bounce?StreetlightVisibility(distance):1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(110,210,distance));
+                state.fade=Mathf.Lerp(state.fade,state.enabled?factor*visibility:0,1-Mathf.Exp(-.05f/.3f));
+                state.light.enabled=state.fade>.001f;state.light.intensity=state.intensity*state.fade;
+                if(state.emitter)state.emitter.SetColor("_EmissiveColor",state.emission*state.fade);
+                if(state.street&&state.light.enabled)ActiveStreetLights++;
             }
             foreach(var state in windowMaterials)
             {
@@ -357,7 +467,7 @@ namespace ZeroRise
                 // evening onset and dim one group as households go to sleep.
                 float onset=night*Mathf.SmoothStep(0,1,night*(1.25f-state.group*.12f));
                 float bedtime=world.Hour<5||world.Hour>23.5f?(state.group==0?.18f:.60f):1;
-                state.material.SetColor("_EmissiveColor",state.lamp?state.emission*night+new Color(1,.70f,.43f)*night*120:state.emission+new Color(1,.63f,.32f)*onset*bedtime*8);
+                state.material.SetColor("_EmissiveColor",state.lamp?state.emission*night+new Color(1,.70f,.43f)*night*120:state.emission+(state.shop?new Color(.70f,.83f,1)*.65f:new Color(1,.63f,.32f)*8)*onset*bedtime);
                 state.material.SetColor("_BaseColor",Color.Lerp(state.color,state.color*new Color(1.10f,.95f,.73f),onset));
             }
             LitWindowCount=night>.20f?authoredWindowCount:0;
@@ -374,15 +484,16 @@ namespace ZeroRise
         {
             var world=WorldWeatherClock.Instance;if(!rainMesh||!listener||!world)return;
             float dt=Mathf.Min(.08f,Time.unscaledDeltaTime),rain=world.RainIntensity;
-            int target=Mathf.RoundToInt(rain*DropLimit);spawnRemainder+=rain*570*dt;
+            int target=Mathf.RoundToInt(rain*DropLimit);spawnRemainder+=rain*900*dt;
             int budget=Mathf.Min(24,Mathf.FloorToInt(spawnRemainder));spawnRemainder-=budget;
-            RainDropCount=0;var cameraRight=listener.right;Vector3 wind=new Vector3(.65f,0,.22f)*world.WindStrength;
+            RainDropCount=0;var cameraRight=listener.right;Vector3 wind=new Vector3(.65f,0,.22f)*world.WindStrength*world.GustStrength;
             for(int i=0;i<DropLimit;i++)
             {
                 var drop=drops[i];int v=i*4;
                 if(drop.alive)
                 {
                     drop.position+=(Vector3.down*drop.speed+wind)*dt;
+                    if(drop.position.y<drop.floor+drop.length&&rain>.05f&&surfaceWater)surfaceWater.Impact(new Vector3(drop.position.x,drop.floor,drop.position.z));
                     if(drop.position.y<drop.floor+drop.length||Vector3.SqrMagnitude(drop.position-listener.position)>45*45||rain<.005f)drop.alive=false;
                 }
                 if(!drop.alive&&budget>0&&RainDropCount<target)
@@ -395,7 +506,7 @@ namespace ZeroRise
                         // a roof edge before its next particle respawn.
                         Vector3 destination=p+wind*1.5f;
                         if(Physics.Raycast(new Vector3(destination.x,100,destination.z),Vector3.down,out var ahead,160,1,QueryTriggerInteraction.Ignore))stop=Mathf.Max(stop,ahead.point.y);
-                        drop=new Drop{position=p,floor=stop,speed=Range(13,18),length=Range(.20f,.48f),width=Range(.007f,.012f),alpha=Range(.10f,.23f),alive=p.y>stop+.7f};
+                        drop=new Drop{position=p,floor=stop,speed=Range(13,18),length=Range(.12f,.32f),width=Range(.005f,.010f),alpha=Range(.18f,.38f),alive=p.y>stop+.7f};
                     }
                 }
                 if(drop.alive)
@@ -403,8 +514,8 @@ namespace ZeroRise
                     RainDropCount++;Vector3 half=cameraRight*drop.width,tail=Vector3.up*drop.length-wind*.025f;
                     rainVertices[v]=drop.position-half;rainVertices[v+1]=drop.position+half;rainVertices[v+2]=drop.position+tail+half;rainVertices[v+3]=drop.position+tail-half;
                     float distance=Vector3.Distance(listener.position,drop.position),fade=Mathf.Clamp01((34-distance)/12)*Mathf.Clamp01((drop.position.y-drop.floor-.1f)*2);
-                    float illumination=Mathf.Lerp(.12f,1,world.Daylight);
-                    var color=new Color(.48f*illumination,.54f*illumination,.59f*illumination,drop.alpha*fade*Mathf.Clamp01(rain*3));for(int n=0;n<4;n++)rainColors[v+n]=color;
+                    float illumination=Mathf.Lerp(.38f,1,world.Daylight);
+                    var color=new Color(.62f*illumination,.70f*illumination,.78f*illumination,drop.alpha*fade*Mathf.Clamp01(rain*3));for(int n=0;n<4;n++)rainColors[v+n]=color;
                 }
                 else for(int n=0;n<4;n++){rainVertices[v+n]=listener.position;rainColors[v+n]=Color.clear;}
                 drops[i]=drop;
@@ -415,9 +526,9 @@ namespace ZeroRise
         float Range(float min,float max)=>min+(max-min)*(float)random.NextDouble();
         void OnDisable()
         {
-            StopAllCoroutines();Shader.SetGlobalFloat("_ZRWeatherEnabled",0);Shader.SetGlobalFloat("_ZRWeatherWetness",0);Shader.SetGlobalFloat("_ZRWeatherSoilMoisture",0);Shader.SetGlobalFloat("_ZRWeatherPuddles",0);
+            StopAllCoroutines();if(dippedBeamCookie)Destroy(dippedBeamCookie);if(streetCookie)Destroy(streetCookie);if(surfaceWater)Destroy(surfaceWater);Shader.SetGlobalFloat("_ZRWeatherWind",0);Shader.SetGlobalFloat("_ZRWeatherEnabled",0);Shader.SetGlobalFloat("_ZRWeatherWetness",0);Shader.SetGlobalFloat("_ZRWeatherSoilMoisture",0);Shader.SetGlobalFloat("_ZRWeatherPuddles",0);
             if(weatherAudio)weatherAudio.Lightning-=Flash;
-            if(sun){sun.transform.rotation=sunRotation;sun.color=sunColor;sun.intensity=sunOriginalIntensity;sun.enabled=sunOriginalEnabled;sun.shadows=sunOriginalShadows;}
+            if(sun){sun.transform.rotation=sunRotation;sun.color=sunColor;sun.intensity=sunOriginalIntensity;sun.enabled=sunOriginalEnabled;sun.shadows=sunOriginalShadows;if(sunData)sunData.interactsWithSky=originalSunSky;}
             foreach(var lamp in lamps)if(lamp.light){lamp.light.intensity=lamp.intensity;lamp.light.enabled=lamp.enabled;}
             foreach(var lamp in createdLamps)if(lamp)Destroy(lamp);
             foreach(var lamp in vehicleLights)if(lamp.lens)lamp.lens.SetPropertyBlock(lamp.original);

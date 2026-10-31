@@ -5,6 +5,7 @@ float4 _ZRPlantFrom[24]; // xyz: segment start, w: contact time
 float4 _ZRPlantTo[24];   // xyz: segment end, w: radius
 float4 _ZRPlantBounds[2];
 float _ZRPlantTime;
+float _ZRWeatherWind;
 
 float3 ZRRotate(float3 p, float3 axis, float s, float c)
 {
@@ -13,7 +14,7 @@ float3 ZRRotate(float3 p, float3 axis, float s, float c)
 void ZRPlantRotation(float3 root, float weight, float now, out float3 axis, out float angle)
 {
     float phase=dot(root.xz,float2(1.71,2.37));
-    float2 bend=float2(.055,.027)*(sin(now*1.45+phase)+.4*sin(now*2.73+phase*.43));
+    float2 bend=float2(.055,.027)*(.65+2.2*saturate(_ZRWeatherWind))*(sin(now*1.45+phase)+.4*sin(now*2.73+phase*.43));
     float2 push=0;float total=0;
     [unroll] for(int actor=0;actor<2;actor++)
     {

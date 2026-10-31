@@ -111,7 +111,7 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     // Height atlas excludes covered bridge fragments without splitting batches.
     float rainFacing=smoothstep(.55,.93,input.tangentToWorld[2].y);
     float wet=_ZRWeatherWetness*rainFacing*ZRWeatherExposure(GetAbsolutePositionWS(input.positionRWS));
-    surfaceData.baseColor*=lerp(1,.71,wet);
-    surfaceData.perceptualSmoothness=lerp(surfaceData.perceptualSmoothness,max(surfaceData.perceptualSmoothness,.68),wet);
+    surfaceData.baseColor*=lerp(1,.80,wet);
+    surfaceData.perceptualSmoothness=lerp(surfaceData.perceptualSmoothness,max(surfaceData.perceptualSmoothness,lerp(.50,.74,.5+.5*sin(GetAbsolutePositionWS(input.positionRWS).x*.37)*sin(GetAbsolutePositionWS(input.positionRWS).z*.29))),wet);
 #endif
 }

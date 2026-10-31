@@ -33,6 +33,7 @@ namespace ZeroRise
         public float RainIntensity=>state.rain;
         public float CloudCoverage=>state.cloud;
         public float WindStrength=>state.wind;
+        public float GustStrength=>.84f+.12f*Mathf.Sin(Time.unscaledTime*.173f+2.1f)+.04f*Mathf.Sin(Time.unscaledTime*.71f);
         public float Wetness=>state.wetness;
         public float PuddleAmount=>state.puddles;
         public float SoilMoisture=>state.soil;
@@ -41,6 +42,7 @@ namespace ZeroRise
         public bool Automatic=>state.automatic;
         public bool LoadedSavedWorld { get; private set; }
         float nextSave;
+        public float FogBlend { get; private set; }
         GUIStyle clockStyle,smallStyle;
         public static Rect ControlsRect=>new Rect(Mathf.Max(8,Screen.width-622),28,340,456);
         public static bool PointerOverControls=>Instance&&Cursor.visible&&ControlsRect.Contains(new Vector2(Input.mousePosition.x,Screen.height-Input.mousePosition.y));
@@ -51,7 +53,7 @@ namespace ZeroRise
             Instance=this;
             var args=Environment.GetCommandLineArgs();
             StorageKey=Array.IndexOf(args,"-weather-persistence-qa")>=0?SaveKey+".Verification":SaveKey;
-            SuppressSave=Array.IndexOf(args,"-world-weather-qa")>=0||Array.IndexOf(args,"-world-twilight-qa")>=0;
+            SuppressSave=Array.IndexOf(args,"-world-weather-qa")>=0||Array.IndexOf(args,"-world-twilight-qa")>=0||Array.IndexOf(args,"-world-weather-visual-review")>=0||Array.IndexOf(args,"-night-lighting-qa")>=0||Array.IndexOf(args,"-night-sky-qa")>=0||Array.IndexOf(args,"-sunset-transition-qa")>=0;
             if(!SuppressSave&&PlayerPrefs.HasKey(StorageKey))
             {
                 try { var saved=JsonUtility.FromJson<WorldState>(PlayerPrefs.GetString(StorageKey));if(IsValid(saved)){state=saved;LoadedSavedWorld=true;} }
@@ -98,8 +100,13 @@ namespace ZeroRise
             float targetRain=Weather==WeatherKind.Rain?.58f:IsStorm?1:0;
             float targetCloud=Weather==WeatherKind.Clear?.10f:Weather==WeatherKind.Cloudy?.70f:Weather==WeatherKind.Fog?.82f:1;
             float targetWind=IsStorm?.85f:Weather==WeatherKind.Rain?.42f:Weather==WeatherKind.Cloudy?.30f:.15f;
-            float blend=1-Mathf.Exp(-dt/3.5f);
-            state.rain=Mathf.Lerp(state.rain,targetRain,blend);state.cloud=Mathf.Lerp(state.cloud,targetCloud,blend);state.wind=Mathf.Lerp(state.wind,targetWind,blend);
+            // Cloud cover leads rainfall; clearing leaves wet surfaces behind.
+            float cloudBlend=1-Mathf.Exp(-dt/8f);
+            state.cloud=Mathf.Lerp(state.cloud,targetCloud,cloudBlend);
+            float rainGate=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.50f,.85f,state.cloud));
+            state.rain=Mathf.Lerp(state.rain,targetRain*rainGate,1-Mathf.Exp(-dt/5f));
+            state.wind=Mathf.Lerp(state.wind,targetWind,1-Mathf.Exp(-dt/9f));
+            FogBlend=Mathf.Lerp(FogBlend,Weather==WeatherKind.Fog?1:0,1-Mathf.Exp(-dt/10f));
             float evaporation=Mathf.Lerp(.38f,1,Daylight)*Mathf.Lerp(.85f,1.18f,WindStrength);
             float rain=RainIntensity;
             state.wetness=Mathf.Clamp01(state.wetness+minutes*(rain/24-(1-rain)*evaporation/95));
@@ -150,14 +157,14 @@ namespace ZeroRise
             GUI.Label(new Rect(hud.x,hud.y+29,hud.width,22),WeatherName(Weather)+" · "+SpeedMultiplier.ToString("0")+"×",smallStyle);
             if(!Cursor.visible)return;
             GUILayout.BeginArea(ControlsRect,GUI.skin.box);
-            GUILayout.Label("WELT & TEST · ZERO // RISE");
+            GUILayout.Label("WETTER & TAGESZEIT");
             GUILayout.Label("Zeittempo (Uhr, Wetter und Trocknung)");
             GUILayout.BeginHorizontal();foreach(float speed in new[]{1f,2f,5f,10f,20f}){GUI.enabled=SpeedMultiplier!=speed;if(GUILayout.Button(speed+"×",GUILayout.Height(27)))SetSpeed(speed);}GUI.enabled=true;GUILayout.EndHorizontal();
             GUILayout.Label("1×: Ein Spieltag dauert 48 Minuten.");
             GUILayout.Space(7);GUILayout.Label("Wetter · "+(Automatic?"automatisch":"manuell"));
             GUILayout.BeginHorizontal();foreach(var kind in new[]{WeatherKind.Clear,WeatherKind.Cloudy,WeatherKind.Rain})if(GUILayout.Button(WeatherName(kind),GUILayout.Height(27)))SetWeather(kind);GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();foreach(var kind in new[]{WeatherKind.Storm,WeatherKind.Fog})if(GUILayout.Button(WeatherName(kind),GUILayout.Height(27)))SetWeather(kind);if(GUILayout.Button("Automatisch",GUILayout.Height(27)))UseAutomaticWeather();GUILayout.EndHorizontal();
-            GUILayout.Space(7);GUILayout.Label("Tageszeit testen");
+            GUILayout.Space(7);GUILayout.Label("Tageszeit wählen");
             GUILayout.BeginHorizontal();foreach(float hour in new[]{7f,12f,20f,0f})if(GUILayout.Button(((int)hour).ToString("00")+":00",GUILayout.Height(27)))SetHour(hour);GUILayout.EndHorizontal();
             GUILayout.Space(6);GUILayout.Label("Nasse Flächen  "+Mathf.RoundToInt(Wetness*100)+" %");
             GUILayout.Label("Pfützen  "+Mathf.RoundToInt(PuddleAmount*100)+" % · Bodenfeuchte  "+Mathf.RoundToInt(SoilMoisture*100)+" %");

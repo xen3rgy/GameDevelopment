@@ -12,7 +12,7 @@ The player uses the browser hero's recognizable streetwear with refined geometry
 
 Idle has a relaxed stance with slight knee flexion, subtle breathing and a smaller occasional glance after 18 seconds. Solver tolerances cannot retrigger settling steps while standing. On uneven ground a smoothly adjusted stationary stance keeps the feet supported; this adjustment remains active through Idle/IdleLook blends and does not use swing feet. Turn clips explicitly release the lifted foot. The player Animator evaluates offscreen so secondary pose offsets receive a fresh authored pose each frame.
 
-The `ZERO RISE` editor menu can regenerate the district, validate physical placements and build `Builds/Windows/ZeroRise.exe`. Regeneration replaces the generated scene: save hand-authored work in a separate scene before using it. Editable building prefabs are under `Assets/ZeroRise/Generated/Prefabs`.
+The `ZERO RISE` editor menu can regenerate the district, validate physical placements and build `Builds/Windows/ZeroRise.exe`. On macOS, double-click `Westbruch-spielen.command` in the repository folder. It starts the existing macOS build or creates it with Unity on first launch, using the project editor version when installed. Regeneration replaces the generated scene: save hand-authored work in a separate scene before using it. Editable building prefabs are under `Assets/ZeroRise/Generated/Prefabs`.
 
 ## District
 
