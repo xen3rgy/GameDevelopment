@@ -16,7 +16,7 @@ The `ZERO RISE` editor menu can regenerate the district, validate physical place
 
 ## District
 
-The saved scene now includes the connected **Bahnhofsviertel** expansion beyond the east railway underpass: workshop street, additional residential/shop fronts, courtyard, station square, walk-through ticket hall and two accessible platforms. Follow the road east through the service court and then north. Existing traffic and pedestrian navigation include the new area. See [BAHNHOFSVIERTEL.md](BAHNHOFSVIERTEL.md) for scope and verification.
+The saved scene now includes the connected **Bahnhofsviertel** expansion beyond the east railway underpass: workshop street, additional residential/shop fronts, courtyard, station square, walk-through ticket hall and two accessible platforms. Follow the road east through the service court and then north. Existing traffic and pedestrian navigation include the new area. The extension now uses individually authored buildings, fitted physical signs, continuous road/pavement surfaces and a rebuilt station interior. See [BAHNHOFSVIERTEL.md](BAHNHOFSVIERTEL.md) for scope and verification.
 
 264 × 228 metre scene inspired by the supplied references, with a connected street ring, courtyards, 20 residential/commercial buildings, playground, garage row, service yard, PFAND & SPAR, bus shelter, canal and railway bridge. Sizes and positions are deliberately adapted rather than copied from the reference map. Doors are exterior detail; building interiors are not implemented. Temporary construction fencing marks the edge of the playable prototype and prevents falling off the Terrain.
 

@@ -1,38 +1,51 @@
-# Bahnhofsviertel – Kartenerweiterung
+# Bahnhofsviertel – überarbeitete Kartenerweiterung
 
-Die gespeicherte Westbruch-Szene ist um einen zusammenhängenden, begehbaren Stadtteil erweitert. Die ursprüngliche Karte und der Startpunkt bleiben erhalten. Hinter der vorhandenen Unterführung führt die Straße durch den Gewerbehof nach Osten und dann nach Norden zum Bahnhof. Ein Fußweg am Bahndamm verbindet Werkstätten, Innenhof und Vorplatz.
+Die Erweiterung schließt hinter der vorhandenen Unterführung an Westbruch an. Werkstattstraße, Bahndammweg und Hinterhof führen zum Bahnhofsvorplatz. Der bisherige Startbereich, die ursprünglichen Häuser und die Spielfunktionen bleiben erhalten.
 
-## Enthalten
+## Architektur und Ausstattung
 
-- 14 zusätzliche Wohn-/Gewerbegebäude mit vorhandenen Westbruch-Fassaden und ergänzten geneigten Dächern, dazu ehemaliger Güterschuppen und Bahnhof.
-- Ladenfronten für Bäckerei, Imbiss, Waschsalon, Lebensmittel, Fahrradreparatur, Pension, Café und Kiosk.
-- Zugänglicher Güterhof mit Sitzgelegenheit und Alltagsgegenständen; Bushäuschen, Fahrräder und Parkplätze am Bahnhof.
-- Tatsächlich begehbare Bahnhofshalle mit Sitzbänken, Fahrkartenautomaten als Ausstattung und einer Uhr, deren Zeiger die Spielzeit anzeigen.
-- Zwei erhöhte Bahnsteige, durchgehendes ursprüngliches Gleis und zusätzliches Ausweichgleis, Treppen, Zugangsrampe und Fußgängerbrücke. Ein zweiteiliger Regionalzug steht an Gleis 1.
-- 10 zusätzliche Bewohner, insgesamt 28, auf gemeinsam gebackener Fußgängernavigation; das vorhandene Verkehrsnetz führt durch die neuen Straßen.
-- Straßen- und Bahnsteigleuchten reagieren auf Tageszeit und Wetter. Regenabschirmung und Pfützen berücksichtigen die erweiterte Karte.
+- Zwölf eigenständig aufgebaute Wohn-/Geschäftshäuser mit vier Fassaden- und Dachfamilien; keine kopierten Wohnhaus-Prefabs. Fassadenöffnungen, Laibungen, Rahmen und Sohlbänke sind geometrisch ausgearbeitet, die Texturzuordnung läuft über die gesamte Fassade.
+- Werkstatt, Garagenzeile und Güterschuppen besitzen eigene Fassaden, Tore, Dachanschlüsse und Ausstattung.
+- Bahnhof mit Mittelgiebel, Uhr, getragenem Vordach, tatsächlichen Fensteröffnungen, Halle mit Decke, Ticketschalter, Sitzbänken und Wandtafeln.
+- Zwei Bahnsteige mit Betonunterbau, separater Deckplatte, Kanten, getragenen Dächern, Lichtgehäusen, Schildern und Entwässerung. Der Regionalzug besitzt geformte Wagenkästen, Führerstände, Drehgestelle und Türen.
+- Hallenausgang und Treppe sind durch einen befestigten, in den Bahndamm eingeschnittenen Weg mit Stützwänden verbunden.
+- Vorzonen und Pflanzbeete, passende Westbruch-Sträucher, Bodenbewuchs, Straßenabnutzung, Entwässerung, Reparaturecke im Hof und ein ausgearbeiteter Kiosk/Busunterstand.
+- 28 Bewohner auf gemeinsamer Navigation; bestehendes Verkehrsnetz und Wetter-/Lichtsystem berücksichtigen beide Viertel.
 
-Ladenfronten und Zug sind derzeit Umgebungsausstattung. Die Bahnhofshalle, Höfe, Gehwege und Bahnsteige sind erkundbar. Die Rampe ist eine spielbare Verbindung; mit rund 7,4 % Neigung ist sie keine nachgewiesen normgerechte barrierefreie Bauplanung.
+Ladenfronten, Ticketschalter und Zug sind Umgebungsausstattung. Halle, Höfe, Gehwege und Bahnsteige sind begehbar.
 
-## Technische Umsetzung
+## Behobene Ursachen
 
-`BahnhofsviertelBuilder.Build` ergänzt die vorhandene Szene lokal. Die ursprüngliche Karte wird nicht neu generiert. `Polish` und `Refine` reparieren gezielt Navigation, die Anschlussnaht und bauliche Details. Geometrie wird in räumlichen Materialgruppen zusammengefasst; Charaktere, Fahrzeuge, Baum-LODs, Schrift und Uhrzeiger bleiben separat.
+Die erste Fassung enthielt übereinanderliegende Bodenplatten, einen Pflasterstreifen quer über die Fahrbahn, doppelt sichtbare Fahrzeugteile, übernommene fremde Straßenschilder und alte Dachaufbauten unter neuen Dächern. Die Schrift wurde anhand einer Zeichenanzahl geschätzt und überschritt teilweise die Träger.
 
-Am Anschluss wurden nur der benötigte östliche Zaunabschnitt und die querende Gehwegplatte geöffnet. Das Gelände unter der neuen Fahrbahn ist nivelliert. Der Fußgänger-NavMesh enthält weiterhin die ursprünglichen Straßen-Ausschlussflächen und Querungsstellen sowie neue Querungen im Bahnhofsviertel.
+Straße, Pflaster und Erde werden jetzt als disjunkte Flächen mit fortlaufenden Weltkoordinaten für die Texturen erzeugt. Höhenwechsel sind seitlich geschlossen. Das darunterliegende Terrain liegt tiefer; alte Fernbodenflächen werden nur im überarbeiteten Fußabdruck entfernt. Der Hallenvorplatz und der Bahndammweg sind durchgehend unterstützt.
 
-Der Wetter-Höhenatlas deckt nun beide Viertel ab (512 × 512 Zellen über 480 × 540 Meter). Bestehende Pfützenstandorte werden zuerst berücksichtigt, neue Standorte folgen im Bahnhofsviertel; das Gesamtbudget beträgt 260 Wasserstellen. Das eigentliche Sonnenuntergangsmodell bleibt unverändert.
+Alle 52 Texttafeln verwenden physische Träger und messen die tatsächlichen Schriftgrenzen. Die Schrift bleibt auch nach einem Font-Atlas-Neuaufbau innerhalb der Tafel. Türsturz-, Wand-, Pfosten- und Hängemontagen sind ausdrücklich ausgearbeitet.
 
-## Spielprüfung
+Fahrzeuge behalten ihre eigenen aktiven Geometriebatches; ihre deaktivierten Einzelquellen werden nicht wieder eingeblendet. Neue Bauteile werden in räumlichen Materialgruppen zusammengefasst. Baum-/Strauch-LODs, Figuren, Fahrzeuge und bewegte Uhrzeiger bleiben separat.
 
-Die Mac-App kann mit `-bahnhof-qa <Ausgabeordner>` reproduzierbar geprüft werden. Dieser Modus schreibt keine Wetter-Spielstände. Er testet den Laufweg mit dem echten CharacterController von der Unterführung bis in die Bahnhofshalle, durchgängige native Navigationspfade zu Hof, Halle und beiden Bahnsteigen sowie bewegte Bewohner und Nachtbeleuchtung. Zusätzlich entstehen neun Aufnahmen bei Tag, Nacht und Regen.
+## Reproduktion und Prüfung
 
-Die frühen Tests fanden einen Laternenmast in der Fahrbahn am östlichen Anschluss und dort überhöhtes Restgelände. Der Mast wurde auf den Gehweg versetzt und das Gelände unter der Fahrbahn nivelliert. Die Ergebnisse des abschließenden Durchlaufs liegen unter `ZeroRise/QA/bahnhof-release-validation/`.
+`ZeroRise.Editor.BahnhofDistrictRework.Apply` baut die Erweiterung aus den vorhandenen Quellen erneut auf. `ApplyAndBuild` erzeugt anschließend die Mac-App. Beide erhalten die ursprüngliche Westbruch-Karte. Die alte Refine-Funktion verweist bei installierter neuer Fassung auf diesen Ablauf.
 
-### Ergebnis des finalen Mac-Builds
+`BahnhofVisualQualityQA` prüft Schriftgrenzen, Tafeln, lose alte Texte, physische Montage am Hallenausgang, Bodenproben an den zuvor fehlerhaften Verbindungen, Fahrzeugduplikate, endliche Meshdaten, Dachausrichtung und koplanare Basisflächen. Bericht: `ZeroRise/QA/bahnhof-rework-authoring.txt`.
 
-- `bahnhof-release-validation`: 27 Prüfungen bestanden, keine fehlgeschlagen, 0 Laufzeitfehler. Alle sieben Teilstrecken des CharacterController-Laufwegs erreicht; native Navigationspfade zu Platz, Hof, Halle und beiden Bahnsteigen vollständig.
-- `bahnhof-twilight-regression`: 31 Prüfungen bestanden, keine fehlgeschlagen, 0 Laufzeitfehler. Beide laufenden Übergänge bei 20× Tempo bestanden.
-- Neun Spielaufnahmen erstellt; Straßen-/Bahnhofsansichten und Nachtbeleuchtung visuell geprüft.
-- Finaler Mac-Build: `Westbruch and Bahnhofsviertel`, Build-GUID `d2a5d0d7b38e4726ba60401a7ae8e172`, 0 Build-Fehler, 5 Build-Warnungen. Die laufende Version wird über `ZeroRise/Builds/macOS/Westbruch-build.json` identifiziert.
+Die gebaute Mac-App lässt sich mit `-bahnhof-qa <Ausgabeordner>` prüfen. Sie speichert keine Wetteränderungen. Der Laufwegtest bewegt den echten CharacterController und prüft sowohl Zielposition als auch Höhe über dem unterstützenden Boden. Dazu kommen native Navigationspfade, Schriftgrenzen im Player, Bewohnerbewegung und Nachtbeleuchtung. Vierzehn Aufnahmen zeigen Übergang, beide Straßenseiten, Hof, Halle, Bahnhof, Bahnsteige und Brücke bei Tag sowie Vorplatz bei Nacht und Regen.
 
-Start auf dem Mac über `Westbruch-spielen.command`. Am ursprünglichen Startpunkt bleiben, die Unterführung nach Osten durchqueren, durch den Gewerbehof weitergehen und der Straße nach links/nördlich zum Bahnhofsplatz folgen.
+Vorheraufnahmen: `ZeroRise/QA/bahnhof-rework-before/`. Die Zwischenprüfung `bahnhof-rework-review` ist kein Abschlussnachweis; sie zeigte noch fehlenden Boden westlich des Platzes. Endprüfung: `ZeroRise/QA/bahnhof-rework-release/`. Der ergänzende Dämmerungsdurchlauf liegt unter `ZeroRise/QA/bahnhof-rework-twilight/`.
+
+Der bisherige reine X/Z-Laufwegtest konnte ein Ziel trotz falscher Spielerhöhe als erreicht werten. Seine alten Ergebnisse belegen keine ausreichende visuelle Qualität. Die neue Prüfung berücksichtigt diesen Fehler ausdrücklich.
+
+## Start
+
+Auf dem Mac über `Westbruch-spielen.command` neu starten. Durch die Unterführung nach Osten gehen, den Gewerbehof durchqueren und der neuen Straße nach links/nördlich zum Bahnhof folgen.
+
+Aktueller Mac-Build: `0ec4f1183fb74efab1edd67e18be2e0a`, 0 Build-Fehler, 5 Build-Warnungen. Maßgeblich ist `ZeroRise/Builds/macOS/Westbruch-build.json`.
+
+### Abschlussprüfung der Überarbeitung
+
+- 13 geometrische Qualitätsprüfungen bestanden, einschließlich Montage des Hallenschilds, tatsächlichem Boden vor dem Bahnhof und auf dem Bahndammweg, 52 gemessenen Schriftträgern und 240 Stichproben der Basisflächen.
+- `bahnhof-rework-release`: 33 Spielprüfungen bestanden, 0 Laufzeitfehler. Alle sieben Laufwegabschnitte mit richtiger Bodenhöhe erreicht; Navigation zu beiden Bahnsteigen vollständig.
+- `bahnhof-rework-twilight`: 31 Dämmerungsprüfungen bestanden, 0 Laufzeitfehler. Beleuchtung und Wettermodell blieben beim anschließenden Abschluss der Hallenanschlüsse unverändert.
+- Finale native Aufnahmen von Vorplatz, Halleninnerem, Wohn-/Geschäftshäusern, Werkstatt, Hof, Bahnsteigen, Übergang und Nachtansicht wurden visuell geprüft. Die endgültige Bildserie liegt in `bahnhof-rework-release`.
+- Der beim gesperrten Mac stehen gebliebene letzte Teststart wurde nach manuellem Entsperren neu gestartet; als Nachweis zählt der vollständig abgeschlossene Durchlauf.

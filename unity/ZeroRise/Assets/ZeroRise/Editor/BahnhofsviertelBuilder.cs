@@ -327,7 +327,7 @@ namespace ZeroRise.Editor
             // Modest boundary is formed by rear yards and railway fencing, rather than a district gate.
             foreach(float z in new[]{338f,350})B("Rail service storage",root,new Vector3(160,1.5f,z),new Vector3(18,3,7),brick);
         }
-        static void Navigation(bool addResidents=true)
+        internal static void Navigation(bool addResidents=true)
         {
             var world=UnityEngine.Object.FindAnyObjectByType<PedestrianWorld>();world.UnloadNavigation();
             Physics.SyncTransforms();var sources=new List<NavMeshBuildSource>();var ignore=new List<NavMeshBuildMarkup>();
@@ -367,7 +367,9 @@ namespace ZeroRise.Editor
         {
             try
             {
-                EditorSceneManager.OpenScene(WestbruchBuilder.ScenePath);RefineLoaded();
+                EditorSceneManager.OpenScene(WestbruchBuilder.ScenePath);
+                if(GameObject.Find(RootName).transform.Find("BV2_Continuous surfaces")){BahnhofDistrictRework.Apply();return;}
+                RefineLoaded();
                 EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();EditorApplication.Exit(0);
             }catch(Exception e){Debug.LogException(e);EditorApplication.Exit(1);}
         }
