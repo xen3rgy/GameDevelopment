@@ -40,8 +40,8 @@ namespace ZeroRise
         public static float HeadlightVisibility(float metres)=>1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(140,240,metres));
         public static float StreetlightVisibility(float metres)=>1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(170,270,metres));
         Texture2D dippedBeamCookie,streetCookie;
-        const int DropLimit=1024, AtlasSize=256;
-        static readonly Vector4 AtlasBounds=new Vector4(-160,-150,1f/340,1f/300);
+        const int DropLimit=1024, AtlasSize=512;
+        static readonly Vector4 AtlasBounds=new Vector4(-160,-150,1f/480,1f/540);
         struct Drop { public Vector3 position;public float floor,speed,length,width,alpha;public bool alive; }
         sealed class WetMaterial
         {
@@ -296,7 +296,7 @@ namespace ZeroRise
         }
         IEnumerator BakeRoofMap()
         {
-            // 1.3 m atlas cells over the actual playable district; amortized so
+            // Approximately metre-wide cells cover both connected districts; amortized so
             // shader weather never stalls a frame for a complete roof scan.
             var data=new Color[AtlasSize*AtlasSize];
             var terrainOrigin=terrain?terrain.transform.position:Vector3.zero;

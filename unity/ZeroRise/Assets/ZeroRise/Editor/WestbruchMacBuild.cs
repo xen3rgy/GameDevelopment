@@ -49,7 +49,9 @@ namespace ZeroRise.Editor
                 var sceneText = File.ReadAllText(scenePath);
                 var release = new Release
                 {
-                    feature = sceneText.Contains("m_Name: Westbruch weather and daily rhythm")
+                    feature = sceneText.Contains("Bahnhofsviertel")
+                        ? "Westbruch and Bahnhofsviertel"
+                        : sceneText.Contains("m_Name: Westbruch weather and daily rhythm")
                         ? "Westbruch weather and daily rhythm"
                         : "Westbruch macOS build",
                     utc = DateTime.UtcNow.ToString("O"),

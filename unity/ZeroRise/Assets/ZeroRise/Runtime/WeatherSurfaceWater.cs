@@ -35,9 +35,13 @@ namespace ZeroRise
             water=new Material(source){name="Runtime reflective shallow water"};
             var uv=new List<Vector2>();var triangles=new List<int>();var normals=new List<Vector3>();var tangents=new List<Vector4>();
             float best=float.PositiveInfinity;
-            for(int z=-90;z<=100;z+=6)for(int x=-110;x<=155;x+=6)
+            var sites=new List<Vector2>();
+            for(int z=-90;z<=100;z+=6)for(int x=-110;x<=155;x+=6)sites.Add(new Vector2(x,z));
+            for(int z=112;z<=326;z+=6)for(int x=140;x<=292;x+=6)sites.Add(new Vector2(x,z));
+            foreach(var site in sites)
             {
-                if(basins.Count>=120)break;
+                float x=site.x,z=site.y;
+                if(basins.Count>=260)break;
                 var p=new Vector3(x+Mathf.Sin(z*7+x)*1.7f,30,z+Mathf.Sin(x*11-z)*1.7f);
                 if(!Physics.Raycast(p,Vector3.down,out var hit,45,1,QueryTriggerInteraction.Ignore)||hit.normal.y<.995f||hit.point.y>1.5f)continue;
                 if(Physics.Raycast(hit.point+Vector3.up*.1f,Vector3.up,80,1,QueryTriggerInteraction.Ignore))continue;

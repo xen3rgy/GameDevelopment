@@ -53,7 +53,7 @@ namespace ZeroRise
             Instance=this;
             var args=Environment.GetCommandLineArgs();
             StorageKey=Array.IndexOf(args,"-weather-persistence-qa")>=0?SaveKey+".Verification":SaveKey;
-            SuppressSave=Array.IndexOf(args,"-world-weather-qa")>=0||Array.IndexOf(args,"-world-twilight-qa")>=0||Array.IndexOf(args,"-world-weather-visual-review")>=0||Array.IndexOf(args,"-night-lighting-qa")>=0||Array.IndexOf(args,"-night-sky-qa")>=0||Array.IndexOf(args,"-sunset-transition-qa")>=0;
+            SuppressSave=Array.IndexOf(args,"-bahnhof-qa")>=0||Array.IndexOf(args,"-world-weather-qa")>=0||Array.IndexOf(args,"-world-twilight-qa")>=0||Array.IndexOf(args,"-world-weather-visual-review")>=0||Array.IndexOf(args,"-night-lighting-qa")>=0||Array.IndexOf(args,"-night-sky-qa")>=0||Array.IndexOf(args,"-sunset-transition-qa")>=0;
             if(!SuppressSave&&PlayerPrefs.HasKey(StorageKey))
             {
                 try { var saved=JsonUtility.FromJson<WorldState>(PlayerPrefs.GetString(StorageKey));if(IsValid(saved)){state=saved;LoadedSavedWorld=true;} }
