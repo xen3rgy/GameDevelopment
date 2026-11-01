@@ -26,11 +26,11 @@ namespace ZeroRise.Editor
             {
                 EditorSceneManager.OpenScene(WestbruchBuilder.ScenePath);Clear();checks.Clear();passed=true;
                 root=GameObject.Find(BahnhofsviertelBuilder.RootName).transform;
-                UnpackSources();ClearLegacySigns();ContinuousSurfaces();
+                UnpackSources();RemoveConflictingBackdrop();ClearLegacySigns();ContinuousSurfaces();
                 BahnhofResidentialArchitecture.Rebuild(root);BahnhofStationArchitecture.Rebuild(root);
-                DressStreet();FixVehicles();RefreshNavigation();Physics.SyncTransforms();
+                DressStreet();BahnhofLandscapeFinish.Apply(root);BahnhofSquareFinish.Apply(root);FixVehicles();RefreshNavigation();Physics.SyncTransforms();
                 foreach(var fitted in root.GetComponentsInChildren<FittedWorldSign>())fitted.Refit();
-                BahnhofVisualQualityQA.Validate(root,Record);if(!passed)throw new Exception("Visual authoring checks failed: QA/bahnhof-rework-authoring.txt");
+                BahnhofVisualQualityQA.Validate(root,Record);BahnhofPlacementQA.Validate(root,Record);if(!passed)throw new Exception("Visual authoring checks failed: QA/bahnhof-rework-authoring.txt");
                 Bake();EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
                 File.WriteAllText("QA/bahnhof-rework-authoring.txt","Passed: "+passed+"\n"+string.Join("\n",checks));
                 Debug.Log("Bahnhof rework saved: individual architecture, supported lettering and continuous street surfaces");
@@ -38,28 +38,46 @@ namespace ZeroRise.Editor
             }
             catch(Exception e){File.WriteAllText("QA/bahnhof-rework-authoring.txt","Passed: False\n"+string.Join("\n",checks)+"\n"+e);Debug.LogException(e);if(Application.isBatchMode)EditorApplication.Exit(1);else throw;}
         }
-        public static void FinishDetailsAndBuild()
+        public static void FinishDetailsAndBuild()=>ApplyAndBuild();
+        public static void ValidateSavedScene()
         {
             try
             {
-                EditorSceneManager.OpenScene(WestbruchBuilder.ScenePath);Clear();checks.Clear();passed=true;root=GameObject.Find(BahnhofsviertelBuilder.RootName).transform;
-                foreach(var t in root.GetComponentsInChildren<Transform>().Where(t=>t.name.StartsWith("BV2_Render chunk ")).ToArray())UnityEngine.Object.DestroyImmediate(t.gameObject);
-                bool Vehicle(Transform t)=>t.GetComponentsInParent<Transform>().Any(p=>p.name.StartsWith("BV2_Parked ")||p.name=="Regional train – parked at platform one");
-                foreach(var f in root.GetComponentsInChildren<MeshFilter>())if(!Vehicle(f.transform)&&!f.GetComponentInParent<LODGroup>()&&!f.GetComponentInParent<PedestrianAgent>()&&f.GetComponent<MeshRenderer>())f.GetComponent<MeshRenderer>().enabled=true;
-                foreach(var r in root.GetComponentsInChildren<MeshRenderer>().Where(r=>r.name=="Rear property fence collision"))r.enabled=false;
-                var hall=root.Find("Bahnhof Westbruch – accessible ticket hall");var plaster=BahnhofDetailKit.Load("BV2_Station_OldLimeRender");var timber=BahnhofDetailKit.Load("BV2_Station_DarkTimber");
-                foreach(var old in hall.GetComponentsInChildren<Transform>().Where(t=>t.name=="BV2_Hall side partition"||t.name=="BV2_Hall ceiling").ToArray())UnityEngine.Object.DestroyImmediate(old.gameObject);
-                foreach(float x in new[]{-3f,3f})Box("BV2_Hall side partition",hall,new Vector3(x,1.925f,0),new Vector3(.18f,3.85f,14.5f),plaster,true,2);
-                Box("BV2_Hall ceiling",hall,new Vector3(0,3.85f,0),new Vector3(6.2f,.16f,15.4f),plaster,false,2);
-                if(!hall.Find("BV2_Rear doorway sign mounting beam"))Box("BV2_Rear doorway sign mounting beam",hall,new Vector3(0,3.5f,7.7f),new Vector3(5.9f,.4f,.3f),timber,true,2);
-                foreach(var sign in hall.GetComponentsInChildren<FittedWorldSign>())if(sign.lettering.text=="ZU DEN GLEISEN"){sign.transform.localPosition=new Vector3(0,3.48f,7.515f);sign.Refit();}
-                var car=root.Find("BV2_Parked resident car");if(car)car.SetPositionAndRotation(new Vector3(186,.04f,281),Quaternion.identity);
-                Physics.SyncTransforms();BahnhofVisualQualityQA.Validate(root,Record);if(!passed)throw new Exception("Final visual checks failed");Bake();
-                EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
-                File.WriteAllText("QA/bahnhof-rework-authoring.txt","Passed: "+passed+"\n"+string.Join("\n",checks));WestbruchMacBuild.Build();
+                EditorSceneManager.OpenScene(WestbruchBuilder.ScenePath);checks.Clear();passed=true;
+                root=GameObject.Find(BahnhofsviertelBuilder.RootName).transform;Physics.SyncTransforms();
+                BahnhofVisualQualityQA.Validate(root,Record);BahnhofPlacementQA.Validate(root,Record);
+                File.WriteAllText("QA/bahnhof-complete-placement.txt","Passed: "+passed+"\n"+string.Join("\n",checks));
+                EditorApplication.Exit(passed?0:1);
             }catch(Exception e){Debug.LogException(e);EditorApplication.Exit(1);}
         }
         static void Record(string title,bool ok,string detail){passed&=ok;checks.Add((ok?"PASS ":"FAIL ")+title+" | "+detail);}
+        static void RemoveConflictingBackdrop()
+        {
+            var town=root.root;var skyline=town.GetComponentsInChildren<Transform>().FirstOrDefault(t=>t.name=="Neighbouring skyline – visual background only");
+            if(!skyline)return;
+            var blocks=skyline.Cast<Transform>().Where(t=>t.position.x>140&&t.position.z>118&&t.position.z<364).ToArray();
+            var cuts=new List<Bounds>();
+            foreach(var block in blocks)
+            {
+                var renderers=block.GetComponentsInChildren<MeshRenderer>();if(renderers.Length==0)continue;
+                var bound=renderers[0].bounds;foreach(var r in renderers)bound.Encapsulate(r.bounds);bound.Expand(.06f);cuts.Add(bound);
+            }
+            // These old non-colliding skyline blocks had already been baked into
+            // global render chunks. Deleting only their editable sources leaves
+            // the visible blocks intersecting the new freight hall and houses.
+            var chunks=town.Find("Static render chunks – sources retained for editing");
+            if(chunks)foreach(var f in chunks.GetComponentsInChildren<MeshFilter>())
+            {
+                var r=f.GetComponent<MeshRenderer>();if(!r||!r.sharedMaterial||!cuts.Any(c=>c.Intersects(r.bounds)))continue;
+                if(!r.sharedMaterial.name.StartsWith("Backdrop")&&r.sharedMaterial.name!="DressingMetal")continue;
+                var mesh=f.sharedMesh;var v=mesh.vertices;var old=mesh.triangles;var keep=new List<int>();
+                for(int i=0;i<old.Length;i+=3)
+                {var at=f.transform.TransformPoint((v[old[i]]+v[old[i+1]]+v[old[i+2]])/3);if(!cuts.Any(c=>c.Contains(at)))keep.AddRange(new[]{old[i],old[i+1],old[i+2]});}
+                if(keep.Count==old.Length)continue;mesh.SetTriangles(keep,0);mesh.RecalculateBounds();EditorUtility.SetDirty(mesh);
+                if(keep.Count==0)UnityEngine.Object.DestroyImmediate(f.gameObject);
+            }
+            foreach(var block in blocks)UnityEngine.Object.DestroyImmediate(block.gameObject);
+        }
         static void DestroyNamed(params string[] names)
         {
             var set=new HashSet<string>(names);foreach(var t in root.GetComponentsInChildren<Transform>().Where(t=>set.Contains(t.name)).ToArray())if(t)UnityEngine.Object.DestroyImmediate(t.gameObject);
@@ -81,14 +99,17 @@ namespace ZeroRise.Editor
             DestroyNamed("Sign backing","Station kiosk","Bahnhofsplatz bus shelter","Wayfinding signpost");
         }
         static bool Has(List<Rect> list,Vector2 p)=>list.Any(r=>r.Contains(p));
-        static bool Development(Vector2 p)=>p.x>=166&&p.x<=300&&p.y>=58&&p.y<=364||p.x>=134&&p.x<=300&&p.y>=118&&p.y<=364;
+        static bool Development(Vector2 p)=>p.x>=166&&p.x<=300&&p.y>=58&&p.y<=364||p.x>=132&&p.x<=300&&p.y>=118&&p.y<=364;
         static void ContinuousSurfaces()
         {
             DestroyNamed("District supporting earth","Eastern connecting ground","Bahnhof connected pavement","Bahnhof connected carriageway","Flush junction","Station square paving","Bahnhofsplatz access carriageway","Taxi waiting bay","Güterhof accessible courtyard","Courtyard east entrance","Rail bank pedestrian shortcut","Shortcut south link","Shortcut station link","Station road kerb","Worn centre marking","Station pedestrian crossing","Taxi bay separator","Ramp lower approach","Station rear access");
             roads.Clear();walks.Clear();
-            roads.AddRange(new[]{R(184,80,48,10),R(208,193,10,226),R(236,176,56,9),R(236,306,56,9),R(264,241,9,130),R(189,266,38,9),R(190,280,13,10)});
+            roads.AddRange(new[]{R(184,80,48,10),R(208,193,10,226),R(236,176,56,9),R(236,306,56,9),R(264,241,9,130),R(189,266,38,9),R(190,280,13,10),R(278.5f,176,15,8),R(264,326.5f,9,27)});
             foreach(var p in new[]{new Vector2(208,80),new Vector2(208,176),new Vector2(208,266),new Vector2(208,306),new Vector2(264,176),new Vector2(264,306)})roads.Add(R(p.x,p.y,14,14));
-            walks.AddRange(new[]{R(184,80,48,16),R(208,193,16,226),R(236,176,56,15),R(236,306,56,15),R(264,241,15,130),R(174,264,52,64),R(174,198,42,24),R(196,198,12,5),R(140,174,3.2f,108),R(161,120,45,3.2f),R(145,227,12,3.2f),R(135,130,8,4),R(129.5f,263,7,42)});
+            walks.AddRange(new[]{R(184,80,48,16),R(208,193,16,226),R(236,176,56,15),R(236,306,56,15),R(264,241,15,130),R(174,264,52,64),R(174,198,42,24),R(196,198,12,5),R(140,174,3.2f,108),R(161,120,45,3.2f),R(145,227,12,3.2f),R(135,130,8,4),R(129,263,6,42),R(278.5f,176,15,13),R(264,326.5f,15,27),R(219.5f,80,9,22)});
+            // Close the two returns beside the hall, stopping exactly at its
+            // z248/282 floor edges instead of leaving a strip open to the sky.
+            walks.AddRange(new[]{R(133,243.25f,2,9.5f),R(133,283,2,2)});
             // Front zones are deliberately paved up to shopfronts, with planting pockets instead of empty eight-metre strips.
             foreach(var p in new[]{new Vector2(234,116),new Vector2(234,147),new Vector2(234,202),new Vector2(234,233),new Vector2(234,275)})walks.Add(R(223,p.y,10,24));
             foreach(float z in new[]{177f,220})walks.Add(R(194,z,14,24));
@@ -97,9 +118,9 @@ namespace ZeroRise.Editor
             {float x=origin.x+ix/(n-1f)*data.size.x,z=origin.z+iz/(n-1f)*data.size.z;if(Development(new Vector2(x,z)))heights[iz,ix]=(-.12f-origin.y)/data.size.y;}
             data.SetHeights(0,0,heights);EditorUtility.SetDirty(data);
             // One disjoint planar subdivision, not stacked pavement rectangles.
-            var xs=new SortedSet<float>{134,166,300};var zs=new SortedSet<float>{58,118,364};
+            var xs=new SortedSet<float>{132,134,166,300};var zs=new SortedSet<float>{58,118,364};
             foreach(var r in roads.Concat(walks)){xs.Add(r.xMin);xs.Add(r.xMax);zs.Add(r.yMin);zs.Add(r.yMax);}
-            for(float x=134;x<300;x+=4)xs.Add(x);for(float z=58;z<364;z+=4)zs.Add(z);
+            for(float x=132;x<300;x+=4)xs.Add(x);for(float z=58;z<364;z+=4)zs.Add(z);
             var xx=xs.ToArray();var zz=zs.ToArray();var cells=new Dictionary<string,List<Rect>>();
             for(int ix=0;ix<xx.Length-1;ix++)for(int iz=0;iz<zz.Length-1;iz++)
             {

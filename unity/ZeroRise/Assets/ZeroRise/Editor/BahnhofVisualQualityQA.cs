@@ -23,7 +23,7 @@ namespace ZeroRise.Editor
             var hallExit=root.GetComponentsInChildren<FittedWorldSign>().FirstOrDefault(sign=>sign.lettering&&sign.lettering.text=="ZU DEN GLEISEN");
             bool attached=hallExit&&Physics.Raycast(hallExit.transform.position-hallExit.transform.forward*.05f,hallExit.transform.forward,out var mountHit,.35f,1,QueryTriggerInteraction.Ignore);
             record("Hall exit sign is fixed to the physical lintel",attached,"Rear direction plate mounting ray");
-            foreach(var point in new[]{new Vector3(152,2,265),new Vector3(140,2,210),new Vector3(140,2,225),new Vector3(161.5f,2,80)})
+            foreach(var point in new[]{new Vector3(152,2,265),new Vector3(140,2,210),new Vector3(140,2,225),new Vector3(161.5f,2,80),new Vector3(133,2,244),new Vector3(133,2,283)})
             {
                 bool supported=Physics.Raycast(point,Vector3.down,out var hit,3,1,QueryTriggerInteraction.Ignore)&&hit.point.y>=.025f&&hit.point.y<.25f;
                 record("Actual ground supports the connecting route "+point,supported,supported?hit.collider.name:"Missing walkable floor");

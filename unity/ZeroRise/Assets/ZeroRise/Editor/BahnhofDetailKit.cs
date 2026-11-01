@@ -37,7 +37,15 @@ namespace ZeroRise.Editor
             var vertices=new[]{new Vector3(-x,eave,-z),new Vector3(x,eave,-z),new Vector3(-x,eave,z),new Vector3(x,eave,z),new Vector3(-x,eave+rise,0),new Vector3(x,eave+rise,0)};
             Mesh("BV2_Roof_"+id,parent,vertices,new[]{0,4,1,1,4,5,4,2,5,5,2,3},roof,true);
             Mesh("BV2_Gables_"+id,parent,vertices,new[]{0,2,4,1,5,3},gable,true);
-            foreach(float side in new[]{-1f,1})Box("BV2_Roof fascia",parent,new Vector3(0,eave-.055f,side*z),new Vector3(width,.14f,.10f),roof,false);
+            // A roof must also close when seen from the street below the eaves.
+            // The previous one-sided slopes exposed the sky through the overhang.
+            Box("BV3_Closed roof soffit",parent,new Vector3(0,eave-.065f,0),new Vector3(width,.13f,depth),roof,false);
+            foreach(float side in new[]{-1f,1})
+            {
+                Box("BV2_Roof fascia",parent,new Vector3(0,eave-.055f,side*z),new Vector3(width,.18f,.10f),roof,false);
+                foreach(float end in new[]{-1f,1})
+                    Beam("BV3_Gable rake flashing",parent,new Vector3(end*(x+.012f),eave,side*z),new Vector3(end*(x+.012f),eave+rise,0),.13f,roof);
+            }
             Box("BV2_Ridge cap",parent,new Vector3(0,eave+rise+.015f,0),new Vector3(width+.06f,.11f,.20f),roof,false);
         }
         public static GameObject Mesh(string id,Transform parent,IEnumerable<Vector3> source,IEnumerable<int> indices,Material material,bool collision)
