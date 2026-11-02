@@ -10,6 +10,9 @@ namespace ZeroRise
         public PlayerAvatar avatar;
         public SimpleCar nearbyCar;
         public bool driving;
+        public bool Flying { get; private set; }
+        static Rect AdminControlsRect => new Rect(Screen.width-266,340,246,144);
+        static bool PointerOverAdminControls => Cursor.visible&&AdminControlsRect.Contains(new Vector2(Input.mousePosition.x,Screen.height-Input.mousePosition.y));
         public bool Interacting { get; private set; }
         public string InteractionHint { get; private set; }
         CharacterController controller;
@@ -29,25 +32,56 @@ namespace ZeroRise
         void Update()
         {
             if (Input.GetKeyDown(KeyCode.Escape)) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
-            if (Input.GetMouseButtonDown(0) && !WestbruchSoundscape.PointerOverControls) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
-            if (Input.GetKeyDown(KeyCode.E) && nearbyCar != null && !Interacting)
+            if (Input.GetMouseButtonDown(0) && !WestbruchSoundscape.PointerOverControls&&!PointerOverAdminControls) { Cursor.lockState = CursorLockMode.Locked; Cursor.visible = false; }
+            if (Input.GetKeyDown(KeyCode.F)) ToggleFlight();
+            if (Input.GetKeyDown(KeyCode.E) && nearbyCar != null && !Interacting&&!Flying)
             {
                 if (driving) nearbyCar.TryExit(this);
                 else if (Vector3.Distance(transform.position, nearbyCar.transform.position) < 4) nearbyCar.Enter(this);
             }
             if (driving || Interacting) return;
             var input = Vector2.ClampMagnitude(new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")), 1);
+            if(Flying)
+            {
+                if(Cursor.lockState!=CursorLockMode.Locked)return;
+                float vertical=(Input.GetKey(KeyCode.Space)?1:0)-(Input.GetKey(KeyCode.LeftControl)||Input.GetKey(KeyCode.RightControl)?1:0);
+                FlyStep(input,vertical,Input.GetKey(KeyCode.LeftShift)||Input.GetKey(KeyCode.RightShift),Time.deltaTime);
+                return;
+            }
             MoveStep(input,Input.GetKey(KeyCode.LeftShift),Input.GetKeyDown(KeyCode.Space),Time.deltaTime,Input.GetKey(KeyCode.LeftAlt));
         }
-        public bool IsGrounded => controller && controller.isGrounded;
-        public bool CanInteract => IsGrounded||groundGrace>0;
+        public bool SetFlying(bool value)
+        {
+            if(driving||Interacting||!controller||!controller.enabled)return false;
+            Flying=value;fall=0;velocity=Vector3.zero;groundGrace=jumpBuffer=soundAirTime=0;
+            if(avatar)avatar.ResetMotion();
+            return true;
+        }
+        public void ToggleFlight()
+        {
+            if(!SetFlying(!Flying)){Hint("Flugmodus: zuerst aus dem Auto aussteigen.");return;}
+            Cursor.lockState=CursorLockMode.Locked;Cursor.visible=false;
+        }
+        public void FlyStep(Vector2 input,float vertical,bool fast,float dt)
+        {
+            if(!Flying||driving||Interacting||dt<=0)return;
+            var forward=Vector3.ProjectOnPlane(orbit.transform.forward,Vector3.up).normalized;
+            var right=Vector3.Cross(Vector3.up,forward);
+            var direction=Vector3.ClampMagnitude(forward*input.y+right*input.x+Vector3.up*Mathf.Clamp(vertical,-1,1),1);
+            controller.Move(direction*(fast?24:8)*dt);
+            var facing=Vector3.ProjectOnPlane(direction,Vector3.up);
+            if(visual&&facing.sqrMagnitude>.001f)visual.rotation=Quaternion.RotateTowards(visual.rotation,Quaternion.LookRotation(facing),540*dt);
+            if(avatar)avatar.Motion(0,0,true,dt);
+        }
+        public bool IsGrounded => !Flying&&controller && controller.isGrounded;
+        public bool CanInteract => !Flying&&(IsGrounded||groundGrace>0);
         public float VerticalSpeed => fall;
         public event System.Action Jumped;
         public event System.Action<float> Landed;
         float soundAirTime;
         public void MoveStep(Vector2 input,bool running,bool jump,float dt,bool jogging=false)
         {
-            if(driving||Interacting||dt<=0)return;
+            if(Flying||driving||Interacting||dt<=0)return;
             input=Vector2.ClampMagnitude(input,1);
             var forward = Vector3.ProjectOnPlane(orbit.transform.forward, Vector3.up).normalized;
             var direction = forward * input.y + orbit.transform.right * input.x;
@@ -139,12 +173,24 @@ namespace ZeroRise
         }
         void OnGUI()
         {
+            if(Cursor.visible)
+            {
+                GUILayout.BeginArea(AdminControlsRect,GUI.skin.box);
+                GUILayout.Label("ADMIN · KARTENTEST");
+                GUI.enabled=!driving&&!Interacting;
+                if(GUILayout.Button(Flying?"Flug ausschalten [F]":"Flug einschalten [F]",GUILayout.Height(30)))ToggleFlight();
+                GUI.enabled=true;
+                GUILayout.Label("WASD bewegen · Maus umsehen");
+                GUILayout.Label("Leertaste hoch · Strg runter");
+                GUILayout.Label("Shift schneller · F Flug umschalten");
+                GUILayout.EndArea();
+            }
             GUI.Label(new Rect(22, 20, 550, 32), "ZERO // RISE  ·  WESTBRUCH  ·  UNITY WINDOWS PROTOTYP");
-            GUI.Label(new Rect(22, Screen.height - 44, 900, 32), Interacting?"Ein-/Aussteigen …":driving
+            GUI.Label(new Rect(22, Screen.height - 44, 1200, 32), Flying?"ADMIN-FLUG · WASD Bewegen · Leertaste Hoch · Strg Runter · Shift Schneller · F Flug aus · Esc Einstellungen":Interacting?"Ein-/Aussteigen …":driving
                 ? "W/S Fahren · A/D Lenken · Leertaste Bremse · H Hupe · E Aussteigen · Maus Kamera · Esc Einstellungen"
-                : "WASD Gehen · Alt Joggen · Shift Sprinten · Leertaste Springen · E Auto · Rechte Maustaste Ausrichten · Esc Einstellungen");
+                : "WASD Gehen · Alt Joggen · Shift Sprinten · Leertaste Springen · E Auto · Rechte Maustaste Ausrichten · F Admin-Flug · Esc Einstellungen");
             if(!Interacting&&Time.time<hintUntil&&!string.IsNullOrEmpty(InteractionHint))GUI.Label(new Rect(22,Screen.height-76,800,28),InteractionHint);
-            else if(!driving&&!Interacting&&nearbyCar&&Vector3.Distance(transform.position,nearbyCar.transform.position)<4)GUI.Label(new Rect(22,Screen.height-76,800,28),"E · Einsteigen");
+            else if(!Flying&&!driving&&!Interacting&&nearbyCar&&Vector3.Distance(transform.position,nearbyCar.transform.position)<4)GUI.Label(new Rect(22,Screen.height-76,800,28),"E · Einsteigen");
         }
     }
 }
