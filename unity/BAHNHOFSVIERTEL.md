@@ -45,6 +45,10 @@ Mac-Build `7fbe110e2e37420fb32171ae76f74b7c`: 0 Build-Fehler, 11 nicht blockiere
 
 Eine viersekündige Messung im nativen 1920 × 1080-Spiel ergab im getesteten Regenblick durchschnittlich 23,2 ms pro Bild (95. Perzentil 33,6 ms). Dies ist eine einzelne lokale Stichprobe, kein Benchmark für andere Geräte oder die gesamte Karte. Die grafische Ausarbeitung verwendet die vorhandenen Projektassets; entfernter Hintergrund und Baumformen bleiben vereinfacht.
 
-## Aktueller Abschlussstand nach der Kartenprüfung
+## Abschlussstand der Kartenprüfung
 
 Mac-Build `231411ba1c724eb78e79d6db5f2d1a04`: 22 bauliche Prüfungen und 121 Prüfungen im nativen Spiel bestanden, 0 protokollierte Laufzeitfehler. 89 neue Spielaufnahmen und 67 echte Laufabschnitte decken zusätzlich das Bestandsviertel, die neuen Gartenanschlüsse und acht Orbitkameraansichten am Bahndamm ab. Der Abschlussordner ist `ZeroRise/QA/audit-completion-final/`. Ausführliche Ergebnisse einschließlich der aktuellen lokalen Leistungsmessung stehen in [MAP-AUDIT-2026-11-02.md](MAP-AUDIT-2026-11-02.md).
+
+## Folgeupdate für Straßen und Landschaft
+
+Der gespeicherte Aufbau enthält inzwischen den zusätzlichen `BahnhofStreetscape`-Pass für neue Straßen-, Pflaster- und Bodenmaterialien, modellierte Straßenränder und Entwässerung sowie eigene Baum-, Gras- und Staudenmodelle. Die Quellen und Ergebnisse dieses nachfolgenden Builds stehen in [STREETSCAPE-UPDATE.md](STREETSCAPE-UPDATE.md).

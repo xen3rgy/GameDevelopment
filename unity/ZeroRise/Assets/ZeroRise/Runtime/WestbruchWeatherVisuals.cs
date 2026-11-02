@@ -131,7 +131,7 @@ namespace ZeroRise
                             // exact variants already shipped for these assets.
                             bool shaderWet=clone.shader.name=="ZeroRise/UrbanLit"&&clone.IsKeywordEnabled("_ZR_ROAD");
                             int count=layered?4:1;
-                            state=new WetMaterial{material=clone,shaderWet=shaderWet,layered=layered,soil=layered||name.Contains("Earth")||name.Contains("Soil"),colors=new Color[count],smoothness=new float[count],min=new float[count],max=new float[count]};
+                            state=new WetMaterial{material=clone,shaderWet=shaderWet,layered=layered,soil=layered||name.Contains("Earth")||name.Contains("Soil",StringComparison.OrdinalIgnoreCase),colors=new Color[count],smoothness=new float[count],min=new float[count],max=new float[count]};
                             for(int n=0;n<count;n++)
                             {string suffix=layered?n.ToString():"";state.colors[n]=clone.GetColor("_BaseColor"+suffix);state.smoothness[n]=clone.GetFloat("_Smoothness"+suffix);state.min[n]=clone.GetFloat("_SmoothnessRemapMin"+suffix);state.max[n]=clone.GetFloat("_SmoothnessRemapMax"+suffix);}
                             // Sheltered earth is a dedicated existing material.
@@ -235,7 +235,9 @@ namespace ZeroRise
         {
             return name=="Asphalt"||name=="Paving"||name=="GardenEarth"||name=="RoadRepair"||name.StartsWith("RoadRepairOrganic_",StringComparison.Ordinal)
                 ||name.StartsWith("OverpassGround_",StringComparison.Ordinal)&&!name.Contains("Distant")
-                ||name.StartsWith("GroundDetail_",StringComparison.Ordinal)||name=="UrbanYard";
+                ||name.StartsWith("GroundDetail_",StringComparison.Ordinal)||name=="UrbanYard"
+                ||name.StartsWith("BV5_Road_",StringComparison.Ordinal)||name=="BV5_Station_stone_setts"||name=="BV5_LayeredGardenGround"
+                ||name=="BV5_Planted_soil"||name=="BV5_KerbGranite"||name=="BV5_DarkBasalt";
         }
         void CreateNightLighting()
         {

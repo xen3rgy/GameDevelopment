@@ -222,7 +222,7 @@ namespace ZeroRise.Editor
             foreach(var hit in Physics.RaycastAll(new Vector3(x,30,z),Vector3.down,80,~0,QueryTriggerInteraction.Ignore))
             {
                 string name=hit.collider.name;
-                bool land=hit.collider is TerrainCollider||name.StartsWith("BV2_Surface ",StringComparison.Ordinal)||name.StartsWith("BV3_Ground ",StringComparison.Ordinal)||name=="Continuous North railway earth bank"||name=="Passing loop earth formation"||name=="Land below distant railway 1";
+                bool land=hit.collider is TerrainCollider||name.StartsWith("BV2_Surface ",StringComparison.Ordinal)||name.StartsWith("BV3_Ground ",StringComparison.Ordinal)||name.Contains("retained soil",StringComparison.OrdinalIgnoreCase)||name.Contains("garden soil",StringComparison.OrdinalIgnoreCase)||name.Contains("Raised bed soil",StringComparison.OrdinalIgnoreCase)||name=="Continuous North railway earth bank"||name=="Passing loop earth formation"||name=="Land below distant railway 1";
                 if(land)height=Mathf.Max(height,hit.point.y);
             }
             return !float.IsNegativeInfinity(height);

@@ -20,7 +20,7 @@ namespace ZeroRise
         IEnumerator Start()
         {
             Time.timeScale=1;yield return new WaitForSeconds(6);camera=Camera.main;player=FindAnyObjectByType<ThirdPersonMotor>();
-            var clock=WorldWeatherClock.Instance;clock.SuppressSave=true;clock.enabled=false;clock.SetSpeed(1);clock.SetWeather(WeatherKind.Clear);clock.Advance(14);clock.SetHour(15.5f);
+            var clock=WorldWeatherClock.Instance;clock.SuppressSave=true;clock.enabled=false;clock.SetWeather(WeatherKind.Clear);clock.SetSpeed(20);clock.Advance(120);clock.SetSpeed(1);clock.SetHour(15.5f);
             var orbit=camera.GetComponent<OrbitCamera>();if(orbit)orbit.enabled=false;player.enabled=false;
             if(Environment.GetCommandLineArgs().Contains("-whole-map-routes-only"))
             {
@@ -107,6 +107,10 @@ namespace ZeroRise
             yield return Shot("28-north-garden-frontage",new Vector3(27,1.9f,142),new Vector3(24,3,184));
             yield return Shot("29-square-waiting",new Vector3(182,1.9f,272),new Vector3(169,2.5f,290));
             yield return Shot("30-courtyard-repair",new Vector3(187,1.9f,196),new Vector3(173,2,204));
+            yield return Shot("31-kerb-and-drainage",new Vector3(201.7f,.85f,131),new Vector3(204,.15f,140));
+            yield return Shot("32-new-street-surface",new Vector3(208,1.8f,110),new Vector3(208,1.1f,145));
+            yield return Shot("33-planted-soil-close",new Vector3(159.2f,.95f,254),new Vector3(161,.6f,259));
+            yield return Shot("34-garden-ground-detail",new Vector3(29,1.4f,-154),new Vector3(34,.4f,-165));
             yield return Shot("07-aerial",new Vector3(315,145,374),new Vector3(176,0,199));
             if(Environment.GetCommandLineArgs().Contains("-bahnhof-survey"))
             {
@@ -130,12 +134,18 @@ namespace ZeroRise
             }
             if(Environment.GetCommandLineArgs().Contains("-whole-map-survey"))yield return WholeMapSurvey();
             Check("Additional practical lamps are off in daylight",FindObjectsByType<Light>().Where(l=>l.name.StartsWith("BV4 Street light")).All(l=>!l.enabled||l.intensity<.001f));
+            var stationPaving=FindObjectsByType<MeshRenderer>().FirstOrDefault(r=>r.name.StartsWith("BV2_Surface walk")&&r.sharedMaterial&&r.sharedMaterial.name.StartsWith("BV5_Station_stone_setts"));
+            float dryPavingBrightness=stationPaving?stationPaving.sharedMaterial.GetColor("_BaseColor").grayscale:0;
+            float dryPavingSmoothness=stationPaving?stationPaving.sharedMaterial.GetFloat("_SmoothnessRemapMax"):0;
             if(Environment.GetCommandLineArgs().Contains("-whole-map-survey"))yield return OrbitBankSurvey();
             clock.SetHour(0);yield return new WaitForSeconds(5);yield return Shot("08-night-square",new Vector3(184,2.2f,252),new Vector3(140,4,265));
             var nearbyPractical=FindObjectsByType<Light>().Where(l=>l.name.StartsWith("BV4 Street light")&&Vector3.Distance(l.transform.position,camera.transform.position)<100).ToArray();
             Check("Additional nearby practical lamps illuminate at night",nearbyPractical.Length>=10&&nearbyPractical.All(l=>l.enabled&&l.intensity>0),"Nearby "+nearbyPractical.Length+"; active "+nearbyPractical.Count(l=>l.enabled&&l.intensity>0));
             Check("Station night lamps active",FindObjectsByType<Light>(FindObjectsSortMode.None).Count(l=>l.name=="Station street canopy luminaire"&&l.enabled&&l.intensity>0)>=6);
-            clock.SetHour(15);clock.SetWeather(WeatherKind.Rain);clock.Advance(20);yield return new WaitForSeconds(5);yield return Shot("09-rain-square",new Vector3(184,2.2f,252),new Vector3(140,4,265));
+            // Clouds lead rainfall and hard surfaces accumulate water over game
+            // time. Compare a genuinely dry state with sustained rainfall.
+            clock.SetWeather(WeatherKind.Rain);clock.SetSpeed(20);clock.Advance(60);clock.SetSpeed(1);clock.SetHour(15);yield return new WaitForSeconds(5);yield return Shot("09-rain-square",new Vector3(184,2.2f,252),new Vector3(140,4,265));
+            if(stationPaving)Check("New station paving reacts to rain",stationPaving.sharedMaterial.GetColor("_BaseColor").grayscale<dryPavingBrightness*.97f&&stationPaving.sharedMaterial.GetFloat("_SmoothnessRemapMax")>dryPavingSmoothness+.03f,"Wetness "+clock.Wetness+"; brightness "+dryPavingBrightness+" -> "+stationPaving.sharedMaterial.GetColor("_BaseColor").grayscale+"; smoothness "+dryPavingSmoothness+" -> "+stationPaving.sharedMaterial.GetFloat("_SmoothnessRemapMax"));
             int residentsInBeds=0;
             foreach(var bed in district.GetComponentsInChildren<Transform>().Where(t=>t.name=="BV4_Planting island"))
             {
