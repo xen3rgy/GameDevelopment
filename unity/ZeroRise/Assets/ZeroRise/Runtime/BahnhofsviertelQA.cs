@@ -22,12 +22,34 @@ namespace ZeroRise
             Time.timeScale=1;yield return new WaitForSeconds(6);camera=Camera.main;player=FindAnyObjectByType<ThirdPersonMotor>();
             var clock=WorldWeatherClock.Instance;clock.SuppressSave=true;clock.enabled=false;clock.SetSpeed(1);clock.SetWeather(WeatherKind.Clear);clock.Advance(14);clock.SetHour(15.5f);
             var orbit=camera.GetComponent<OrbitCamera>();if(orbit)orbit.enabled=false;player.enabled=false;
+            if(Environment.GetCommandLineArgs().Contains("-whole-map-routes-only"))
+            {
+                foreach(var r in player.GetComponentsInChildren<Renderer>())r.enabled=false;
+                yield return WholeMapSurvey();Check("No runtime errors",errors==0,errors.ToString());
+                File.WriteAllText(Path.Combine(output,"bahnhof-validation.txt"),"Passed: "+passed+"\n"+string.Join("\n",report));Application.Quit(passed?0:1);yield break;
+            }
             var district=GameObject.Find("Bahnhofsviertel – connected station neighbourhood");Check("Saved expansion present",district);
             Check("Original Westbruch retained",GameObject.Find("Uferhof_12")&&GameObject.Find("Westbruch concrete overpass"));
             Check("Two elevated platforms",FindObjectsByType<Transform>(FindObjectsSortMode.None).Count(t=>t.name=="Station platform")==2);
             Check("Station walk-through hall",GameObject.Find("Bahnhof Westbruch – accessible ticket hall"));
             Check("Connected traffic graph",FindAnyObjectByType<WestbruchTraffic>().nodes.Length>=15);
             var world=FindAnyObjectByType<PedestrianWorld>();Check("Expanded resident population",world.people.Length>=28,"Residents "+world.people.Length);
+            var completion=district.transform.Find("BV4_Audit completion");
+            Check("Audit completion installed",completion);
+            if(completion)
+            {
+                var homes=completion.GetComponentsInChildren<Transform>().Where(t=>t.name.StartsWith("BV4_Context residence ")).ToArray();
+                Check("Eight finished collidable context homes",homes.Length==8&&homes.All(t=>t.GetComponent<BoxCollider>()));
+                var backdrop=FindObjectsByType<MeshRenderer>().Where(r=>r.enabled&&r.sharedMaterial&&r.sharedMaterial.name.StartsWith("BackdropFacade")&&r.GetComponent<MeshFilter>()&&r.GetComponent<MeshFilter>().sharedMesh.triangles.Length>0).ToArray();
+                Check("No nearby primitive backdrop geometry remains rendered",backdrop.Length==0,backdrop.Length.ToString());
+                foreach(float side in new[]{-1f,1f})
+                {bool floor=Physics.Raycast(new Vector3(0,2,side*142),Vector3.down,out var ground,3,1)&&Mathf.Abs(ground.point.y-.14f)<.03f;Check("Context promenade ground "+side,floor);}
+            }
+            foreach(float z in new[]{-142f,142})
+            {
+                var path=new NavMeshPath();bool connected=NavMesh.SamplePosition(new Vector3(84,.14f,z),out var edge,1,NavMesh.AllAreas)&&NavMesh.SamplePosition(new Vector3(80,.14f,39),out var town,2,NavMesh.AllAreas)&&NavMesh.CalculatePath(town.position,edge.position,NavMesh.AllAreas,path)&&path.status==NavMeshPathStatus.PathComplete;
+                Check("Context promenade connected to neighbourhood "+z,connected);
+            }
             var signs=district.GetComponentsInChildren<FittedWorldSign>();int outside=0;
             foreach(var sign in signs)
             {
@@ -62,6 +84,13 @@ namespace ZeroRise
             Place(new Vector3(128,.20f,256));
             yield return Traverse("Main station stairs ascent",new Vector3(128,7.05f,239.6f));
             yield return Traverse("Main station stairs descent",new Vector3(128,.14f,256));
+            foreach(float side in new[]{-1f,1f})
+            {
+                Place(new Vector3(84,.22f,side*110));
+                yield return Traverse("Garden promenade physical connection "+side,new Vector3(84,.14f,side*142));
+                yield return Traverse("Garden promenade physical frontage "+side,new Vector3(24,.14f,side*142));
+                yield return Traverse("Garden residence physical entrance "+side,new Vector3(24,.14f,side*171));
+            }
             foreach(var renderer in player.GetComponentsInChildren<Renderer>())renderer.enabled=false;
             yield return Shot("01-transition",new Vector3(143,2.3f,78),new Vector3(194,3,83));
             yield return Shot("02-workshop-street",new Vector3(207,2.3f,130),new Vector3(199,4,221));
@@ -74,6 +103,10 @@ namespace ZeroRise
             yield return Shot("06d-workshop-close",new Vector3(184,1.9f,119),new Vector3(179,2,102));
             yield return Shot("06e-station-front",new Vector3(160,1.9f,265),new Vector3(141,4,265));
             yield return Shot("06f-platform-bridge",new Vector3(123,8.8f,300),new Vector3(114,11,323));
+            yield return Shot("27-south-garden-frontage",new Vector3(27,1.9f,-142),new Vector3(24,3,-184));
+            yield return Shot("28-north-garden-frontage",new Vector3(27,1.9f,142),new Vector3(24,3,184));
+            yield return Shot("29-square-waiting",new Vector3(182,1.9f,272),new Vector3(169,2.5f,290));
+            yield return Shot("30-courtyard-repair",new Vector3(187,1.9f,196),new Vector3(173,2,204));
             yield return Shot("07-aerial",new Vector3(315,145,374),new Vector3(176,0,199));
             if(Environment.GetCommandLineArgs().Contains("-bahnhof-survey"))
             {
@@ -95,9 +128,21 @@ namespace ZeroRise
                 yield return Shot("25-underpass-approach",new Vector3(111,1.9f,80),new Vector3(197,2,80));
                 yield return Shot("26-courtyard-reverse",new Vector3(165,1.9f,198),new Vector3(185,4,210));
             }
+            if(Environment.GetCommandLineArgs().Contains("-whole-map-survey"))yield return WholeMapSurvey();
+            Check("Additional practical lamps are off in daylight",FindObjectsByType<Light>().Where(l=>l.name.StartsWith("BV4 Street light")).All(l=>!l.enabled||l.intensity<.001f));
+            if(Environment.GetCommandLineArgs().Contains("-whole-map-survey"))yield return OrbitBankSurvey();
             clock.SetHour(0);yield return new WaitForSeconds(5);yield return Shot("08-night-square",new Vector3(184,2.2f,252),new Vector3(140,4,265));
+            var nearbyPractical=FindObjectsByType<Light>().Where(l=>l.name.StartsWith("BV4 Street light")&&Vector3.Distance(l.transform.position,camera.transform.position)<100).ToArray();
+            Check("Additional nearby practical lamps illuminate at night",nearbyPractical.Length>=10&&nearbyPractical.All(l=>l.enabled&&l.intensity>0),"Nearby "+nearbyPractical.Length+"; active "+nearbyPractical.Count(l=>l.enabled&&l.intensity>0));
             Check("Station night lamps active",FindObjectsByType<Light>(FindObjectsSortMode.None).Count(l=>l.name=="Station street canopy luminaire"&&l.enabled&&l.intensity>0)>=6);
             clock.SetHour(15);clock.SetWeather(WeatherKind.Rain);clock.Advance(20);yield return new WaitForSeconds(5);yield return Shot("09-rain-square",new Vector3(184,2.2f,252),new Vector3(140,4,265));
+            int residentsInBeds=0;
+            foreach(var bed in district.GetComponentsInChildren<Transform>().Where(t=>t.name=="BV4_Planting island"))
+            {
+                var soil=bed.GetComponentsInChildren<BoxCollider>().First(c=>c.name=="BV4_Raised retained soil");var bounds=soil.bounds;
+                residentsInBeds+=world.people.Count(p=>p&&p.transform.position.x>bounds.min.x+.2f&&p.transform.position.x<bounds.max.x-.2f&&p.transform.position.z>bounds.min.z+.2f&&p.transform.position.z<bounds.max.z-.2f);
+            }
+            Check("Residents stay off planted islands",residentsInBeds==0,residentsInBeds.ToString());
             var population=world.people.Where(p=>p&&p.name.StartsWith("Station resident")).ToArray();var initial=population.Select(p=>p.totalDistance).ToArray();yield return new WaitForSeconds(15);
             Check("Station residents actually walk",population.Where((p,i)=>p.totalDistance>initial[i]+1).Count()>=3);
             var frameTimes=new List<float>();float sampleEnd=Time.unscaledTime+4;
@@ -105,10 +150,51 @@ namespace ZeroRise
             frameTimes.Sort();if(frameTimes.Count>0)report.Add("INFO Native frame sample: mean "+frameTimes.Average().ToString("F1")+" ms; 95th percentile "+frameTimes[Mathf.Min(frameTimes.Count-1,Mathf.FloorToInt(frameTimes.Count*.95f))].ToString("F1")+" ms");
             Check("No runtime errors",errors==0,errors.ToString());File.WriteAllText(Path.Combine(output,"bahnhof-validation.txt"),"Passed: "+passed+"\n"+string.Join("\n",report)+"\nRuntime errors: "+errors);Application.Quit(passed?0:1);
         }
+        IEnumerator WholeMapSurvey()
+        {
+            // The original district's retained building roots supply real facade dimensions.
+            string[] ids={"Uferhof_12","Uferhof_14","Hofstrasse_3","Nordhof_8","Nordhof_10","Nordhof_16","Suedhof_2","Suedhof_4","Suedhof_6","Garagen_West","Pfand_und_Spar","Stadthof_21","Werkstatt","Stadthof_25","Nordring_31","Nordring_33","Nordring_35","Suedring_41","Suedring_43","Suedring_45"};
+            foreach(var id in Environment.GetCommandLineArgs().Contains("-whole-map-routes-only")?new string[0]:ids)
+            {
+                var house=GameObject.Find(id);if(!house)continue;
+                var shell=house.transform.Find("Structural shell");if(!shell)continue;
+                var mesh=shell.GetComponent<MeshFilter>().sharedMesh;float depth=mesh.bounds.size.z;
+                foreach(int side in new[]{-1,1})
+                {
+                    var eye=house.transform.TransformPoint(new Vector3(5,1.9f,side*(depth*.5f+9)));
+                    var target=house.transform.TransformPoint(new Vector3(0,3,0));
+                    yield return Shot("whole-"+id+(side<0?"-front":"-rear"),eye,target);
+                }
+            }
+            Place(new Vector3(110,.22f,73));
+            foreach(var target in new[]{new Vector3(80,.14f,39),new Vector3(-35,.14f,42),new Vector3(-86,.14f,12),new Vector3(-35,.14f,-40),new Vector3(80,.14f,-39),new Vector3(80,.14f,-86),new Vector3(-84,.14f,-86),new Vector3(-84,.14f,86)})
+            {
+                var path=new NavMeshPath();bool connected=NavMesh.SamplePosition(player.transform.position,out var a,3,NavMesh.AllAreas)&&NavMesh.SamplePosition(target,out var b,3,NavMesh.AllAreas)&&NavMesh.CalculatePath(a.position,b.position,NavMesh.AllAreas,path)&&path.status==NavMeshPathStatus.PathComplete;
+                Check("Whole map navigation "+target,connected);
+                if(connected)foreach(var corner in path.corners.Skip(1))yield return Traverse("Whole map physical route "+corner,corner);
+            }
+            var eyes=new[]{new Vector3(-110,2,0),new Vector3(0,2,-114),new Vector3(0,2,114),new Vector3(99,2,-110),new Vector3(116,2,70),new Vector3(-40,2,-55)};
+            var aims=new[]{new Vector3(-145,2,0),new Vector3(0,2,-180),new Vector3(0,2,180),new Vector3(118,4,-180),new Vector3(118,4,80),new Vector3(-60,2,-55)};
+            for(int i=0;i<eyes.Length;i++)yield return Shot("whole-boundary-"+i,eyes[i],aims[i]);
+        }
+        IEnumerator OrbitBankSurvey()
+        {
+            var orbit=camera.GetComponent<OrbitCamera>();if(!orbit)yield break;
+            Place(new Vector3(100,.22f,-110));orbit.Follow(player.transform,1.5f,5.5f);orbit.enabled=true;Cursor.lockState=CursorLockMode.None;
+            for(int i=0;i<8;i++)
+            {
+                orbit.Rotate(45,0);yield return new WaitForSeconds(1);
+                var at=camera.transform.position;
+                bool buried=Physics.RaycastAll(at+Vector3.up*15,Vector3.down,30,1,QueryTriggerInteraction.Ignore).Any(h=>h.collider.name.Contains("earth bank")&&h.point.y>at.y+.05f);
+                Check("Normal orbit stays outside railway earth "+i,!buried,at.ToString("F2"));
+                ScreenCapture.CaptureScreenshot(Path.Combine(output,"whole-orbit-bank-"+i+".png"));yield return new WaitForSeconds(.3f);
+            }
+            orbit.enabled=false;
+        }
         void Place(Vector3 p){var c=player.GetComponent<CharacterController>();c.enabled=false;player.transform.position=p;c.enabled=true;}
         IEnumerator Traverse(string title,Vector3 target)
         {
-            var controller=player.GetComponent<CharacterController>();float until=Time.unscaledTime+15;
+            var controller=player.GetComponent<CharacterController>();float until=Time.unscaledTime+Mathf.Max(15,Vector3.Distance(player.transform.position,target)/3.2f+12);
             while(Time.unscaledTime<until)
             {
                 var delta=target-player.transform.position;delta.y=0;if(delta.magnitude<.35f)break;

@@ -16,6 +16,7 @@ namespace ZeroRise.Editor
         static Transform district, root;
         static Material brick, coping, iron, timber, roof, earth, grass;
         static GameObject treeSource, shrubSource;
+        static GameObject[] treeVariants;
         static int treeCount, shrubCount, grassCount;
         static readonly List<Vector3> treeSites = new List<Vector3>();
 
@@ -34,6 +35,7 @@ namespace ZeroRise.Editor
             earth = BahnhofDetailKit.Load("OverpassGround_LivingEarth");
             grass = BahnhofDetailKit.Load("DistrictFlora");
             var lods = UnityEngine.Object.FindObjectsByType<LODGroup>(FindObjectsSortMode.None);
+            treeVariants=lods.Where(t=>t.name.StartsWith("Urban tree ")).GroupBy(t=>t.GetComponentInChildren<MeshFilter>().sharedMesh).Select(g=>g.First().gameObject).ToArray();
             treeSource = lods.FirstOrDefault(t => t.name.StartsWith("Urban tree "))?.gameObject;
             shrubSource = lods.FirstOrDefault(t => t.name.StartsWith("Dense low courtyard shrub"))?.gameObject;
 
@@ -545,7 +547,7 @@ namespace ZeroRise.Editor
         static void PlantGroundCover()
         {
             if (!grass) return;
-            var meshes = Enumerable.Range(0, 3).Select(i => AssetDatabase.LoadAssetAtPath<Mesh>(Generated + "/Meshes/UrbanFlora_0_" + i + ".asset")).ToArray();
+            var meshes = new[]{"0_0","0_1","0_2","2_0","3_0","5_0"}.Select(i => AssetDatabase.LoadAssetAtPath<Mesh>(Generated + "/Meshes/UrbanFlora_" + i + ".asset")).ToArray();
             if (meshes.Any(m => !m)) return;
             var rng = new System.Random(3111001); var chunks = new Dictionary<Vector2Int, List<CombineInstance>>();
             var heights = new Dictionary<Vector2Int, List<Vector2>>(); var roots = new Dictionary<Vector2Int, List<Vector2>>();
@@ -606,9 +608,10 @@ namespace ZeroRise.Editor
             // Context vegetation is also checked against actual authored shells;
             // a picturesque tree position must not plant its trunk in a shed.
             if (Physics.CheckCapsule(new Vector3(x, y + .52f, z), new Vector3(x, y + 4.2f, z), .45f, ~0, QueryTriggerInteraction.Ignore)) return;
-            var go = UnityEngine.Object.Instantiate(treeSource, root); go.name = "BV3_Rooted mature tree " + treeCount++;
+            var chosen=treeVariants[treeCount%treeVariants.Length];
+            var go = UnityEngine.Object.Instantiate(chosen, root); go.name = "BV3_Rooted mature tree " + treeCount++;
             go.transform.SetPositionAndRotation(new Vector3(x, y - .025f, z), Quaternion.Euler(0, treeCount * 137.5f, 0));
-            go.transform.localScale = treeSource.transform.lossyScale * scale;
+            go.transform.localScale = Vector3.Scale(chosen.transform.lossyScale,new Vector3(scale*(.88f+treeCount%3*.09f),scale,scale*(1.04f-treeCount%3*.06f)));
             treeSites.Add(go.transform.position);
         }
 

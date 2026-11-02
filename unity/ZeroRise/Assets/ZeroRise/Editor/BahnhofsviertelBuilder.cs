@@ -333,7 +333,9 @@ namespace ZeroRise.Editor
             Physics.SyncTransforms();var sources=new List<NavMeshBuildSource>();var ignore=new List<NavMeshBuildMarkup>();
             foreach(var car in UnityEngine.Object.FindObjectsByType<SimpleCar>())ignore.Add(new NavMeshBuildMarkup{root=car.transform,ignoreFromBuild=true});
             foreach(var person in world.people)ignore.Add(new NavMeshBuildMarkup{root=person.transform,ignoreFromBuild=true});
-            var bounds=new Bounds(new Vector3(80,6,116),new Vector3(450,30,485));
+            foreach(var t in UnityEngine.Object.FindObjectsByType<Transform>().Where(t=>t.name=="BV4_Planting island"||t.name.StartsWith("BV3_Circular station tree garden ")||t.name=="BV2_Raised front planting"))
+                ignore.Add(new NavMeshBuildMarkup{root=t,overrideArea=true,area=1});
+            var bounds=new Bounds(new Vector3(80,6,90),new Vector3(450,30,620));
             UnityEngine.AI.NavMeshBuilder.CollectSources(bounds,1,NavMeshCollectGeometry.PhysicsColliders,0,ignore,sources);
             var originalPlan=JsonUtility.FromJson<WestbruchLayout>(File.ReadAllText("Assets/ZeroRise/Data/Westbruch.json"));
             foreach(var road in originalPlan.roads)sources.Add(new NavMeshBuildSource{shape=NavMeshBuildSourceShape.ModifierBox,transform=Matrix4x4.TRS(new Vector3(road.x,.5f,road.z),Quaternion.identity,Vector3.one),size=new Vector3(road.w,4,road.d),area=1});

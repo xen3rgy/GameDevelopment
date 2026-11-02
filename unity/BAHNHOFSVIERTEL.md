@@ -12,6 +12,7 @@ Die Erweiterung beginnt hinter der östlichen Bahnunterführung. Eine Werkstatts
 - Bahndammfuß und ausgeschnittene Erdkanten sind geschlossen. Pflanzen aus dem ausgegrabenen Zugang sind entfernt; verbleibender Bewuchs wird an realen Bodenflächen neu verwurzelt. Vegetation wird erst nach dem Aufbau der Höfe auf Pflasterüberschneidungen geprüft.
 - Zusammenhängendes Gelände setzt die Karte östlich, nördlich und westlich der Bahn fort. Gestaffelte Baumgruppen, Unterwuchs, Werkstätten und Betriebshöfe schließen die vorher offenen Blickrichtungen. Der Übergang besitzt keinen Grenzübergang.
 - Zwei bepflanzte Baumgärten mit gebogenen Holzsitzen und Pflasterbändern gliedern den großen Bahnhofsvorplatz.
+- Die Kartenprüfung vom 2. November wurde in einem zusätzlichen Aufbaupass umgesetzt: acht vollständige Anschlussgebäude statt naher Quaderkulissen, Gartenpromenaden mit geöffneten Zaunanschlüssen, kleinere Platzbereiche, Fahrradreparaturhof, zusätzliche örtliche Nachtbeleuchtung und variierte Bestandsdetails. Pflanzbeete sind von der Bewohnernavigation ausgeschlossen. Umfang und Nachweise stehen in [MAP-AUDIT-2026-11-02.md](MAP-AUDIT-2026-11-02.md).
 
 Ladenfronten, Fahrkartenschalter und Zug bleiben Umgebungsausstattung; ein neues Handels- oder Bahnbetriebssystem ist nicht Teil dieser Kartenkorrektur.
 
@@ -32,14 +33,18 @@ Die aktuelle Kontrolle kombiniert:
 - Native Mac-App mit `-bahnhof-qa <Ordner> -bahnhof-survey`: echte CharacterController-Laufwege, Haupttreppe aufwärts/abwärts, Navigation zu beiden Bahnsteigen, Bewohnerbewegung und Nachtlampen. Der Test verändert keine gespeicherten Wettereinstellungen.
 - 31 native Aufnahmen: Straßen und Übergang in beiden Richtungen, Wohnhausrückseiten, Werkstätten, Höfe, Bahnhofshalle, Bahnhofsrückseite, Treppen, Rampen, Dachaufsichten, Bahnsteige, Kartenumfeld sowie Nacht und Regen. Sichtbare Probleme aus dem ersten Durchlauf wurden vor dem zweiten Build nachgearbeitet.
 
-Erste neue Bildserie: `ZeroRise/QA/bahnhof-complete-review/`. Maßgeblich für den Abschluss ist `ZeroRise/QA/bahnhof-complete-release/`; Buildprotokoll: `ZeroRise/Logs/bahnhof-complete-release-build.log`. Die aktuelle Build-ID steht in `ZeroRise/Builds/macOS/Westbruch-build.json`.
+Die frühere Bildserie liegt unter `ZeroRise/QA/bahnhof-complete-release/`. Für die nachfolgende Umsetzung der gesamten Kartenprüfung ist `ZeroRise/QA/audit-completion-final/` maßgeblich; Buildprotokoll: `ZeroRise/Logs/audit-completion-final-build.log`. Die aktuelle Build-ID steht in `ZeroRise/Builds/macOS/Westbruch-build.json`.
 
 ## Start
 
 Auf dem Mac `Westbruch-spielen.command` doppelklicken. Durch die östliche Unterführung gehen und nach dem Werkstatthof links/nördlich der Bahnhofstraße folgen. Die Änderungen liegen lokal im Unity-Projekt und in der gebauten Mac-App.
 
-## Abschlussstand
+## Frühere Abschlussmessung vor der gesamten Kartenprüfung
 
 Mac-Build `7fbe110e2e37420fb32171ae76f74b7c`: 0 Build-Fehler, 11 nicht blockierende Build-Warnungen (veraltete Unity-API-Aufrufe und doppelte HDRP-Shader-Keywords). 22 bauliche Prüfungen und 37 Prüfungen im nativen Spiel bestanden, 0 Laufzeitfehler. Die letzten 31 Aufnahmen wurden nach der Korrektur des schmalen Bodenanschlusses neben der Haupttreppe erneut erstellt.
 
 Eine viersekündige Messung im nativen 1920 × 1080-Spiel ergab im getesteten Regenblick durchschnittlich 23,2 ms pro Bild (95. Perzentil 33,6 ms). Dies ist eine einzelne lokale Stichprobe, kein Benchmark für andere Geräte oder die gesamte Karte. Die grafische Ausarbeitung verwendet die vorhandenen Projektassets; entfernter Hintergrund und Baumformen bleiben vereinfacht.
+
+## Aktueller Abschlussstand nach der Kartenprüfung
+
+Mac-Build `231411ba1c724eb78e79d6db5f2d1a04`: 22 bauliche Prüfungen und 121 Prüfungen im nativen Spiel bestanden, 0 protokollierte Laufzeitfehler. 89 neue Spielaufnahmen und 67 echte Laufabschnitte decken zusätzlich das Bestandsviertel, die neuen Gartenanschlüsse und acht Orbitkameraansichten am Bahndamm ab. Der Abschlussordner ist `ZeroRise/QA/audit-completion-final/`. Ausführliche Ergebnisse einschließlich der aktuellen lokalen Leistungsmessung stehen in [MAP-AUDIT-2026-11-02.md](MAP-AUDIT-2026-11-02.md).

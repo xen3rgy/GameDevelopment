@@ -28,7 +28,7 @@ namespace ZeroRise.Editor
                 root=GameObject.Find(BahnhofsviertelBuilder.RootName).transform;
                 UnpackSources();RemoveConflictingBackdrop();ClearLegacySigns();ContinuousSurfaces();
                 BahnhofResidentialArchitecture.Rebuild(root);BahnhofStationArchitecture.Rebuild(root);
-                DressStreet();BahnhofLandscapeFinish.Apply(root);BahnhofSquareFinish.Apply(root);FixVehicles();RefreshNavigation();Physics.SyncTransforms();
+                DressStreet();BahnhofLandscapeFinish.Apply(root);BahnhofSquareFinish.Apply(root);WestbruchAuditCompletion.Apply(root);FixVehicles();RefreshNavigation();Physics.SyncTransforms();
                 foreach(var fitted in root.GetComponentsInChildren<FittedWorldSign>())fitted.Refit();
                 BahnhofVisualQualityQA.Validate(root,Record);BahnhofPlacementQA.Validate(root,Record);if(!passed)throw new Exception("Visual authoring checks failed: QA/bahnhof-rework-authoring.txt");
                 Bake();EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
@@ -312,12 +312,13 @@ namespace ZeroRise.Editor
                 places.Add(new PedestrianWorld.Place{label="Bahnhofsviertel "+places.Count,activity=PedestrianWorld.Activity.Shop,approach=point,facing=Quaternion.identity});
             foreach(var p in new[]{new Vector3(156,.14f,247),new Vector3(156,.14f,281),new Vector3(140,.14f,265),new Vector3(175,.14f,199),new Vector3(196,.14f,251)})
                 places.Add(new PedestrianWorld.Place{label="Bahnhofsviertel "+places.Count,activity=PedestrianWorld.Activity.Wait,approach=p,facing=Quaternion.Euler(0,90,0)});
+            foreach(float z in new[]{-142f,142})foreach(float x in new[]{-29f,24})places.Add(new PedestrianWorld.Place{label="Bahnhofsviertel promenade "+x+" "+z,activity=PedestrianWorld.Activity.Wait,approach=new Vector3(x,.14f,z),facing=Quaternion.identity});
             world.places=places.ToArray();
             BahnhofsviertelBuilder.Navigation(false);
             // Fit to actual baked walkable ground without silently moving people into buildings.
             foreach(var place in world.places)if(place.label!=null&&place.label.StartsWith("Bahnhofsviertel ")&&NavMesh.SamplePosition(place.approach,out var hit,1.4f,NavMesh.AllAreas))place.approach=hit.position;
             foreach(var person in world.people.Where(p=>p.name.StartsWith("Station resident")))
-                if(NavMesh.SamplePosition(person.transform.position,out var hit,3,NavMesh.AllAreas))person.transform.position=hit.position;
+                if(NavMesh.SamplePosition(person.transform.position,out var hit,5,NavMesh.AllAreas))person.transform.position=hit.position;
             EditorUtility.SetDirty(world);
         }
         static void Bake()
