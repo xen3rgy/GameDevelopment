@@ -14,6 +14,9 @@ namespace ZeroRise.Editor
         static Transform root,district;
         static Material stone,iron,wood,earth,brick,paint;
         static GameObject[] trees;static GameObject shrub;
+        const float GardenWest = -109, GardenEast = 104, GardenInner = 132, GardenOuter = 280;
+        const float GardenSubgrade = -.20f;
+        const float CanalEnd = 214;
         static readonly List<MeshFilter> removedSources=new List<MeshFilter>();
         internal static void Apply(Transform neighbourhood)
         {
@@ -27,8 +30,11 @@ namespace ZeroRise.Editor
             paint=Material("BV4_BayPaint",null,new Color(.67f,.67f,.53f),.06f);
             trees=UnityEngine.Object.FindObjectsByType<LODGroup>().Where(t=>t.name.StartsWith("Urban tree ")).GroupBy(t=>t.GetComponentInChildren<MeshFilter>().sharedMesh).Select(g=>g.First().gameObject).ToArray();
             shrub=UnityEngine.Object.FindObjectsByType<LODGroup>().First(t=>t.name.StartsWith("Dense low courtyard shrub")).gameObject;
-            RemoveSkyline();OpenPromenadeConnections();ContextFrontages();FinishBankToe();Square();RepairCourt();IndividualAddresses();CorrectSigns();
-            RemoveRetainedTriangles();Physics.SyncTransforms();Validate();
+            RemoveSkyline();OpenPromenadeConnections();ContextFrontages();ContinueWestAndSouth();CanalCrossings();FinishBankToe();Square();RepairCourt();IndividualAddresses();CorrectSigns();
+            // Older batches contain solid copies of collision-only fence panels.
+            // Preserve the colliders and cut just their baked render triangles.
+            removedSources.AddRange(district.root.GetComponentsInChildren<MeshFilter>().Where(f=>f.name=="Fence collider rail"));
+            RemoveRetainedTriangles(district, removedSources);Physics.SyncTransforms();Validate();
         }
         static GameObject B(string n,Transform p,Vector3 at,Vector3 size,Material mat,bool solid=true,float tile=2)
             =>Box("BV4_"+n,p,at,size,mat,solid,tile);
@@ -63,10 +69,10 @@ namespace ZeroRise.Editor
                 }
             }
         }
-        static void RemoveRetainedTriangles()
+        internal static void RemoveRetainedTriangles(Transform district, IEnumerable<MeshFilter> sources)
         {
             var cuts=new Dictionary<Material,HashSet<string>>();
-            foreach(var f in removedSources.Distinct())
+            foreach(var f in sources.Distinct())
             {
                 var r=f.GetComponent<MeshRenderer>();if(!r||!f.sharedMesh||!f.sharedMesh.isReadable)continue;
                 if(!cuts.TryGetValue(r.sharedMaterial,out var set))cuts[r.sharedMaterial]=set=new HashSet<string>();
@@ -91,15 +97,28 @@ namespace ZeroRise.Editor
             for(int z=0;z<n;z++)for(int x=0;x<n;x++)
             {
                 float wx=origin.x+x/(n-1f)*data.size.x,wz=origin.z+z/(n-1f)*data.size.z;
-                if(wx>=-200&&wx<=104&&Mathf.Abs(wz)>=132&&Mathf.Abs(wz)<=280||wx>=82.4f&&wx<=85.6f&&Mathf.Abs(wz)>=110&&Mathf.Abs(wz)<=140)
-                    h[z,x]=(-.20f-origin.y)/data.size.y;
+                float distance = Mathf.Abs(wz);
+                if (wx >= -200 && wx < GardenWest && distance >= GardenInner && distance <= GardenOuter)
+                {
+                    // Restore the exterior relief already overwritten by the old
+                    // garden slab, then restore the authored waterfront profile.
+                    float original = .08f + Mathf.PerlinNoise((wx + 800) * .014f, (wz + 310) * .014f) * .45f;
+                    float height = WestbruchCanalBuilder.ProfileHeight(wx, wz, original);
+                    h[z, x] = (height - origin.y) / data.size.y;
+                }
+                if (wx >= GardenWest && wx <= GardenEast && distance >= GardenInner && distance <= GardenOuter ||
+                    wx >= 82.4f && wx <= 85.6f && distance >= 110 && distance <= 140)
+                    h[z,x]=(GardenSubgrade-origin.y)/data.size.y;
             }
-            data.SetHeights(0,0,h);EditorUtility.SetDirty(data);
+            data.SetHeights(0,0,h);terrain.Flush();EditorUtility.SetDirty(data);
+            RegradeExistingAprons(terrain);
             string[] templates={"BV2_House_Bahnhofstraße_5","BV2_House_Güterstraße_12","BV2_House_Bahnhofstraße_15","BV2_House_Güterstraße_16"};
             for(int side=-1;side<=1;side+=2)
             {
                 var frontage=Group("BV4_Connected residential gardens "+side,root,Vector3.zero).transform;
-                B("Ground residential continuation",frontage,new Vector3(-48,-.155f,side*206),new Vector3(304,.20f,148),earth,true,2);
+                B("Ground residential continuation", frontage,
+                    new Vector3((GardenWest + GardenEast) * .5f, -.155f, side * (GardenInner + GardenOuter) * .5f),
+                    new Vector3(GardenEast - GardenWest, .20f, GardenOuter - GardenInner), earth, true, 2);
                 B("Neighbourhood garden promenade",frontage,new Vector3(-4,.04f,side*142),new Vector3(208,.20f,4),BahnhofDetailKit.Load("Paving"));
                 B("Promenade connection",frontage,new Vector3(84,.04f,side*125),new Vector3(3.2f,.20f,30),BahnhofDetailKit.Load("Paving"));
                 for(int i=0;i<4;i++)
@@ -137,10 +156,189 @@ namespace ZeroRise.Editor
                 }
                 for(int i=0;i<22;i++)
                 {
-                    Tree(frontage,-187+i*13,side*(223+Mathf.Sin(i*2.4f)*12),i,.70f+(i%4)*.19f);
-                    Tree(frontage,-181+i*13,side*(246+Mathf.Sin(i*1.7f)*8),i+3,1.05f+(i%3)*.16f);
+                    float nearX = -187 + i * 13, farX = -181 + i * 13;
+                    if (nearX >= GardenWest + 1) Tree(frontage, nearX, side * (223 + Mathf.Sin(i * 2.4f) * 12), i, .70f + (i % 4) * .19f);
+                    if (farX >= GardenWest + 1) Tree(frontage, farX, side * (246 + Mathf.Sin(i * 1.7f) * 8), i + 3, 1.05f + (i % 3) * .16f);
                 }
             }
+        }
+
+        static float TerrainY(Terrain terrain, float x, float z) => terrain.SampleHeight(new Vector3(x, 0, z)) + terrain.transform.position.y;
+        static float Ease(float low, float high, float value) => Mathf.SmoothStep(0, 1, Mathf.InverseLerp(low, high, value));
+
+        static float CanalTailGrade(float x, float z, float existing)
+        {
+            float distance = Mathf.Abs(z) - CanalEnd;
+            float across = Ease(-139, -131.5f, x) * (1 - Ease(-112, -109.5f, x));
+            float fill = across * Ease(0, 3.5f, distance) * (1 - Ease(20, 40, distance));
+            float grade = Mathf.Lerp(.65f, .14f, Ease(4, 20, distance));
+            return Mathf.Lerp(existing, Mathf.Max(existing, grade), fill);
+        }
+
+        static void CanalCrossings()
+        {
+            var masonry = Material("BV4_CulvertMasonry", "concrete", new Color(.57f,.54f,.47f), .15f);
+            var dark = Material("BV4_CulvertRecess", "concrete", new Color(.15f,.17f,.15f), .25f);
+            foreach (int side in new[] { -1, 1 })
+            {
+                var crossing = Group("BV4_Canal maintenance crossing " + side, root, new Vector3(-122, 0, side * CanalEnd)).transform;
+                B("Culvert crossing deck", crossing, new Vector3(0,.55f,side*.9f), new Vector3(25,.46f,5.2f), masonry);
+                B("Culvert gravel path", crossing, new Vector3(0,.795f,side*.9f), new Vector3(24.65f,.032f,4.6f), earth, false);
+                foreach (float x in new[] { -10.5f, -3.5f, 3.5f, 10.5f })
+                {
+                    B("Culvert masonry pier", crossing, new Vector3(x,-.49f,side*.72f), new Vector3(1.04f,1.65f,4.55f), masonry);
+                    B("Culvert bearing cap", crossing, new Vector3(x,.25f,-side*1.59f), new Vector3(1.26f,.15f,.40f), stone, false);
+                }
+                B("Recessed culvert end", crossing, new Vector3(0,-.37f,side*1.18f), new Vector3(20.9f,1.41f,.22f), dark);
+                foreach (float z in new[] { -1.45f, 3.24f })
+                {
+                    B("Crossing parapet", crossing, new Vector3(0,1.05f,side*z), new Vector3(25,.54f,.31f), masonry);
+                    B("Crossing parapet coping", crossing, new Vector3(0,1.348f,side*z), new Vector3(25.08f,.07f,.40f), stone, false);
+                }
+                foreach (float x in new[] { -11.65f, 11.65f })
+                    B("Crossing bank abutment", crossing, new Vector3(x,-.40f,side*.9f), new Vector3(1.62f,1.46f,5.2f), masonry);
+            }
+        }
+
+        static void RegradeExistingAprons(Terrain terrain)
+        {
+            var bridge = GameObject.Find(WestbruchBridgeStart.BridgeName);
+            if (!bridge) return;
+            float south = terrain.transform.position.z, north = south + terrain.terrainData.size.z;
+            foreach (var filter in bridge.GetComponentsInChildren<MeshFilter>().Where(f =>
+                f.name.StartsWith("Land below distant railway ") || f.name == "Local render batch OverpassGround_DistantGround"))
+            {
+                var mesh = filter.sharedMesh;
+                var vertices = mesh.vertices;
+                for (int i = 0; i < vertices.Length; i++)
+                {
+                    var point = filter.transform.TransformPoint(vertices[i]);
+                    if (point.x > GardenEast + 12 || Mathf.Abs(point.z) > GardenOuter + 12) continue;
+                    float edge = point.z < 0 ? south : north;
+                    float distance = Mathf.Abs(point.z - edge);
+                    float original = Mathf.Lerp(TerrainY(terrain, point.x, edge), .12f, Ease(0, 40, distance));
+                    float underGarden = (1 - Ease(GardenEast, GardenEast + 12, point.x)) *
+                                        (1 - Ease(GardenOuter, GardenOuter + 12, Mathf.Abs(point.z)));
+                    if (point.x > GardenEast) underGarden *= Ease(0, 8, distance);
+                    point.y = Mathf.Lerp(original, Mathf.Min(original, GardenSubgrade), underGarden);
+                    vertices[i] = filter.transform.InverseTransformPoint(point);
+                }
+                RefreshGroundMesh(filter, vertices);
+            }
+
+            var northwest = district.GetComponentsInChildren<MeshFilter>().FirstOrDefault(f => f.name == "BV3_Ground Northwest soil at terrain edge");
+            if (!northwest) return;
+            var northwestVertices = northwest.sharedMesh.vertices;
+            var oldEdge = northwestVertices.Where(v => Mathf.Abs(v.z - north) < .01f).ToDictionary(v => v.x, v => v.y);
+            float west = terrain.transform.position.x;
+            for (int i = 0; i < northwestVertices.Length; i++)
+            {
+                var point = northwestVertices[i];
+                if (point.z > north + 40 || !oldEdge.TryGetValue(point.x, out float oldHeight)) continue;
+                point.y += (TerrainY(terrain, Mathf.Max(west, point.x), north) - oldHeight) * (1 - Ease(0, 40, point.z - north));
+                point.y = CanalTailGrade(point.x, point.z, point.y);
+                northwestVertices[i] = point;
+            }
+            RefreshGroundMesh(northwest, northwestVertices);
+        }
+
+        static void RefreshGroundMesh(MeshFilter filter, Vector3[] vertices)
+        {
+            var mesh = filter.sharedMesh;
+            mesh.vertices = vertices;
+            mesh.RecalculateNormals(); mesh.RecalculateTangents(); mesh.RecalculateBounds();
+            EditorUtility.SetDirty(mesh);
+            var collider = filter.GetComponent<MeshCollider>();
+            if (collider) { collider.sharedMesh = null; collider.sharedMesh = mesh; }
+        }
+
+        static float[] Axis(float start, float end, float maximumSpacing)
+        {
+            int count = Mathf.CeilToInt((end - start) / maximumSpacing);
+            return Enumerable.Range(0, count + 1).Select(i => Mathf.Lerp(start, end, i / (float)count)).ToArray();
+        }
+
+        static void ContinueWestAndSouth()
+        {
+            var terrain = Terrain.activeTerrain;
+            var rail = district.root.GetComponentsInChildren<MeshFilter>().FirstOrDefault(f => f.name == "Land below distant railway -1");
+            if (!rail) throw new InvalidOperationException("The existing south railway apron is required for the terrain join.");
+            var railVertices = rail.sharedMesh.vertices.Select(rail.transform.TransformPoint).ToArray();
+            float west = terrain.transform.position.x, south = terrain.transform.position.z;
+            float north = south + terrain.terrainData.size.z;
+            float railWest = railVertices.Min(v => v.x), railEast = railVertices.Max(v => v.x);
+            float railEnd = railVertices.Min(v => v.z);
+            const float eastJoin = 200, horizon = 1800;
+            int resolution = terrain.terrainData.heightmapResolution;
+            var terrainX = Axis(west, west + terrain.terrainData.size.x, terrain.terrainData.size.x / (resolution - 1));
+            var terrainZ = Axis(south, north, terrain.terrainData.size.z / (resolution - 1));
+            var railZ = railVertices.Select(v => v.z).Distinct().OrderBy(z => z).ToArray();
+            var leftRail = railVertices.Where(v => v.x == railWest).ToDictionary(v => v.z, v => v.y);
+            var rightRail = railVertices.Where(v => v.x == railEast).ToDictionary(v => v.z, v => v.y);
+            var terminalRail = railVertices.Where(v => v.z == railEnd).ToDictionary(v => v.x, v => v.y);
+            var westX = Axis(-horizon, west, 90);
+            var southwestX = westX.Concat(terrainX.Where(x => x < railWest)).Append(railWest).Distinct().OrderBy(x => x).ToArray();
+            var seamX = terrainX.Where(x => x > railEast && x < eastJoin).Prepend(railEast).Append(eastJoin).ToArray();
+
+            float Hill(float x, float z) => .12f + Mathf.PerlinNoise(x * .004f + 8, z * .005f + 11) * 6;
+            float West(float x, float z) => Mathf.Lerp(TerrainY(terrain, west, z), Hill(x, z),
+                Ease(0, 150, west - x) * Ease(0, 60, Mathf.Min(z - south, north - z)));
+            float Southwest(float x, float z)
+            {
+                float edge = TerrainY(terrain, Mathf.Max(west, x), south);
+                float height = Mathf.Lerp(edge, Hill(x, z), Ease(0, 140, south - z));
+                float underGarden = Ease(GardenWest - 4, GardenWest, x) * (1 - Ease(GardenOuter, GardenOuter + 16, -z));
+                height = Mathf.Lerp(height, Mathf.Min(height, GardenSubgrade), underGarden);
+                return CanalTailGrade(x, z, Mathf.Lerp(height, leftRail[z], Ease(railWest - 22, railWest, x)));
+            }
+            float Southeast(float x, float z)
+            {
+                float seam = Mathf.InverseLerp(railEast, eastJoin, x);
+                float edgeLine = Mathf.Lerp(rightRail[south], -.055f, seam);
+                float correction = (TerrainY(terrain, x, south) - edgeLine) *
+                                   Ease(railEast, railEast + 1, x) * (1 - Ease(eastJoin - 1, eastJoin, x));
+                return Mathf.Lerp(rightRail[z], -.055f, seam) + correction * (1 - Ease(0, 20, south - z));
+            }
+            float SouthHorizon(float x, float z)
+            {
+                float edge = x <= railWest ? Southwest(x, railEnd) : x >= railEast ? Southeast(x, railEnd) : terminalRail[x];
+                float distant = Mathf.Lerp(-.055f, Hill(x, z), Ease(0, 80, eastJoin - x));
+                return Mathf.Lerp(edge, distant, Ease(0, 160, railEnd - z));
+            }
+
+            GroundPatch("West terrain continuation", westX, terrainZ, West);
+            GroundPatch("Southwest terrain continuation", southwestX, railZ, Southwest);
+            GroundPatch("Southern apron seam", seamX, railZ, Southeast);
+            var horizonX = southwestX.Concat(terminalRail.Keys).Concat(seamX).Distinct().OrderBy(x => x).ToArray();
+            GroundPatch("South distant terrain", horizonX, Axis(-horizon, railEnd, 45), SouthHorizon);
+        }
+
+        static void GroundPatch(string label, float[] xs, float[] zs, Func<float, float, float> height)
+        {
+            var center = new Vector3((xs[0] + xs[xs.Length - 1]) * .5f, 0, (zs[0] + zs[zs.Length - 1]) * .5f);
+            var vertices = new List<Vector3>(); var coordinates = new List<Vector2>(); var triangles = new List<int>();
+            for (int z = 0; z < zs.Length; z++) for (int x = 0; x < xs.Length; x++)
+            {
+                vertices.Add(new Vector3(xs[x], height(xs[x], zs[z]), zs[z]) - center);
+                coordinates.Add(new Vector2(xs[x], zs[z]));
+                if (x == xs.Length - 1 || z == zs.Length - 1) continue;
+                int first = z * xs.Length + x, next = first + xs.Length;
+                triangles.AddRange(new[] { first, next, first + 1, first + 1, next, next + 1 });
+            }
+            string name = "BV3_Ground " + label;
+            var mesh = new Mesh { name = name, indexFormat = IndexFormat.UInt32 };
+            mesh.SetVertices(vertices); mesh.SetUVs(0, coordinates); mesh.SetUVs(1, coordinates); mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals(); mesh.RecalculateTangents(); mesh.RecalculateBounds();
+            string path = Generated + "/Meshes/" + name.Replace(' ', '_') + ".asset";
+            var existing = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+            if (existing) { EditorUtility.CopySerialized(mesh, existing); UnityEngine.Object.DestroyImmediate(mesh); mesh = existing; EditorUtility.SetDirty(mesh); }
+            else AssetDatabase.CreateAsset(mesh, path);
+            var ground = Group(name, root, center);
+            ground.isStatic = true;
+            ground.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = ground.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = earth; renderer.shadowCastingMode = ShadowCastingMode.Off;
+            ground.AddComponent<MeshCollider>().sharedMesh = mesh;
         }
         static void FinishBankToe()
         {
@@ -278,8 +476,12 @@ namespace ZeroRise.Editor
             for(int i=0;i<bikes.Length;i++)
             {
                 removedSources.AddRange(bikes[i].GetComponentsInChildren<MeshFilter>());
+                var oldCollider = bikes[i].GetComponent<BoxCollider>();
+                if (oldCollider) oldCollider.enabled = false;
                 if(i%3==0)continue;
                 var copy=UnityEngine.Object.Instantiate(bikes[i].gameObject,root);copy.name="BV4_Individual resident bicycle "+i;
+                var newCollider = copy.GetComponent<BoxCollider>();
+                if (newCollider) newCollider.enabled = true;
                 copy.transform.position=bikes[i].position+bikes[i].right*(i%2==0?.48f:-.40f);copy.transform.rotation=bikes[i].rotation*Quaternion.Euler(0,i%2==0?12:-16,0);
                 foreach(var r in copy.GetComponentsInChildren<MeshRenderer>())r.enabled=true;
             }
@@ -302,9 +504,28 @@ namespace ZeroRise.Editor
                     copy.GetComponent<MeshRenderer>().sharedMaterial=Material("BV4_ShutterPaint_"+seed%3,null,new[]{new Color(.34f,.37f,.30f),new Color(.38f,.32f,.25f),new Color(.30f,.35f,.37f)}[seed%3],.12f);copy.GetComponent<MeshRenderer>().enabled=true;
                 }
                 var balconies=house.GetComponentsInChildren<MeshFilter>().Where(f=>f.name=="Balcony slab").ToArray();
-                for(int j=0;j<balconies.Length;j++)if((j+seed)%3==0)
+                var oldPlanters=house.GetComponentsInChildren<MeshFilter>().Where(f=>f.name=="Planter").ToArray();
+                for(int j=0;j<balconies.Length;j++)
                 {
-                    var floor=balconies[j];var planter=Group("BV4_Resident balcony garden",root,floor.transform.TransformPoint(new Vector3(.55f,.12f,-.44f)),floor.transform.eulerAngles.y).transform;
+                    var floor = balconies[j];
+                    float slabTop = floor.sharedMesh.bounds.max.y;
+                    var oldPlanter = oldPlanters.FirstOrDefault(f =>
+                        (floor.transform.InverseTransformPoint(f.transform.position) - new Vector3(.65f, .245f, -.4f)).sqrMagnitude < .0025f);
+                    if (oldPlanter) removedSources.Add(oldPlanter);
+                    if ((j + seed) % 3 != 0)
+                    {
+                        if (!oldPlanter) continue;
+                        var source = oldPlanter.transform;
+                        var copy = UnityEngine.Object.Instantiate(oldPlanter.gameObject, root);
+                        copy.name = "BV4_Supported original balcony planter";
+                        var localPosition = floor.transform.InverseTransformPoint(source.position);
+                        localPosition.y = slabTop - oldPlanter.sharedMesh.bounds.min.y - .003f;
+                        copy.transform.SetPositionAndRotation(floor.transform.TransformPoint(localPosition), source.rotation);
+                        copy.GetComponent<MeshRenderer>().enabled = true;
+                        continue;
+                    }
+                    var position = floor.transform.TransformPoint(new Vector3(.55f, slabTop - .003f, -.44f));
+                    var planter = Group("BV4_Resident balcony garden", root, position, floor.transform.eulerAngles.y).transform;
                     var pot=Material("BV4_ClayPot_"+seed%3,null,new[]{new Color(.37f,.26f,.18f),new Color(.32f,.37f,.30f),new Color(.43f,.36f,.26f)}[seed%3],.10f);
                     B("Balcony plant trough",planter,new Vector3(0,.13f,0),new Vector3(.73f,.26f,.26f),pot,false);
                     Shrub(planter,new Vector3(0,.23f,0),.20f,seed+j);
@@ -329,6 +550,24 @@ namespace ZeroRise.Editor
             if(context.Length!=8||context.Any(t=>!t.GetComponent<BoxCollider>()))throw new Exception("Context frontage needs eight collidable finished buildings");
             foreach(var p in new[]{new Vector3(161,2,265),new Vector3(175,2,198),new Vector3(84,2,140),new Vector3(0,2,142)})
                 if(!Physics.Raycast(p,Vector3.down,out var hit,3,1)||hit.point.y<-.15f)throw new Exception("Audit completion has unsupported ground at "+p);
+            foreach (float z in new[] { -205f, -180f, -145f, 145f, 180f, 205f })
+            {
+                var canal = new Vector3(-121, 4, z);
+                if (!Physics.Raycast(canal, Vector3.down, out var canalHit, 8, 1, QueryTriggerInteraction.Ignore) ||
+                    !(canalHit.collider is TerrainCollider) || canalHit.point.y > -.45f)
+                    throw new InvalidOperationException("The canal bed is covered or missing at " + canal);
+            }
+            foreach (int side in new[] { -1, 1 })
+            {
+                var crossing = new Vector3(-122, 4, side * CanalEnd);
+                var backfill = crossing + Vector3.forward * (16 * side);
+                if (!Physics.Raycast(crossing, Vector3.down, out var deckHit, 8, 1) || deckHit.point.y < .75f ||
+                    !Physics.Raycast(backfill, Vector3.down, out var tailHit, 8, 1) || tailHit.point.y < .1f)
+                    throw new InvalidOperationException("The canal crossing or its backfill is missing at " + crossing);
+            }
+            foreach (var position in new[] { new Vector2(-250, 0), new Vector2(-210, -230), new Vector2(22, -300), new Vector2(196, -385), new Vector2(20, -700) })
+                if (!Physics.Raycast(new Vector3(position.x, 16, position.y), Vector3.down, 32, 1, QueryTriggerInteraction.Ignore))
+                    throw new InvalidOperationException("Missing ground in the south/west terrain continuation at " + position);
         }
     }
 }

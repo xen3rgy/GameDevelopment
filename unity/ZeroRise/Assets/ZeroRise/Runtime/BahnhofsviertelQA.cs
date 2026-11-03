@@ -22,6 +22,15 @@ namespace ZeroRise
             Time.timeScale=1;yield return new WaitForSeconds(6);camera=Camera.main;player=FindAnyObjectByType<ThirdPersonMotor>();
             var clock=WorldWeatherClock.Instance;clock.SuppressSave=true;clock.enabled=false;clock.SetWeather(WeatherKind.Clear);clock.SetSpeed(20);clock.Advance(120);clock.SetSpeed(1);clock.SetHour(15.5f);
             var orbit=camera.GetComponent<OrbitCamera>();if(orbit)orbit.enabled=false;player.enabled=false;
+            if (Environment.GetCommandLineArgs().Contains("-map-support-views-only"))
+            {
+                foreach (var renderer in player.GetComponentsInChildren<Renderer>()) renderer.enabled = false;
+                yield return SupportSurvey();
+                Check("No runtime errors", errors == 0, errors.ToString());
+                File.WriteAllText(Path.Combine(output, "bahnhof-validation.txt"), "Passed: " + passed + "\n" + string.Join("\n", report));
+                Application.Quit(passed ? 0 : 1);
+                yield break;
+            }
             if(Environment.GetCommandLineArgs().Contains("-whole-map-routes-only"))
             {
                 foreach(var r in player.GetComponentsInChildren<Renderer>())r.enabled=false;
@@ -186,6 +195,22 @@ namespace ZeroRise
             var eyes=new[]{new Vector3(-110,2,0),new Vector3(0,2,-114),new Vector3(0,2,114),new Vector3(99,2,-110),new Vector3(116,2,70),new Vector3(-40,2,-55)};
             var aims=new[]{new Vector3(-145,2,0),new Vector3(0,2,-180),new Vector3(0,2,180),new Vector3(118,4,-180),new Vector3(118,4,80),new Vector3(-60,2,-55)};
             for(int i=0;i<eyes.Length;i++)yield return Shot("whole-boundary-"+i,eyes[i],aims[i]);
+            yield return SupportSurvey();
+        }
+        IEnumerator SupportSurvey()
+        {
+            yield return Shot("whole-canal-north",new Vector3(-123,7,153),new Vector3(-123,-.1f,205));
+            yield return Shot("whole-canal-south",new Vector3(-123,7,-153),new Vector3(-123,-.1f,-205));
+            yield return Shot("whole-south-landscape",new Vector3(-75,40,-275),new Vector3(-145,0,-445));
+            yield return Shot("whole-north-landscape",new Vector3(15,35,215),new Vector3(-100,0,295));
+            yield return Shot("whole-bus-bench-feet",new Vector3(103.2f,.55f,17.8f),new Vector3(105.4f,.2f,17));
+            yield return Shot("whole-lamp-footing",new Vector3(198.6f,.65f,130.5f),new Vector3(200,.25f,132));
+            yield return Shot("whole-freight-pallet-feet",new Vector3(149,1.1f,151),new Vector3(152,.25f,153));
+            yield return Shot("whole-platform-board-mounts",new Vector3(123,8.7f,250),new Vector3(123,9.9f,258));
+            yield return Shot("whole-salvage-pallet-feet", new Vector3(34.4f,.6f,-41.7f), new Vector3(35.9f,.12f,-43.47f));
+            var balcony = FindObjectsByType<Transform>().FirstOrDefault(t => t.name == "BV4_Resident balcony garden");
+            if (balcony)
+                yield return Shot("whole-balcony-planter-foot", balcony.position - balcony.forward * 2.6f + Vector3.up * .32f, balcony.position + Vector3.up * .13f);
         }
         IEnumerator OrbitBankSurvey()
         {

@@ -32,7 +32,7 @@ namespace ZeroRise.Editor
             iron=Material("BV5_OxidizedIron",null,new Color(.17f,.19f,.18f),.16f,.65f);
             edge=Material("BV5_DarkBasalt","concrete",new Color(.25f,.27f,.27f),.10f);
             repair=Surface("Road repairs","asphalt_02",new Color(.53f,.56f,.57f),.3f,true);
-            soil=Ground();BuildUnderstory();ReplaceSurfaces();StreetEdges();RoadDetails();SquareBands();TreeGrilles();PlantBeds();GardenMargins();ReplaceTrees();BakePlants();
+            soil=Ground();BuildUnderstory();ReplaceSurfaces();RegroundVegetation();StreetEdges();RoadDetails();SquareBands();TreeGrilles();PlantBeds();GardenMargins();ReplaceTrees();BakePlants();
             Physics.SyncTransforms();
             Debug.Log("BV5 streetscape complete: PBR roads and setts, chamfered stone kerbs, drainage, tree grilles, layered soil, rooted planting and new tree meshes; plants "+plantRoots.Count);
         }
@@ -85,7 +85,7 @@ namespace ZeroRise.Editor
                 bool ground=name.StartsWith("BV2_Surface earth")||name.StartsWith("BV3_Ground ")||name=="BV4_Ground residential continuation"||name.StartsWith("BV4_Supported bank garden shoulder");
                 if(ground)
                 {
-                    var f=r.GetComponent<MeshFilter>();var m=name=="BV4_Ground residential continuation"?GardenGrid():UnityEngine.Object.Instantiate(f.sharedMesh);var v=m.vertices;var uv=new Vector2[v.Length];var colors=new Color[v.Length];
+                    var f=r.GetComponent<MeshFilter>();var m=name=="BV4_Ground residential continuation"&&f.GetComponent<BoxCollider>()?GardenGrid(f.sharedMesh.bounds):UnityEngine.Object.Instantiate(f.sharedMesh);var v=m.vertices;var uv=new Vector2[v.Length];var colors=new Color[v.Length];
                     for(int i=0;i<v.Length;i++)
                     {
                         var p=f.transform.TransformPoint(v[i]);uv[i]=new Vector2(p.x,p.z);
@@ -114,15 +114,51 @@ namespace ZeroRise.Editor
             string clean=new string(key.Select(c=>char.IsLetterOrDigit(c)||c=='_'?c:'_').ToArray());mesh.name="BV5_"+clean;string path=Generated+"/Meshes/"+mesh.name+".asset";var prior=AssetDatabase.LoadAssetAtPath<Mesh>(path);
             if(prior){EditorUtility.CopySerialized(mesh,prior);UnityEngine.Object.DestroyImmediate(mesh);mesh=prior;EditorUtility.SetDirty(mesh);}else AssetDatabase.CreateAsset(mesh,path);return mesh;
         }
-        static Mesh GardenGrid()
+        static Mesh GardenGrid(Bounds soilBounds)
         {
-            const int nx=152,nz=74;var v=new List<Vector3>();var uv=new List<Vector2>();var t=new List<int>();
-            for(int z=0;z<=nz;z++)for(int x=0;x<=nx;x++)
+            Vector3 min = soilBounds.min;
+            Vector3 max = soilBounds.max;
+            int columns = Mathf.Max(1, Mathf.CeilToInt(soilBounds.size.x / 2));
+            int rows = Mathf.Max(1, Mathf.CeilToInt(soilBounds.size.z / 2));
+            var vertices = new List<Vector3>();
+            var uv = new List<Vector2>();
+            var triangles = new List<int>();
+            for (int row = 0; row <= rows; row++)
+            for (int column = 0; column <= columns; column++)
             {
-                v.Add(new Vector3(x*2-152,.10f,z*2-74));uv.Add(new Vector2(x,z));
-                if(x==nx||z==nz)continue;int a=z*(nx+1)+x;t.AddRange(new[]{a,a+nx+1,a+1,a+1,a+nx+1,a+nx+2});
+                float x = Mathf.Lerp(min.x, max.x, (float)column / columns);
+                float z = Mathf.Lerp(min.z, max.z, (float)row / rows);
+                vertices.Add(new Vector3(x, max.y, z));
+                uv.Add(new Vector2(x, z) / 2);
+                if (column == columns || row == rows) continue;
+                int a = row * (columns + 1) + column;
+                int b = a + columns + 1;
+                triangles.AddRange(new[] { a, b, a + 1, a + 1, b, b + 1 });
             }
-            var m=new Mesh{indexFormat=IndexFormat.UInt32};m.SetVertices(v);m.SetUVs(0,uv);m.SetTriangles(t,0);m.RecalculateNormals();m.RecalculateTangents();m.RecalculateBounds();return m;
+
+            // Retain the slab sides and underside so a view below the edge
+            // cannot see through the soil into the unrendered collider.
+            void Face(Vector3 a, Vector3 b, Vector3 c, Vector3 d)
+            {
+                int start = vertices.Count;
+                vertices.AddRange(new[] { a, b, c, d });
+                uv.AddRange(new[] { Vector2.zero, Vector2.up, Vector2.one, Vector2.right });
+                triangles.AddRange(new[] { start, start + 1, start + 2, start, start + 2, start + 3 });
+            }
+            Face(new Vector3(min.x, min.y, min.z), new Vector3(min.x, max.y, min.z), new Vector3(max.x, max.y, min.z), new Vector3(max.x, min.y, min.z));
+            Face(new Vector3(max.x, min.y, max.z), new Vector3(max.x, max.y, max.z), new Vector3(min.x, max.y, max.z), new Vector3(min.x, min.y, max.z));
+            Face(new Vector3(min.x, min.y, max.z), new Vector3(min.x, max.y, max.z), new Vector3(min.x, max.y, min.z), new Vector3(min.x, min.y, min.z));
+            Face(new Vector3(max.x, min.y, min.z), new Vector3(max.x, max.y, min.z), new Vector3(max.x, max.y, max.z), new Vector3(max.x, min.y, max.z));
+            Face(new Vector3(min.x, min.y, max.z), new Vector3(min.x, min.y, min.z), new Vector3(max.x, min.y, min.z), new Vector3(max.x, min.y, max.z));
+
+            var mesh = new Mesh { indexFormat = IndexFormat.UInt32 };
+            mesh.SetVertices(vertices);
+            mesh.SetUVs(0, uv);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateTangents();
+            mesh.RecalculateBounds();
+            return mesh;
         }
         static GameObject BoxAt(string name,Vector3 at,Vector3 size,Material mat,bool solid=false,float tile=2)=>Box("BV5_"+name,root,at,size,mat,solid,tile);
         static void Kerb(Vector3 a,Vector3 b)
@@ -249,6 +285,44 @@ namespace ZeroRise.Editor
                 {if(Mathf.Abs(dx)<2.2f)continue;Plant(x+dx,side*(160+dz),R(.55f,.85f),rng.NextDouble()<.28?5:0);}
             }
         }
+        static void RegroundVegetation()
+        {
+            // BV3 places these roots before BV4 grades the neighbouring land.
+            // Sample the final land and exclude shrubs mounted in balcony pots.
+            Physics.SyncTransforms();
+            int adjusted = 0;
+            float largestGap = 0;
+            foreach (var plant in district.GetComponentsInChildren<LODGroup>())
+            {
+                bool groundPlant = plant.name.StartsWith("BV3_Rooted mature tree ", StringComparison.Ordinal) ||
+                    plant.name.StartsWith("BV3_Rooted yard shrub ", StringComparison.Ordinal) ||
+                    plant.name.StartsWith("BV4_Mixed age tree ", StringComparison.Ordinal) ||
+                    (plant.name == "BV4_Rooted mixed garden shrub" &&
+                     plant.transform.parent.name.StartsWith("BV4_Connected residential gardens ", StringComparison.Ordinal));
+                if (!groundPlant) continue;
+
+                Vector3 position = plant.transform.position;
+                float ground = float.NegativeInfinity;
+                foreach (var hit in Physics.RaycastAll(position + Vector3.up * 30, Vector3.down, 60, 1, QueryTriggerInteraction.Ignore))
+                {
+                    string name = hit.collider.name;
+                    if (hit.collider is TerrainCollider || name.StartsWith("BV2_Surface ", StringComparison.Ordinal) ||
+                        name.StartsWith("BV3_Ground ", StringComparison.Ordinal) || name == "BV4_Ground residential continuation" ||
+                        name.StartsWith("BV4_Supported bank garden shoulder", StringComparison.Ordinal) ||
+                        name.StartsWith("Land below distant railway", StringComparison.Ordinal) || name.Contains("railway earth bank"))
+                        ground = Mathf.Max(ground, hit.point.y);
+                }
+                if (float.IsNegativeInfinity(ground)) continue;
+                float offset = position.y - ground;
+                if (offset >= -.12f && offset <= .01f) continue;
+                largestGap = Mathf.Max(largestGap, offset);
+                position.y = ground - .025f;
+                plant.transform.position = position;
+                adjusted++;
+            }
+            Physics.SyncTransforms();
+            Debug.Log($"BV5 final terrain anchoring adjusted {adjusted} tree and shrub roots. Largest prior gap: {largestGap:F3} m.");
+        }
         static void ReplaceTrees()
         {
             var source=AssetDatabase.LoadAssetAtPath<Material>(Generated+"/Materials/Nature_Leaves.mat");var bark=AssetDatabase.LoadAssetAtPath<Material>(Generated+"/Materials/Nature_Bark.mat");
@@ -270,7 +344,14 @@ namespace ZeroRise.Editor
             {
                 var axis=(b-a).normalized;var right=Vector3.Cross(axis,Vector3.forward).normalized;if(right.sqrMagnitude<.01f)right=Vector3.right;var side=Vector3.Cross(axis,right);int start=v.Count,n=lod==0?9:6;
                 for(int j=0;j<2;j++)for(int i=0;i<=n;i++){float angle=i*Mathf.PI*2/n;v.Add((j==0?a:b)+(right*Mathf.Cos(angle)+side*Mathf.Sin(angle))*(j==0?ra:rb));uv.Add(new Vector2(i/(float)n,(j==0?a.y:b.y)*.6f));colors.Add(Color.white);}
-                for(int i=0;i<n;i++)trunk.AddRange(new[]{start+i,start+i+n+1,start+i+1,start+i+1,start+i+n+1,start+i+n+2});
+                // The ring runs clockwise looking along the tube axis. Wind
+                // its faces outwards so bark stays visible around each fork.
+                for (int i = 0; i < n; i++)
+                {
+                    int lower = start + i;
+                    int upper = lower + n + 1;
+                    trunk.AddRange(new[] { lower, lower + 1, upper, lower + 1, upper + 1, upper });
+                }
             }
             Tube(new Vector3(0,-.08f,0),new Vector3(.12f,height*.70f,.06f),.20f,.045f);
             var tips=new List<Vector3>();

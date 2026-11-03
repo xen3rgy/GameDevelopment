@@ -120,7 +120,7 @@ namespace ZeroRise.Editor
                     B("Entrance stone pier",face,new Vector3(x,1.82f,-.04f),new Vector3(.30f,3.64f,.56f),stone,true);
                     B("Entrance base plinth",face,new Vector3(x,.25f,-.10f),new Vector3(.45f,.5f,.69f),stone);
                 }
-                B("Continuous station cornice",face,new Vector3(0,5.48f,-.07f),new Vector3(34.7f,.23f,.65f),stone);
+                B("Continuous station cornice",face,new Vector3(0,5.55f,-.07f),new Vector3(34.7f,.32f,.65f),stone);
                 B("Timber roof fascia",face,new Vector3(0,5.72f,-.24f),new Vector3(35,.18f,.13f),timber);
                 Cylinder("BV2_Half-round gutter",face,new Vector3(0,5.62f,-.44f),.07f,34.8f,steel).transform.localRotation=Quaternion.Euler(0,0,90);
             }
@@ -128,6 +128,7 @@ namespace ZeroRise.Editor
             {
                 var end=Group("BV2_Station end facade "+side,hall,new Vector3(side*16.8f,0,0),side<0?90:-90).transform;
                 FacadeWing(end,0,15.6f);
+                B("Station end cornice under roof",end,new Vector3(0,5.53f,-.06f),new Vector3(15.64f,.28f,.58f),stone);
             }
             // One lower wing roof and a cross-gabled middle bay, never the old
             // flat roof underneath a second roof. Ends and ridge are closed.
@@ -150,7 +151,8 @@ namespace ZeroRise.Editor
             foreach(float x in new[]{-15.75f,15.75f})
             {
                 Cylinder("BV2_Station drainpipe",hall,new Vector3(x,2.77f,-8.09f),.055f,5.54f,steel);
-                foreach(float y in new[]{.75f,2.6f,4.55f})B("Drainpipe collar",hall,new Vector3(x,y,-8.10f),new Vector3(.19f,.055f,.15f),steel);
+                Beam("BV2_Station downpipe gutter elbow",hall,new Vector3(x,5.62f,-8.24f),new Vector3(x,5.50f,-8.09f),.085f,steel);
+                foreach(float y in new[]{.75f,2.6f,4.55f})B("Drainpipe collar",hall,new Vector3(x,y,-8.10f),new Vector3(.19f,.055f,.18f),steel);
                 B("Rainwater shoe",hall,new Vector3(x,.18f,-8.22f),new Vector3(.16f,.22f,.35f),steel);
             }
             // Interior partitions leave the full 5.4m central passage free.
@@ -160,7 +162,7 @@ namespace ZeroRise.Editor
             foreach(float z in new[]{-4.8f,0,4.8f})
             {
                 B("Interior ceiling joist",hall,new Vector3(0,3.70f,z),new Vector3(5.9f,.18f,.22f),timber);
-                Fixture(hall,new Vector3(0,3.55f,z),440,8);
+                Fixture(hall,new Vector3(0,3.55f,z),440,8,3.61f);
             }
             // Ticket counter and noticeboard are against the side wall. These
             // details cannot block the east-west path checked by the player.
@@ -182,7 +184,7 @@ namespace ZeroRise.Editor
             BahnhofDetailKit.Plate(hall,"ZU DEN GLEISEN",new Vector3(0,3.48f,7.515f),0,3.8f,.31f,green,new Color(.91f,.89f,.78f));
             // Offset both exit luminaires from the centre sightline so the
             // direction lettering cannot be covered by their housings.
-            foreach(float z in new[]{-7.25f,7.25f})foreach(float x in new[]{-1.65f,1.65f})Fixture(hall,new Vector3(x,3.50f,z),280,10);
+            foreach(float z in new[]{-7.25f,7.25f})foreach(float x in new[]{-1.65f,1.65f})Fixture(hall,new Vector3(x,3.50f,z),280,10,3.77f);
             foreach(float z in new[]{-7.6f,7.6f})
             {
                 foreach(float x in new[]{-2.88f,2.88f})B("Entrance return pilaster",hall,new Vector3(x,1.8f,z),new Vector3(.27f,3.6f,.45f),stone,true);
@@ -249,7 +251,7 @@ namespace ZeroRise.Editor
             {
                 B("Station eave soffit",hall,new Vector3(0,5.70f,side*8.21f),new Vector3(35,.12f,.65f),cream);
                 for(float x=-17;x<=17;x+=1.25f)
-                    Beam("BV2_Station roof standing seam",hall,new Vector3(x,5.82f,side*8.50f),new Vector3(x,7.97f,0),.023f,steel);
+                    Beam("BV2_Station roof standing seam",hall,new Vector3(x,5.785f,side*8.50f),new Vector3(x,7.935f,0),.023f,steel);
             }
             foreach(float x in new[]{-11f,11f})
             {
@@ -320,10 +322,16 @@ namespace ZeroRise.Editor
             B("Entrance canopy weather roof",hall,new Vector3(0,3.48f,-9.80f),new Vector3(7.3f,.13f,3.6f),roof,true);
             for(float x=-3.3f;x<=3.3f;x+=1.1f)B("Canopy timber rafter",hall,new Vector3(x,3.32f,-9.8f),new Vector3(.09f,.18f,3.4f),timber);
             B("Canopy gutter front",hall,new Vector3(0,3.41f,-11.59f),new Vector3(7.4f,.12f,.13f),steel);
-            foreach(float x in new[]{-1.8f,1.8f})Fixture(hall,new Vector3(x,3.23f,-10.2f),520,13);
+            foreach(float x in new[]{-1.8f,1.8f})Fixture(hall,new Vector3(x,3.23f,-10.2f),520,13,3.415f);
         }
-        static void Fixture(Transform parent,Vector3 at,float intensity,float range)
+        static void Fixture(Transform parent,Vector3 at,float intensity,float range,float mountUnderside=0)
         {
+            float housingTop=at.y+.05f;
+            if(mountUnderside>housingTop)
+            {
+                float mountBottom=housingTop-.015f,mountTop=mountUnderside+.015f;
+                B("Luminaire ceiling mount",parent,new Vector3(at.x,(mountBottom+mountTop)*.5f,at.z),new Vector3(.16f,mountTop-mountBottom,.13f),steel);
+            }
             B("Luminaire metal housing",parent,at,new Vector3(.44f,.10f,.24f),steel);
             var lens=M("WarmLampLens",null,new Color(.81f,.76f,.59f),.23f);
             lens.SetColor("_EmissiveColor",new Color(1,.78f,.49f)*1.0f);HDMaterial.ValidateMaterial(lens);EditorUtility.SetDirty(lens);
@@ -389,12 +397,12 @@ namespace ZeroRise.Editor
                     for(float z=span.x;z<=span.y;z+=2.4f)Cylinder("BV2_Platform back railing post",furnishing,new Vector3(outer,7.60f,z),.025f,1.10f,steel);
                     foreach(float y in new[]{7.45f,7.85f,8.15f})Beam("BV2_Platform back safety rail",furnishing,new Vector3(outer,y,span.x),new Vector3(outer,y,span.y),.032f,steel);
                 }
-                foreach(float z in new[]{250f,286})
+                foreach(float z in new[]{258f,290})
                 {
-                    // Two hangers attach each name board to the canopy structure.
-                    foreach(float dx in new[]{-.9f,.9f})Cylinder("BV2_Platform board hanger",furnishing,new Vector3(x+dx,9.93f,z),.012f,.54f,steel);
+                    // The hangers and number bracket share the girder and column station.
+                    foreach(float dx in new[]{-.9f,.9f})Cylinder("BV2_Platform board hanger",furnishing,new Vector3(x+dx,9.87f,z),.012f,.38f,steel);
                     BahnhofDetailKit.Plate(furnishing,"WESTBRUCH",new Vector3(x,9.48f,z),0,3.2f,.45f,green,new Color(.91f,.89f,.78f));
-                    B("Platform number board bracket",furnishing,new Vector3(posts,9.45f,z+.095f),new Vector3(.075f,.06f,.18f),steel);
+                    B("Platform number board bracket",furnishing,new Vector3(posts,9.45f,z+.08f),new Vector3(.075f,.06f,.14f),steel);
                     BahnhofDetailKit.Plate(furnishing,east?"1":"2",new Vector3(posts,9.45f,z+.15f),180,.45f,.50f,green,new Color(.91f,.89f,.78f));
                 }
                 foreach(var bench in root.GetComponentsInChildren<Transform>().Where(t=>t.name=="Worn public bench"&&t.position.y>6&&Mathf.Abs(t.position.x-x)<1).ToArray())
@@ -428,7 +436,8 @@ namespace ZeroRise.Editor
             foreach(float x in new[]{127.0f,132.2f,137.4f})
             {
                 float bottom=FootingLevel(x,224,.84f,3.15f);
-                B("Entrance landing supported pier",furnishing,new Vector3(x,(6.61f+bottom)*.5f,224),new Vector3(.48f,6.61f-bottom,2.75f),stone,true);
+                const float undersideSeat=6.89f;
+                B("Entrance landing supported pier",furnishing,new Vector3(x,(undersideSeat+bottom)*.5f,224),new Vector3(.48f,undersideSeat-bottom,2.75f),stone,true);
                 B("Entrance landing pier foundation",furnishing,new Vector3(x,bottom+.06f,224),new Vector3(.84f,.30f,3.15f),stone,true);
             }
             float stairBottom=FootingLevel(127.65f,239.58f,2.90f,3.00f);
@@ -496,9 +505,9 @@ namespace ZeroRise.Editor
             B("Rear canopy gutter",furnishing,new Vector3(127.95f,3.45f,265),new Vector3(.12f,.12f,6.3f),steel);
             Cylinder("BV2_Rear canopy rain pipe",furnishing,new Vector3(128.02f,1.76f,267.88f),.04f,3.20f,steel);
             B("Rear canopy rain pipe foot",furnishing,new Vector3(128.02f,.19f,267.88f),new Vector3(.20f,.14f,.25f),stone);
-            Fixture(furnishing,new Vector3(130,3.16f,265),550,10);
+            Fixture(furnishing,new Vector3(130,3.16f,265),550,10,3.38f);
             // A modest direction sign has its own bracket on the outer column.
-            B("Stair direction mounting arm",furnishing,new Vector3(128.1f,2.75f,262.39f),new Vector3(.12f,.08f,.32f),steel);
+            B("Stair direction mounting arm",furnishing,new Vector3(128.1f,2.75f,262.41f),new Vector3(.12f,.08f,.35f),steel);
             BahnhofDetailKit.Plate(furnishing,"GLEIS 1 / 2  ↑",new Vector3(128.1f,2.75f,262.59f),180,1.7f,.31f,green,new Color(.91f,.89f,.78f));
         }
         static float FootingLevel(float x,float z,float width,float depth)
@@ -567,10 +576,12 @@ namespace ZeroRise.Editor
                 foreach(float zz in new[]{-6.5f,6.5f})
                 {
                     B("Bogie frame",car,new Vector3(0,.51f,zz),new Vector3(2.30f,.35f,2.70f),rubber);
-                    foreach(float z1 in new[]{zz-.82f,zz+.82f})foreach(float x in new[]{-1.2f,1.2f})
+                    // The continuous rail heads are at x=118 ± .7515 and top out at y=6.68.
+                    const float wheelCentreHeight=.448f;
+                    foreach(float z1 in new[]{zz-.82f,zz+.82f})foreach(float x in new[]{-.7515f,.7515f})
                     {
-                        var wheel=Cylinder("BV2_Rail wheel",car,new Vector3(x,.43f,z1),.43f,.19f,rubber);wheel.transform.localRotation=Quaternion.Euler(0,0,90);
-                        var hub=Cylinder("BV2_Bearing cap",car,new Vector3(x+Mathf.Sign(x)*.11f,.43f,z1),.15f,.06f,steel);hub.transform.localRotation=Quaternion.Euler(0,0,90);
+                        var wheel=Cylinder("BV2_Rail wheel",car,new Vector3(x,wheelCentreHeight,z1),.43f,.19f,rubber);wheel.transform.localRotation=Quaternion.Euler(0,0,90);
+                        var hub=Cylinder("BV2_Bearing cap",car,new Vector3(x+Mathf.Sign(x)*.11f,wheelCentreHeight,z1),.15f,.06f,steel);hub.transform.localRotation=Quaternion.Euler(0,0,90);
                     }
                 }
                 foreach(float z1 in new[]{-3f,3f})

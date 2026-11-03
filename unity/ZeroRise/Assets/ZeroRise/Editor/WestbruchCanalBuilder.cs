@@ -86,24 +86,39 @@ namespace ZeroRise.Editor
             water.tessellation=true;water.maxTessellationFactor=3;water.tessellationFactorFadeStart=25;water.tessellationFactorFadeRange=100;
             water.foam=true;water.simulationFoamAmount=.05f;water.foamColor=new Color(.70f,.72f,.62f);water.foamPersistenceMultiplier=.15f;water.foamTextureTiling=.65f;water.caustics=false;water.scriptInteractions=false;water.underWater=false;
         }
+        internal static float ProfileHeight(float x, float z, float fallback)
+        {
+            if (x > -166 && x < -132.5f)
+            {
+                float bump = 0;
+                foreach (var center in BankMounds)
+                    bump += Mathf.Pow(Mathf.Max(0, 1 - (new Vector2(x, z) - center).sqrMagnitude / 180), 2) * .9f;
+                return .11f + bump + Mathf.PerlinNoise((x + 300) * .1f, (z + 300) * .1f) * .12f;
+            }
+            if (x > -131.5f && x < -111.98f)
+            {
+                float bankBlend = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(-131.5f, -129.4f, x));
+                float bed = -.97f + .06f * Mathf.PerlinNoise((x + 400) * .31f, (z + 400) * .12f);
+                return Mathf.Lerp(.08f, bed, bankBlend);
+            }
+            return fallback;
+        }
+
+        static readonly Vector2[] BankMounds =
+        {
+            new Vector2(-144, -73), new Vector2(-149, 2), new Vector2(-143, 83),
+            new Vector2(-147, 145), new Vector2(-147, -146)
+        };
+
         static void ShapeBanks()
         {
             var data=terrain.terrainData;int n=data.heightmapResolution;var h=data.GetHeights(0,0,n,n);var origin=terrain.transform.position;
             for(int z=0;z<n;z++)for(int x=0;x<n;x++)
             {
                 float wx=origin.x+x/(n-1f)*data.size.x,wz=origin.z+z/(n-1f)*data.size.z;
-                if(wx> -166&&wx< -132.5f)
-                {
-                    float bump=0;foreach(var p in new[]{new Vector2(-144,-73),new Vector2(-149,2),new Vector2(-143,83),new Vector2(-147,145),new Vector2(-147,-146)})bump+=Mathf.Pow(Mathf.Max(0,1-(new Vector2(wx,wz)-p).sqrMagnitude/180),2)*.9f;
-                    // Absolute target makes repeated application idempotent.
-                    h[z,x]=(.11f+bump+Mathf.PerlinNoise((wx+300)*.1f,(wz+300)*.1f)*.12f-origin.y)/data.size.y;
-                }
-                if(wx> -131.5f&&wx< -111.98f)
-                {
-                    float bedBlend=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-131.5f,-129.4f,wx));
-                    float bed=-.97f+.06f*Mathf.PerlinNoise((wx+400)*.31f,(wz+400)*.12f);
-                    h[z,x]=(Mathf.Lerp(.08f,bed,bedBlend)-origin.y)/data.size.y;
-                }
+                float current = h[z, x] * data.size.y + origin.y;
+                float height = ProfileHeight(wx, wz, current);
+                if (height != current) h[z, x] = (height - origin.y) / data.size.y;
             }
             data.SetHeights(0,0,h);terrain.Flush();EditorUtility.SetDirty(data);
             int a=data.alphamapWidth;var splats=data.GetAlphamaps(0,0,a,a);

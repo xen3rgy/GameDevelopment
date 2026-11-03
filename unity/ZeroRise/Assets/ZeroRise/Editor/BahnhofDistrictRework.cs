@@ -28,7 +28,7 @@ namespace ZeroRise.Editor
                 root=GameObject.Find(BahnhofsviertelBuilder.RootName).transform;
                 UnpackSources();RemoveConflictingBackdrop();ClearLegacySigns();ContinuousSurfaces();
                 BahnhofResidentialArchitecture.Rebuild(root);BahnhofStationArchitecture.Rebuild(root);
-                DressStreet();BahnhofLandscapeFinish.Apply(root);BahnhofSquareFinish.Apply(root);WestbruchAuditCompletion.Apply(root);BahnhofStreetscape.Apply(root);FixVehicles();RefreshNavigation();Physics.SyncTransforms();
+                DressStreet();BahnhofLandscapeFinish.Apply(root);BahnhofSquareFinish.Apply(root);WestbruchAuditCompletion.Apply(root);BahnhofStreetscape.Apply(root);WestbruchSupportAudit.Repair(root);FixVehicles();RefreshNavigation();Physics.SyncTransforms();
                 foreach(var fitted in root.GetComponentsInChildren<FittedWorldSign>())fitted.Refit();
                 BahnhofVisualQualityQA.Validate(root,Record);BahnhofPlacementQA.Validate(root,Record);if(!passed)throw new Exception("Visual authoring checks failed: QA/bahnhof-rework-authoring.txt");
                 Bake();EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();

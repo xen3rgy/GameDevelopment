@@ -81,7 +81,7 @@ namespace ZeroRise.Editor
                 Beam("Balcony railing",root,new Vector3(x+xx,y+.12f,z-.72f),new Vector3(x+xx,y+1.08f,z-.72f),.035f,metal);
             Box("Balcony handrail",root,new Vector3(x,y+1.08f,z-.72f),new Vector3(2.3f,.045f,.045f),metal,false);
             foreach(int s in new[]{-1,1}) Box("Side handrail",root,new Vector3(x+s*1.08f,y+1.08f,z),new Vector3(.045f,.045f,1.5f),metal,false);
-            Box("Planter",root,new Vector3(x+.65f,y+.27f,z-.4f),new Vector3(.58f,.28f,.22f),timber,false);
+            Box("Planter",root,new Vector3(x+.65f,y+.22f,z-.4f),new Vector3(.58f,.28f,.22f),timber,false);
             if(Mathf.RoundToInt(x+y)%3==0)
                 Box("Laundry over railing",root,new Vector3(x-.4f,y+.65f,z-.76f),new Vector3(.65f,.8f,.018f),Material("FadedLaundry",null,new Color(.44f,.39f,.32f)),false);
         }
@@ -205,7 +205,7 @@ namespace ZeroRise.Editor
         static void WorkshopYard(Transform parent)
         {
             var root=Group("Workshop forecourt props",parent,new Vector3(55,.14f,-44)).transform;
-            for(int i=0;i<3;i++) Pallet(root,new Vector3(18,.19f*i,2));
+            for(int i=0;i<3;i++) Pallet(root,new Vector3(18,.17f*i,2));
             var rubber=Material("Rubber",null,new Color(.055f,.055f,.052f),.13f);
             for(int i=0;i<4;i++) Cylinder("Used tyre stack",root,new Vector3(20,.14f+i*.28f,2),.39f,.26f,rubber,true);
             var container=Group("Corrugated parts container",parent,new Vector3(75,.14f,-60),0).transform;

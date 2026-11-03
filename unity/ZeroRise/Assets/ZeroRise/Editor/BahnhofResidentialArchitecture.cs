@@ -134,7 +134,15 @@ namespace ZeroRise.Editor
                     float ridge=height+rise;
                     // Chimneys penetrate the roof: their bases are below the ridge.
                     B("Brick chimney stack",p,new Vector3(x,ridge+.10f,0),new Vector3(.65f,1.50f,.76f),brick);
-                    B("Chimney lead flashing",p,new Vector3(x,ridge-.015f,0),new Vector3(.95f,.08f,1.05f),metal);
+                    float slope=rise/(h.d*.5f+.325f);
+                    foreach(float side in new[]{-1f,1f})
+                    {
+                        const float flashingHalfDepth=.525f;
+                        float z=side*flashingHalfDepth*.5f;
+                        float y=ridge-slope*Mathf.Abs(z)+.007f;
+                        var flashing=B("Chimney lead flashing",p,new Vector3(x,y,z),new Vector3(.95f,.045f,flashingHalfDepth*Mathf.Sqrt(1+slope*slope)),metal);
+                        flashing.transform.localRotation=Quaternion.Euler(side*Mathf.Atan(slope)*Mathf.Rad2Deg,0,0);
+                    }
                     B("Chimney coping",p,new Vector3(x,ridge+.91f,0),new Vector3(.83f,.12f,.94f),lightStone);
                     B("Chimney flue dark opening",p,new Vector3(x,ridge+.976f,0),new Vector3(.46f,.014f,.50f),metal);
                 }
@@ -153,14 +161,16 @@ namespace ZeroRise.Editor
             {
                 float x=side*(h.w*.5f-.48f),z=-h.d*.5f-.15f;
                 Cylinder("BV2_Rainwater downpipe",p,new Vector3(x,height*.5f,z),.045f,height,metal);
-                foreach(float y in new[]{.6f,3.6f,6.6f,9.2f})if(y<height)B("Pipe wall bracket",p,new Vector3(x,y,z+.04f),new Vector3(.16f,.035f,.16f),metal);
+                foreach(float y in new[]{.6f,3.6f,6.6f,9.2f})if(y<height)B("Pipe wall bracket",p,new Vector3(x,y,z+.04f),new Vector3(.16f,.035f,.24f),metal);
+                if(h.style!=3)
+                    Beam("BV2_Rainwater gutter elbow",p,new Vector3(x,height+.005f,-h.d*.5f-.38f),new Vector3(x,height-.055f,z),.075f,metal);
                 B("Downpipe ground shoe",p,new Vector3(x,.12f,z-.04f),new Vector3(.15f,.22f,.22f),metal);
             }
             if(h.style==3||h.style==1&&seed%2==0)Balconies(p,h,seed,height);
             FacadeCorners(p,h,height,seed);
             RearEntrance(p,h,seed);
             // Mounting plates are measured from the actual facade plane.
-            BahnhofDetailKit.Plate(p,(seed+3).ToString(),new Vector3(1.13f,1.8f,-h.d*.5f-.047f),0,.29f,.35f,shopPaint,new Color(.86f,.84f,.72f));
+            BahnhofDetailKit.Plate(p,(seed+3).ToString(),new Vector3(1.13f,1.8f,-h.d*.5f-.025f),0,.29f,.35f,shopPaint,new Color(.86f,.84f,.72f));
             EntrancePoints.Add(p.TransformPoint(new Vector3(0,.015f,-h.d*.5f-1.5f)));
         }
         static Material Render(string id,Color colour)
@@ -181,6 +191,7 @@ namespace ZeroRise.Editor
             float x=h.w*.5f+.325f,z=h.d*.5f+.325f,ridgeX=x-z*.65f;
             var v=new[]{new Vector3(-x,eave,-z),new Vector3(x,eave,-z),new Vector3(x,eave,z),new Vector3(-x,eave,z),new Vector3(-ridgeX,eave+rise,0),new Vector3(ridgeX,eave+rise,0)};
             BahnhofDetailKit.Mesh("BV2_Roof_hip_"+h.id,parent,v,new[]{0,4,5,0,5,1,3,2,5,3,5,4,0,3,4,1,5,2},covering,true);
+            B("Closed hipped roof soffit",parent,new Vector3(0,eave-.065f,0),new Vector3(x*2,.13f,z*2),covering);
             foreach(int side in new[]{-1,1})
             {
                 B("Hipped roof eave fascia",parent,new Vector3(0,eave-.06f,side*z),new Vector3(x*2,.16f,.12f),covering);
@@ -192,18 +203,22 @@ namespace ZeroRise.Editor
         static void RoofCourses(Transform parent,House h,float eave,float rise,Material covering)
         {
             float halfX=h.w*.5f+.325f,halfZ=h.d*.5f+.325f,ridgeX=halfX-halfZ*.65f;
+            float roofAngle=Mathf.Atan(rise/halfZ)*Mathf.Rad2Deg;
             var joint=Material("BV3_RoofCourseShadow",null,new Color(.105f,.115f,.115f),.08f);
             for(float distance=.32f;distance<halfZ-.15f;distance+=.38f)foreach(int side in new[]{-1,1})
             {
-                float z=side*distance,y=eave+rise*(1-distance/halfZ)+.015f;
+                float z=side*distance,y=eave+rise*(1-distance/halfZ)+.004f;
                 float extent=h.style==2?ridgeX+(halfX-ridgeX)*distance/halfZ:halfX;
-                B("Fine roof tile course",parent,new Vector3(0,y,z),new Vector3(extent*2,.018f,.023f),joint);
+                var course=B("Fine roof tile course",parent,new Vector3(0,y,z),new Vector3(extent*2,.018f,.023f),joint);
+                course.transform.localRotation=Quaternion.Euler(side*roofAngle,0,0);
             }
             foreach(int side in new[]{-1,1})
             {
                 float z=side*(halfZ-.65f),y=eave+rise*.65f/halfZ+.13f;
                 B("Roof snow guard rail",parent,new Vector3(0,y,z),new Vector3(h.w-.5f,.045f,.045f),metal);
-                for(float x=-h.w*.5f+1;x<h.w*.5f;x+=2.1f)Beam("BV3_Snow guard support",parent,new Vector3(x,y-.13f,z+.10f*side),new Vector3(x,y,z),.025f,metal);
+                float footZ=z+.10f*side,footY=eave+rise*(1-Mathf.Abs(footZ)/halfZ)-.01f;
+                for(float x=-h.w*.5f+1;x<h.w*.5f;x+=2.1f)
+                    Beam("BV3_Snow guard support",parent,new Vector3(x,footY,footZ),new Vector3(x,y,z),.025f,metal);
             }
         }
         static void RoofDormers(Transform parent,House h,float height,float rise,Material covering,Material wall)
@@ -279,13 +294,14 @@ namespace ZeroRise.Editor
             SaveFacade(face,id,vertices,uv,triangles,finish);
             if(shop!=null)
             {
+                B("Shop sign fixing batten",face,new Vector3(0,2.73f,-.018f),new Vector3(width-.84f,.12f,.06f),metal);
                 BahnhofDetailKit.Plate(face,shop,new Vector3(0,2.73f,-.065f),0,width-.64f,.40f,shopPaint,new Color(.88f,.84f,.70f));
                 foreach(int side in new[]{-1,1})
                 {
                     float panelWidth=width*.5f-1.10f,x=side*(width*.25f+.30f);
-                    B("Shop awning cassette",face,new Vector3(x,2.47f,-.18f),new Vector3(panelWidth,.12f,.28f),metal);
+                    B("Shop awning cassette",face,new Vector3(x,2.47f,-.18f),new Vector3(panelWidth,.12f,.39f),metal);
                     var awning=B("Faded shop awning",face,new Vector3(x,2.37f,-.72f),new Vector3(panelWidth,.055f,1.22f),shopPaint);awning.transform.localRotation=Quaternion.Euler(-8,0,0);
-                    foreach(int edge in new[]{-1,1})Beam("BV2_Awning bracket",face,new Vector3(x+edge*(panelWidth*.5f-.12f),1.93f,-.06f),new Vector3(x+edge*(panelWidth*.5f-.12f),2.30f,-1.15f),.025f,metal);
+                    foreach(int edge in new[]{-1,1})Beam("BV2_Awning bracket",face,new Vector3(x+edge*(panelWidth*.5f-.12f),1.93f,.01f),new Vector3(x+edge*(panelWidth*.5f-.12f),2.30f,-1.15f),.025f,metal);
                 }
             }
         }
@@ -312,6 +328,7 @@ namespace ZeroRise.Editor
                 foreach(int side in new[]{-1,1})
                 {
                     float at=x+side*(w*.5f+.26f);
+                    foreach(float anchor in new[]{-.38f,.38f})B("Shutter wall hinge",face,new Vector3(at,y+anchor*h,-.025f),new Vector3(.065f,.085f,.075f),metal);
                     B("Folded exterior shutter",face,new Vector3(at,y,-.065f),new Vector3(.38f,h+.08f,.055f),shutters);
                     for(float sy=-h*.42f;sy<h*.45f;sy+=.18f)B("Shutter ventilation slat",face,new Vector3(at,y+sy,-.098f),new Vector3(.32f,.032f,.015f),frame);
                 }
@@ -386,7 +403,9 @@ namespace ZeroRise.Editor
                 foreach(float x in new[]{-width*.25f,width*.25f})
                 {Cylinder("BV2_Workshop roof vent",p,new Vector3(x,height+1.2f,0),.22f,1.2f,metal);B("Vent rain cap",p,new Vector3(x,height+1.85f,0),new Vector3(.65f,.10f,.65f),metal);}
             }
-            BahnhofDetailKit.Plate(p,garage?"GÜTERHOF · MIETERGARAGEN":"BAHNWERK · SERVICE & REPARATUR",new Vector3(0,height-.27f,-depth*.5f-.17f),0,garage?7.8f:12,.45f,shopPaint,new Color(.88f,.84f,.70f));
+            float signWidth=garage?7.8f:12;
+            B("Industrial sign mounting batten",p,new Vector3(0,height-.27f,-depth*.5f-.0725f),new Vector3(signWidth-.22f,.14f,.16f),metal);
+            BahnhofDetailKit.Plate(p,garage?"GÜTERHOF · MIETERGARAGEN":"BAHNWERK · SERVICE & REPARATUR",new Vector3(0,height-.27f,-depth*.5f-.17f),0,signWidth,.45f,shopPaint,new Color(.88f,.84f,.70f));
             foreach(int side in new[]{-1,1})Cylinder("BV2_Workshop downpipe",p,new Vector3(side*(width*.5f-.24f),height*.5f,-depth*.5f-.17f),.05f,height,metal);
             EntrancePoints.Add(p.TransformPoint(new Vector3(garage?width/8:0,.015f,-depth*.5f-1.5f)));
         }
@@ -405,6 +424,7 @@ namespace ZeroRise.Editor
                 B("Freight sliding door",p,new Vector3(x,1.55f,-5.10f),new Vector3(3.2f,2.8f,.12f),wood);
                 foreach(float side in new[]{-1f,1})Beam("BV2_Freight diagonal door brace",p,new Vector3(x-1.4f,side<0?.3f:2.8f,-5.18f),new Vector3(x+1.4f,side<0?2.8f:.3f,-5.18f),.07f,metal);
             }
+            B("Freight hall sign mounting batten",p,new Vector3(0,3.75f,-5.035f),new Vector3(8.75f,.12f,.08f),metal);
             BahnhofDetailKit.Plate(p,"GÜTERHALLE · ATELIER & LAGER",new Vector3(0,3.75f,-5.09f),0,9,.42f,shopPaint,new Color(.88f,.84f,.70f));
             EntrancePoints.Add(p.TransformPoint(new Vector3(2.5f,.015f,-7)));
         }
