@@ -18,6 +18,7 @@ namespace ZeroRise
         [Tooltip("Minimum camera EV at night; the solar exposure curve can remain slightly higher.")]
         public float nightExposureEV=0;
         public int RainDropCount { get; private set; }
+        public float SnowBlend { get; private set; }
         public int WetMaterialCount => wetMaterials.Count;
         WeatherSurfaceWater surfaceWater;
         public int PuddleCount => surfaceWater?surfaceWater.PuddleCount:0;
@@ -42,7 +43,7 @@ namespace ZeroRise
         Texture2D dippedBeamCookie,streetCookie;
         const int DropLimit=1024, AtlasSize=512;
         static readonly Vector4 AtlasBounds=new Vector4(-160,-150,1f/480,1f/540);
-        struct Drop { public Vector3 position;public float floor,speed,length,width,alpha;public bool alive; }
+        struct Drop { public Vector3 position;public float floor,speed,length,width,alpha;public bool alive,snow; }
         sealed class WetMaterial
         {
             public Material material; public Color[] colors; public float[] smoothness,min,max;
@@ -237,6 +238,7 @@ namespace ZeroRise
                 ||name.StartsWith("OverpassGround_",StringComparison.Ordinal)&&!name.Contains("Distant")
                 ||name.StartsWith("GroundDetail_",StringComparison.Ordinal)||name=="UrbanYard"
                 ||name.StartsWith("BV5_Road_",StringComparison.Ordinal)||name=="BV5_Station_stone_setts"||name=="BV5_LayeredGardenGround"
+                ||name=="BV6_AltitudeAndSlopeBiomes"||name=="BV5_Regional_weathered_rock"
                 ||name=="BV5_Planted_soil"||name=="BV5_KerbGranite"||name=="BV5_DarkBasalt";
         }
         void CreateNightLighting()
@@ -427,7 +429,7 @@ namespace ZeroRise
             }
             if(fog!=null)
             {
-                float targetDistance=Mathf.Lerp(Mathf.Lerp(600,240,cloud),85,world.FogBlend),targetHeight=Mathf.Lerp(55,9,world.FogBlend);
+                float targetDistance=Mathf.Lerp(Mathf.Lerp(1500,240,cloud),85,world.FogBlend),targetHeight=Mathf.Lerp(2400,70,world.FogBlend);
                 float blend=1-Mathf.Exp(-.05f/4);fogDistance=Mathf.Lerp(fogDistance,targetDistance,blend);fogHeight=Mathf.Lerp(fogHeight,targetHeight,blend);
                 fog.meanFreePath.Override(fogDistance);fog.tint.Override(Color.Lerp(new Color(.79f,.86f,.94f),new Color(.63f,.67f,.70f),cloud));fog.maximumHeight.Override(fogHeight);
             }
@@ -486,6 +488,7 @@ namespace ZeroRise
         {
             var world=WorldWeatherClock.Instance;if(!rainMesh||!listener||!world)return;
             float dt=Mathf.Min(.08f,Time.unscaledDeltaTime),rain=world.RainIntensity;
+            SnowBlend=WestbruchLandscapeProfile.Fade(225,290,listener.position.y)*WestbruchLandscapeProfile.Fade(402,615,listener.position.x);
             int target=Mathf.RoundToInt(rain*DropLimit);spawnRemainder+=rain*900*dt;
             int budget=Mathf.Min(24,Mathf.FloorToInt(spawnRemainder));spawnRemainder-=budget;
             RainDropCount=0;var cameraRight=listener.right;Vector3 wind=new Vector3(.65f,0,.22f)*world.WindStrength*world.GustStrength;
@@ -495,20 +498,22 @@ namespace ZeroRise
                 if(drop.alive)
                 {
                     drop.position+=(Vector3.down*drop.speed+wind)*dt;
-                    if(drop.position.y<drop.floor+drop.length&&rain>.05f&&surfaceWater)surfaceWater.Impact(new Vector3(drop.position.x,drop.floor,drop.position.z));
+                    if(drop.position.y<drop.floor+drop.length&&!drop.snow&&rain>.05f&&surfaceWater)surfaceWater.Impact(new Vector3(drop.position.x,drop.floor,drop.position.z));
                     if(drop.position.y<drop.floor+drop.length||Vector3.SqrMagnitude(drop.position-listener.position)>45*45||rain<.005f)drop.alive=false;
                 }
                 if(!drop.alive&&budget>0&&RainDropCount<target)
                 {
                     budget--;Vector3 p=listener.position+new Vector3(Range(-23,23),Range(3,14),Range(-23,23));
-                    if(Physics.Raycast(new Vector3(p.x,100,p.z),Vector3.down,out var hit,160,1,QueryTriggerInteraction.Ignore)&&p.y>hit.point.y+.7f)
+                    if(Physics.Raycast(new Vector3(p.x,Mathf.Max(100,p.y+30),p.z),Vector3.down,out var hit,Mathf.Max(160,p.y+100),1,QueryTriggerInteraction.Ignore)&&p.y>hit.point.y+.7f)
                     {
                         float stop=hit.point.y;
                         // Conservative second sample clips wind drift entering
                         // a roof edge before its next particle respawn.
                         Vector3 destination=p+wind*1.5f;
-                        if(Physics.Raycast(new Vector3(destination.x,100,destination.z),Vector3.down,out var ahead,160,1,QueryTriggerInteraction.Ignore))stop=Mathf.Max(stop,ahead.point.y);
-                        drop=new Drop{position=p,floor=stop,speed=Range(13,18),length=Range(.12f,.32f),width=Range(.005f,.010f),alpha=Range(.18f,.38f),alive=p.y>stop+.7f};
+                        if(Physics.Raycast(new Vector3(destination.x,Mathf.Max(100,p.y+30),destination.z),Vector3.down,out var ahead,Mathf.Max(160,p.y+100),1,QueryTriggerInteraction.Ignore))stop=Mathf.Max(stop,ahead.point.y);
+                        bool snow=Range(0,1)<SnowBlend;
+                        if(WestbruchLandscapeProfile.LakeRadius(p.x,p.z)<1)stop=Mathf.Max(stop,WestbruchLandscapeProfile.LakeLevel);
+                        drop=new Drop{position=p,floor=stop,speed=snow?Range(1.2f,2.4f):Range(13,18),length=snow?Range(.025f,.065f):Range(.12f,.32f),width=snow?Range(.015f,.035f):Range(.005f,.010f),alpha=snow?Range(.5f,.85f):Range(.18f,.38f),alive=p.y>stop+.7f,snow=snow};
                     }
                 }
                 if(drop.alive)

@@ -22,6 +22,14 @@ namespace ZeroRise
             Time.timeScale=1;yield return new WaitForSeconds(6);camera=Camera.main;player=FindAnyObjectByType<ThirdPersonMotor>();
             var clock=WorldWeatherClock.Instance;clock.SuppressSave=true;clock.enabled=false;clock.SetWeather(WeatherKind.Clear);clock.SetSpeed(20);clock.Advance(120);clock.SetSpeed(1);clock.SetHour(15.5f);
             var orbit=camera.GetComponent<OrbitCamera>();if(orbit)orbit.enabled=false;player.enabled=false;
+            if (Environment.GetCommandLineArgs().Contains("-landscape-review"))
+            {
+                foreach(var renderer in player.GetComponentsInChildren<Renderer>())renderer.enabled=false;
+                yield return LandscapeReview();
+                Check("No runtime errors",errors==0,errors.ToString());
+                File.WriteAllText(Path.Combine(output,"bahnhof-validation.txt"),"Passed: "+passed+"\n"+string.Join("\n",report));
+                Application.Quit(passed?0:1);yield break;
+            }
             if (Environment.GetCommandLineArgs().Contains("-meadow-review"))
             {
                 foreach (var renderer in player.GetComponentsInChildren<Renderer>()) renderer.enabled = false;
@@ -281,6 +289,65 @@ namespace ZeroRise
             }
             Check(title,Vector2.Distance(new Vector2(target.x,target.z),new Vector2(player.transform.position.x,player.transform.position.z))<.6f&&Mathf.Abs(player.transform.position.y-target.y)<.4f,player.transform.position.ToString("F2"));
         }
+        IEnumerator LandscapeFrameTiming()
+        {
+            // Measure after shaders, visibility and reflection history have settled.
+            yield return new WaitForSeconds(3);
+            var frameTimes=new List<float>();float end=Time.realtimeSinceStartup+5;
+            while(Time.realtimeSinceStartup<end){yield return null;frameTimes.Add(Time.unscaledDeltaTime);}
+            frameTimes.Sort();float average=frameTimes.Average();float p95=frameTimes[Mathf.Min(frameTimes.Count-1,Mathf.FloorToInt(frameTimes.Count*.95f))];
+            report.Add($"MEASURE Lake overlook {Screen.width}x{Screen.height}: {1/average:F1} FPS average, p95 {p95*1000:F1} ms, {frameTimes.Count} frames");
+            Debug.Log(report[report.Count-1]);
+        }
+
+        IEnumerator LandscapeReview()
+        {
+            var region=GameObject.Find("BV6_Regional landscape");Check("Regional landscape saved",region);
+            var trees=region.GetComponentsInChildren<Transform>().Where(t=>t.name.StartsWith("BV6_Rooted spruce ")||t.name.StartsWith("BV6_Rooted broadleaf ")).ToArray();
+            int floating=0;foreach(var tree in trees)
+            {
+                var hits=Physics.RaycastAll(tree.position+Vector3.up*25,Vector3.down,40,1).Where(h=>h.collider is MeshCollider&&(h.collider.name.StartsWith("BV3_Ground")||h.collider.name.StartsWith("BV6_Continuous"))).OrderBy(h=>h.distance).ToArray();
+                if(hits.Length==0||Mathf.Abs(tree.position.y+.10f-hits[0].point.y)>.025f)floating++;
+            }
+            Check("Woodland roots meet terrain",trees.Length>300&&floating==0,$"Trees {trees.Length}; floating {floating}");
+            var lake=FindAnyObjectByType<RegionalLakeWeather>();Check("Lake with weather response",lake);
+            int uncovered=0;for(int i=0;i<=32;i++)foreach(int side in new[]{-1,1})
+            {
+                float fraction=i/32f;
+                foreach(var point in new[]{new Vector3(730+170*side,14,Mathf.Lerp(230,490,fraction)),new Vector3(Mathf.Lerp(560,900,fraction),14,360+130*side)})
+                    if(!Physics.Raycast(point+Vector3.up*800,Vector3.down,out var h,1000,1)||h.point.y<14.35f)uncovered++;
+            }
+            Check("Lake perimeter buried beneath natural banks",uncovered==0,uncovered.ToString());
+            int seams=0;foreach(float z in new[]{40f,120,240,360,480,600,800,1200,1700})
+            {if(!Physics.Raycast(new Vector3(599.99f,900,z),Vector3.down,out var a,1000,1)||!Physics.Raycast(new Vector3(600.01f,900,z),Vector3.down,out var b,1000,1)||Mathf.Abs(a.point.y-b.point.y)>.10f)seams++;}
+            Check("Continuous district to mountain ground seam",seams==0,seams.ToString());
+            Check("Distant landscape visible",camera.farClipPlane>=3500,camera.farClipPlane.ToString());
+            int routeSamples=0,routeMissing=0;
+            foreach(var p in new[]{new Vector3(440,900,200),new Vector3(478,900,221),new Vector3(511,900,248),new Vector3(536,900,270),new Vector3(558,900,293),new Vector3(578,900,318)})
+            {
+                if(!Physics.Raycast(p,Vector3.down,out var support,1000,1)||support.normal.y<.71f){routeMissing++;continue;}
+                Place(support.point+Vector3.up*.1f);float until=Time.unscaledTime+.5f;
+                while(Time.unscaledTime<until){player.GetComponent<CharacterController>().Move(Vector3.down*4*Time.deltaTime);yield return null;}
+                if(Mathf.Abs(player.transform.position.y-support.point.y)>.3f)routeMissing++;routeSamples++;
+            }
+            Check("Walking surface supports lake approach",routeMissing==0&&routeSamples==6,$"Samples {routeSamples}; failures {routeMissing}");
+            yield return Shot("01-city-to-foothills",new Vector3(277,7,166),new Vector3(1150,120,650));
+            yield return Shot("02-lake-overlook",new Vector3(515,105,195),new Vector3(790,25,445));
+            yield return LandscapeFrameTiming();
+            yield return Shot("03-region-aerial",new Vector3(470,410,40),new Vector3(1120,120,820));
+            Physics.Raycast(new Vector3(620,900,335),Vector3.down,out var bank,1000,1);
+            yield return Shot("04-shore-at-eye-level",bank.point+Vector3.up*1.8f,new Vector3(850,24,385));
+            Physics.Raycast(new Vector3(1490,900,440),Vector3.down,out var summit,1000,1);
+            Check("High mountain has snow biome",summit.point.y>290,summit.point.ToString());
+            yield return Shot("05-high-country",summit.point+new Vector3(-15,35,-20),new Vector3(1100,220,1100));
+            var clock=WorldWeatherClock.Instance;clock.SetWeather(WeatherKind.Storm);clock.Advance(120);clock.SetHour(15.5f);
+            yield return Shot("06-lake-storm",bank.point+Vector3.up*2,new Vector3(850,25,385));
+            yield return Shot("07-mountain-snowfall",summit.point+Vector3.up*3,summit.point+new Vector3(30,4,40));
+            var weather=FindAnyObjectByType<WestbruchWeatherVisuals>();
+            Check("Snow replaces rain at high altitude",weather.SnowBlend>.95f&&weather.RainDropCount>0,$"Snow {weather.SnowBlend}; particles {weather.RainDropCount}");
+            var water=lake.GetComponent<UnityEngine.Rendering.HighDefinition.WaterSurface>();Check("Storm increases lake wind",water.largeWindSpeed>15,water.largeWindSpeed.ToString());
+        }
+
         IEnumerator Shot(string name,Vector3 eye,Vector3 target){camera.transform.position=eye;camera.transform.LookAt(target);yield return new WaitForSeconds(2);ScreenCapture.CaptureScreenshot(Path.Combine(output,name+".png"));yield return new WaitForSeconds(.25f);}
     }
 }

@@ -49,7 +49,7 @@ namespace ZeroRise.Editor
                 var sceneText = File.ReadAllText(scenePath);
                 var release = new Release
                 {
-                    feature = sceneText.Contains("Bahnhofsviertel")
+                    feature = sceneText.Contains("BV6_Regional landscape") ? "Westbruch – Waldsee und Bergland" : sceneText.Contains("Bahnhofsviertel")
                         ? "Westbruch and Bahnhofsviertel"
                         : sceneText.Contains("m_Name: Westbruch weather and daily rhythm")
                         ? "Westbruch weather and daily rhythm"

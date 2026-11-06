@@ -18,3 +18,11 @@ planting arrangements and street fixtures are authored in the project.
 Design references (not redistributed as art):
 https://gruen-berlin.de/projekte/urbane-freiraeume/vorplaetze-ostkreuz/planung-entwicklung
 https://www.ipach-mayerhofer.de/bahnhofsvorplatz
+
+Regional landscape additions, downloaded 2026-11-06 (2K JPG diffuse,
+OpenGL normal, roughness; CC0):
+- Rock Face 03 — https://polyhaven.com/a/rock_face_03 (Dario Barresi / Rico Cilliers)
+- Snow 02 — https://polyhaven.com/a/snow_02 (Rob Tuytel)
+
+Powered by Poly Haven. The regional height field, lake basin, biome weights,
+three spruce variants, eroded boulders and planting layout are authored in-project.

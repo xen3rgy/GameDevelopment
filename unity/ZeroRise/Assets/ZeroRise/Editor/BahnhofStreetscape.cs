@@ -36,7 +36,7 @@ namespace ZeroRise.Editor
             Physics.SyncTransforms();
             Debug.Log("BV5 streetscape complete: PBR roads and setts, chamfered stone kerbs, drainage, tree grilles, layered soil, rooted planting and new tree meshes; plants "+plantRoots.Count);
         }
-        static void Import(string id)
+        internal static void Import(string id)
         {
             foreach(var kind in new[]{"diff","nor_gl","rough"})
             {
@@ -55,7 +55,7 @@ namespace ZeroRise.Editor
             }
             AssetDatabase.ImportAsset(mask,ImportAssetOptions.ForceSynchronousImport);var importer=(TextureImporter)AssetImporter.GetAtPath(mask);importer.sRGBTexture=false;importer.mipmapEnabled=true;importer.anisoLevel=8;importer.maxTextureSize=2048;importer.SaveAndReimport();
         }
-        static Material Surface(string label,string id,Color color,float normal,bool road=false)
+        internal static Material Surface(string label,string id,Color color,float normal,bool road=false)
         {
             var mat=Material("BV5_"+label.Replace(' ','_'),null,color,.15f);
             mat.shader=Shader.Find("HDRP/Lit");mat.SetTexture("_BaseColorMap",Tex(id,"diff"));mat.SetTexture("_NormalMap",Tex(id,"nor_gl"));mat.SetTexture("_MaskMap",AssetDatabase.LoadAssetAtPath<Texture2D>(Art+id+"_mask.png"));

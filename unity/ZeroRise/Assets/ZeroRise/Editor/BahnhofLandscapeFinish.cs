@@ -128,7 +128,7 @@ namespace ZeroRise.Editor
             return relief * SmoothRange(2, 7, joineryClearance);
         }
 
-        static float ContextHeight(float x, float z)
+        internal static float ContextHeight(float x, float z)
         {
             float depth = Mathf.Max(x - 300, z - 364, 30 - z, 0);
             if (z < 58) depth = Mathf.Max(x - 300, 0);
@@ -137,7 +137,7 @@ namespace ZeroRise.Editor
             // behind it. This avoids a second exposed edge alongside the track.
             rise *= Mathf.SmoothStep(0, 1, Mathf.InverseLerp(134, 185, x));
             float land = Mathf.PerlinNoise(x * .011f + 19, z * .012f + 7) * 8;
-            return -.055f + rise * (3.5f + land) + ContextRelief(x, z);
+            return WestbruchLandscapeProfile.Height(x, z, -.055f + rise * (3.5f + land) + ContextRelief(x, z));
         }
 
         static void ContinueLandscape()
@@ -178,8 +178,8 @@ namespace ZeroRise.Editor
             GroundPatch("North continued landscape", 134, 300, 364, 600);
             GroundPatch("South continued landscape", 166, 300, 30, 58);
             GroundPatch("South horizon land", 200, 600, -1800, 30, 32);
-            GroundPatch("Far east horizon land", 600, 1800, -1800, 1800, 32);
-            GroundPatch("Far north horizon land", 134, 600, 600, 1800, 32);
+            GroundPatch("Far east horizon land", 600, 1800, -1800, 1800, 6);
+            GroundPatch("Far north horizon land", 134, 600, 600, 1800, 6);
             ContinueNorthwestLandscape();
         }
 
@@ -243,7 +243,7 @@ namespace ZeroRise.Editor
             // landforms. Adjacent meshes share its boundary samples.
             float[] EastRows() => Axis(30, 364, 3).Concat(Axis(364, 600, 5)).Distinct().OrderBy(v => v).ToArray();
             if (id == "East continued landscape") zs = EastRows();
-            if (id == "Far east horizon land") zs = Axis(-1800, 30, 32).Concat(EastRows()).Concat(Axis(600, 1800, 32)).Distinct().OrderBy(v => v).ToArray();
+            if (id == "Far east horizon land") zs = Axis(-1800, 30, 32).Concat(EastRows()).Concat(Axis(600, 1800, 6)).Distinct().OrderBy(v => v).ToArray();
             if (id == "Far north horizon land") xs = Axis(134, 300, 5).Concat(Axis(300, 600, 3)).Distinct().OrderBy(v => v).ToArray();
             if (id == "South horizon land") xs = Axis(200, 300, 5).Concat(Axis(300, 600, 3)).Distinct().OrderBy(v => v).ToArray();
             int nx = xs.Length - 1, nz = zs.Length - 1;
