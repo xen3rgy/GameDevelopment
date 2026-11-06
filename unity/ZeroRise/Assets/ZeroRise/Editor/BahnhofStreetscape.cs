@@ -32,7 +32,7 @@ namespace ZeroRise.Editor
             iron=Material("BV5_OxidizedIron",null,new Color(.17f,.19f,.18f),.16f,.65f);
             edge=Material("BV5_DarkBasalt","concrete",new Color(.25f,.27f,.27f),.10f);
             repair=Surface("Road repairs","asphalt_02",new Color(.53f,.56f,.57f),.3f,true);
-            soil=Ground();BuildUnderstory();ReplaceSurfaces();RegroundVegetation();StreetEdges();RoadDetails();SquareBands();TreeGrilles();PlantBeds();GardenMargins();ReplaceTrees();BakePlants();
+            soil=Ground();BuildUnderstory();ReplaceSurfaces();RegroundVegetation();StreetEdges();RoadDetails();SquareBands();TreeGrilles();PlantBeds();GardenMargins();ReplaceTrees();PlantMeadow();BakePlants();
             Physics.SyncTransforms();
             Debug.Log("BV5 streetscape complete: PBR roads and setts, chamfered stone kerbs, drainage, tree grilles, layered soil, rooted planting and new tree meshes; plants "+plantRoots.Count);
         }
@@ -65,14 +65,15 @@ namespace ZeroRise.Editor
         static Texture2D Tex(string id,string kind)=>AssetDatabase.LoadAssetAtPath<Texture2D>(Art+id+"_"+kind+".jpg");
         static Material Ground()
         {
-            var mat=Material("BV5_LayeredGardenGround",null,Color.white,.05f);mat.shader=Shader.Find("HDRP/LayeredLit");mat.SetFloat("_LayerCount",3);mat.SetFloat("_VertexColorMode",1);mat.SetFloat("_UseHeightBasedBlend",0);mat.SetTexture("_LayerMaskMap",Texture2D.whiteTexture);
-            mat.SetFloat("_UVBlendMask",0);mat.SetVector("_UVMappingMaskBlendMask",new Vector4(1,0,0,0));
-            var ids=new[]{"forest_ground_04","leafy_grass","brown_mud_leaves_01"};var tiles=new[]{3.1f,2f,2.7f};
+            var mat=Material("BV5_LayeredGardenGround",null,Color.white,.05f);mat.shader=Shader.Find("HDRP/LayeredLit");mat.SetFloat("_LayerCount",3);mat.SetFloat("_VertexColorMode",1);mat.SetFloat("_UseHeightBasedBlend",0);
+            BahnhofGroundSurface.SetBlendMask(mat);
+            var ids=new[]{"forest_ground_04","leafy_grass","brown_mud_leaves_01"};var tiles=new[]{2.9f,2.25f,3.6f};
+            var tints = new[] { new Color(.72f,.65f,.53f), new Color(.59f,.70f,.53f), new Color(.51f,.47f,.41f) };
             for(int i=0;i<3;i++)
             {
-                mat.SetColor("_BaseColor"+i,new[]{new Color(.72f,.70f,.64f),new Color(.57f,.73f,.54f),new Color(.62f,.61f,.56f)}[i]);
+                mat.SetColor("_BaseColor"+i,tints[i]);
                 mat.SetTexture("_BaseColorMap"+i,Tex(ids[i],"diff"));mat.SetTextureScale("_BaseColorMap"+i,Vector2.one/tiles[i]);mat.SetTextureOffset("_BaseColorMap"+i,new Vector2(i*.38f,i*.73f));
-                mat.SetFloat("_UVBase"+i,1);mat.SetVector("_UVMappingMask"+i,new Vector4(0,1,0,0));mat.SetTexture("_NormalMap"+i,Tex(ids[i],"nor_gl"));mat.SetFloat("_NormalScale"+i,.25f);
+                mat.SetFloat("_UVBase"+i,1);mat.SetVector("_UVMappingMask"+i,new Vector4(0,1,0,0));mat.SetTexture("_NormalMap"+i,Tex(ids[i],"nor_gl"));mat.SetFloat("_NormalScale"+i,i==1?.36f:.58f);
                 mat.SetTexture("_MaskMap"+i,AssetDatabase.LoadAssetAtPath<Texture2D>(Art+ids[i]+"_mask.png"));mat.SetFloat("_SmoothnessRemapMin"+i,.015f);mat.SetFloat("_SmoothnessRemapMax"+i,.16f);mat.SetFloat("_Metallic"+i,0);
             }
             HDMaterial.ValidateMaterial(mat);EditorUtility.SetDirty(mat);return mat;
@@ -89,8 +90,8 @@ namespace ZeroRise.Editor
                     for(int i=0;i<v.Length;i++)
                     {
                         var p=f.transform.TransformPoint(v[i]);uv[i]=new Vector2(p.x,p.z);
-                        float n=Mathf.PerlinNoise(p.x*.077f+53,p.z*.061f+41),detail=Mathf.PerlinNoise(p.x*.31f+4,p.z*.28f);
-                        colors[i]=new Color(Mathf.Clamp01(.48f+n*.34f+detail*.13f),.10f+(.5f-n)*.12f,0,1);
+                        float lush = Mathf.PerlinNoise(p.x * .031f + 53, p.z * .037f + 41);
+                        colors[i] = new Color(Mathf.Lerp(.79f, 1f, lush), Mathf.Lerp(1f, .75f, lush), 0, 1);
                     }
                     m.uv2=uv;m.colors=colors;m=Store(m,"Ground_"+name+"_"+f.transform.position.z);f.sharedMesh=m;var c=f.GetComponent<MeshCollider>();if(c)c.sharedMesh=m;r.sharedMaterial=soil;
                 }
@@ -285,6 +286,78 @@ namespace ZeroRise.Editor
                 {if(Mathf.Abs(dx)<2.2f)continue;Plant(x+dx,side*(160+dz),R(.55f,.85f),rng.NextDouble()<.28?5:0);}
             }
         }
+        static void PlantMeadow()
+        {
+            var random = new System.Random(306114);
+            float Range(float min, float max) => min + (float)random.NextDouble() * (max - min);
+            var lowGrass = new[] { BuildMeadowGrass(0), BuildMeadowGrass(1), BuildMeadowGrass(2) };
+            var sedges = Enumerable.Range(0, 3).Select(variant => WestbruchFloraMeshes.Get(1, variant)).ToArray();
+            var flowers = Enumerable.Range(0, 3).Select(variant => WestbruchFloraMeshes.Get(5, variant)).ToArray();
+            var plantRadii = lowGrass.Concat(sedges).Concat(flowers).ToDictionary(mesh => mesh,
+                mesh => mesh.vertices.Max(vertex => new Vector2(vertex.x, vertex.z).magnitude));
+            var occupied = new HashSet<Vector2Int>(plantRoots.Select(p => new Vector2Int(Mathf.FloorToInt(p.x * 3), Mathf.FloorToInt(p.y * 3))));
+
+            void Place(float x, float z, float fade)
+            {
+                var (grass, damp) = BahnhofGroundSurface.LayersAt(x, z);
+                float pockets = Mathf.PerlinNoise(x * .22f + 23, z * .17f + 19);
+                float mix = grass * .72f + pockets * .28f;
+                float cover = Mathf.SmoothStep(.035f, .97f, Mathf.InverseLerp(.35f, .76f, mix));
+                if (Range(0, 1) > cover * fade || BahnhofGroundSurface.TrackWear(x, z) > .35f) return;
+
+                var cell = new Vector2Int(Mathf.FloorToInt(x * 3), Mathf.FloorToInt(z * 3));
+                if (occupied.Contains(cell) || !MeadowSoil(x, z, out var ground)) return;
+                float pick = Range(0, 1);
+                var variants = damp > .22f && pick < .22f ? sedges : pockets > .55f && pick > .966f ? flowers : lowGrass;
+                var mesh = variants[random.Next(variants.Length)];
+                float width = Range(.76f, 1.34f), height = Range(.62f, 1.25f);
+                var scale = new Vector3(width, height, width * Range(.87f, 1.10f));
+                float lean = new Vector2(ground.normal.x, ground.normal.z).magnitude;
+                float radius = plantRadii[mesh] * Mathf.Max(scale.x, scale.z) + mesh.bounds.max.y * height * lean + .035f;
+                bool FollowGround(float dx, float dz) => MeadowSoil(x + dx, z + dz, out var sample) &&
+                    Mathf.Abs(Vector3.Dot(sample.point - ground.point, ground.normal)) < .03f;
+                if (!FollowGround(-radius, 0) || !FollowGround(radius, 0) || !FollowGround(0, -radius) || !FollowGround(0, radius) ||
+                    Physics.CheckSphere(ground.point + ground.normal * (radius + .12f), radius, ~0, QueryTriggerInteraction.Ignore)) return;
+
+                var rotation = Quaternion.FromToRotation(Vector3.up, ground.normal) * Quaternion.Euler(0, Range(0, 360), 0);
+                var position = ground.point - Vector3.up * .035f;
+                plants.Add(new CombineInstance { mesh = mesh, transform = Matrix4x4.TRS(position, rotation, scale) });
+                plantRoots.Add(new Vector2(x, z));
+                plantHeights.Add(new Vector2(position.y, 1 / mesh.bounds.max.y));
+                occupied.Add(cell);
+            }
+
+            Physics.SyncTransforms();
+            int start = plants.Count;
+            for (int i = 0; i < 10200 && plants.Count - start < 2450; i++)
+            {
+                float x = Range(254, 286), z = Range(101, 170);
+                float edge = Mathf.Min(x - 254, 286 - x, z - 101, 170 - z);
+                Place(x, z, Mathf.SmoothStep(.46f, 1.10f, Mathf.InverseLerp(0, 5, edge)));
+            }
+            int depotCover = plants.Count - start;
+
+            // Farther out, fade coverage towards the larger unbuilt fields.
+            for (int i = 0; i < 14000 && plants.Count - start - depotCover < 3900; i++)
+            {
+                bool east = i % 3 != 0;
+                float x = east ? Range(298, 458) : Range(151, 298);
+                float z = east ? Range(85, 438) : Range(328, 444);
+                float distance = east ? x - 298 : z - 328;
+                float fade = 1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(east ? 67 : 54, east ? 160 : 116, distance));
+                Place(x, z, fade);
+            }
+            Debug.Log($"BV5 rooted meadow cover: {depotCover} near the depot and {plants.Count - start - depotCover} across the wider landscape.");
+        }
+        static bool MeadowSoil(float x, float z, out RaycastHit hit)
+        {
+            if (!Physics.Raycast(new Vector3(x, 35, z), Vector3.down, out hit, 70, ~0, QueryTriggerInteraction.Ignore) || hit.normal.y < .86f)
+                return false;
+            string name = hit.collider.name;
+            return name.StartsWith("BV2_Surface earth", StringComparison.Ordinal) ||
+                name.StartsWith("BV3_Ground East continued landscape", StringComparison.Ordinal) ||
+                name.StartsWith("BV3_Ground North continued landscape", StringComparison.Ordinal);
+        }
         static void RegroundVegetation()
         {
             // BV3 places these roots before BV4 grades the neighbouring land.
@@ -404,10 +477,40 @@ namespace ZeroRise.Editor
                 var mesh=new Mesh();mesh.SetVertices(v);mesh.SetUVs(0,uv);mesh.SetColors(colors);mesh.SetTriangles(t,0);mesh.RecalculateNormals();mesh.RecalculateTangents();mesh.RecalculateBounds();assets[kind==0?"tuft":"perennial"]=Store(mesh,kind==0?"OrnamentalTuft":"FloweringPerennial");
             }
         }
+        static Mesh BuildMeadowGrass(int variant)
+        {
+            var random = new System.Random(5182 + variant * 131);
+            var vertices = new List<Vector3>(); var uv = new List<Vector2>();
+            var colors = new List<Color>(); var triangles = new List<int>();
+            float Range(float min, float max) => min + (float)random.NextDouble() * (max - min);
+            Color green = new Color(.38f, .48f, .24f).linear;
+            Color straw = new Color(.62f, .56f, .32f).linear;
+            for (int blade = 0; blade < 17; blade++)
+            {
+                float angle = blade * 2.39996f + Range(-.35f, .35f);
+                var outward = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
+                var across = Vector3.Cross(Vector3.up, outward) * Range(.007f, .014f);
+                var origin = outward * Range(.015f, .22f);
+                float height = Range(.10f, .22f), bend = Range(.035f, .13f);
+                var middle = origin + Vector3.up * height * .63f + outward * bend * .23f;
+                var tip = origin + Vector3.up * height + outward * bend;
+                Color tint = Color.Lerp(green, straw, Range(.05f, variant == 2 ? .82f : .47f));
+                int index = vertices.Count;
+                vertices.AddRange(new[] { origin - across * .55f, origin + across * .55f, middle - across, middle + across, tip });
+                uv.AddRange(new[] { Vector2.zero, Vector2.right, new Vector2(0, .63f), new Vector2(1, .63f), new Vector2(.5f, 1) });
+                Color shade = new Color(tint.r * .64f, tint.g * .64f, tint.b * .64f);
+                colors.AddRange(new[] { shade, shade, tint, tint, Color.Lerp(tint, straw, .26f) });
+                triangles.AddRange(new[] { index, index + 2, index + 1, index + 1, index + 2, index + 3, index + 2, index + 4, index + 3 });
+            }
+            var mesh = new Mesh(); mesh.SetVertices(vertices); mesh.SetUVs(0, uv); mesh.SetColors(colors); mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateNormals(); mesh.RecalculateTangents(); mesh.RecalculateBounds();
+            return Store(mesh, "MeadowGrass_" + variant);
+        }
         static void BakePlants()
         {
             if(plants.Count==0)return;
             var material=BahnhofDetailKit.Load("DistrictFlora");
+            var sourceVertices = plants.Select(plant => plant.mesh).Distinct().ToDictionary(mesh => mesh, mesh => mesh.vertices);
             foreach(var group in Enumerable.Range(0,plants.Count).GroupBy(i=>new Vector2Int(Mathf.FloorToInt(plantRoots[i].x/20),Mathf.FloorToInt(plantRoots[i].y/20))))
             {
                 var chunk=Group("BV5_Planting LOD "+group.Key.x+"_"+group.Key.y,root,Vector3.zero);var indices=group.ToArray();var renderers=new Renderer[2];
@@ -416,7 +519,8 @@ namespace ZeroRise.Editor
                     var selected=indices.Where((index,order)=>level==0||order%3==0).ToArray();
                     var mesh=new Mesh{indexFormat=IndexFormat.UInt32};mesh.CombineMeshes(selected.Select(i=>plants[i]).ToArray(),true,true);
                     var heights=new List<Vector2>();var roots=new List<Vector2>();
-                    foreach(int p in selected)for(int i=0;i<plants[p].mesh.vertexCount;i++){heights.Add(new Vector2(plantHeights[p].x,Mathf.Clamp01(plants[p].mesh.vertices[i].y)));roots.Add(plantRoots[p]);}
+                    foreach(int p in selected)foreach (var v in sourceVertices[plants[p].mesh])
+                    {heights.Add(new Vector2(plantHeights[p].x,Mathf.Clamp01(v.y * plantHeights[p].y)));roots.Add(plantRoots[p]);}
                     mesh.SetUVs(2,heights);mesh.SetUVs(3,roots);mesh=Store(mesh,"RootedPlanting_"+group.Key.x+"_"+group.Key.y+"_"+level);
                     var go=Group("BV5_Rooted planting detail "+level,chunk.transform,Vector3.zero);go.isStatic=true;go.AddComponent<MeshFilter>().sharedMesh=mesh;
                     var renderer=go.AddComponent<MeshRenderer>();renderer.sharedMaterial=material;renderer.shadowCastingMode=level==0?ShadowCastingMode.On:ShadowCastingMode.Off;renderers[level]=renderer;

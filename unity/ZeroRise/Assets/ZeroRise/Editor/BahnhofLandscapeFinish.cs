@@ -67,6 +67,67 @@ namespace ZeroRise.Editor
                || x >= 166 && x < 300 && z >= 30 && z < 58
                || x >= 200 && x < 300 && z >= -1800 && z < 30;
 
+        // Offsets apply to the earth mesh only. The rear garden wall is at
+        // x253.3, the depot wall at x286 and the street apron starts at z168.5.
+        internal static float GradeSoil(Vector2 point)
+        {
+            float edge = Mathf.Min(point.x - 255.6f, 283.65f - point.x, point.y - 101, 168.5f - point.y);
+            if (edge <= 0) return 0;
+
+            float bank = Knoll(point, new Vector2(267.5f, 119), new Vector2(10.9f, 15.8f), .64f, .15f)
+                       + Knoll(point, new Vector2(279, 134), new Vector2(8.5f, 16.5f), .49f, -.15f)
+                       + Knoll(point, new Vector2(265, 151), new Vector2(10.5f, 13), .46f, .26f)
+                       + Knoll(point, new Vector2(277, 157), new Vector2(7.7f, 9.4f), .31f, -.24f);
+
+            // Surface water follows the irregular saddle between the banks.
+            // A shallow floor keeps the soil above the underlying terrain.
+            float runnelX = 273 + 2.4f * Mathf.Sin((point.y - 99) * .09f) + 1.15f * Mathf.Sin(point.y * .23f);
+            float runnel = 1 - SmoothRange(1.05f, 4, Mathf.Abs(point.x - runnelX));
+            float textureRelief = (Mathf.PerlinNoise(point.x * .29f + 117, point.y * .37f + 17) - .5f) * .075f;
+            float grade = bank * (1 - .68f * runnel) - .045f * runnel + textureRelief;
+            return Mathf.Max(-.035f, grade) * SmoothRange(0, 5, edge);
+        }
+
+        static float SmoothRange(float start, float end, float value)
+            => Mathf.SmoothStep(0, 1, Mathf.InverseLerp(start, end, value));
+
+        static float Knoll(Vector2 point, Vector2 center, Vector2 radius, float height, float lean)
+        {
+            Vector2 delta = point - center;
+            float across = (delta.x + lean * delta.y) / radius.x;
+            float along = delta.y / radius.y;
+            float falloff = Mathf.Max(0, 1 - across * across - along * along);
+            return height * falloff * falloff;
+        }
+
+        static float DistanceFromLot(Vector2 point, Rect lot)
+        {
+            float x = Mathf.Max(0, lot.xMin - point.x, point.x - lot.xMax);
+            float z = Mathf.Max(0, lot.yMin - point.y, point.y - lot.yMax);
+            return Mathf.Sqrt(x * x + z * z);
+        }
+
+        static float ContextRelief(float x, float z)
+        {
+            // Keep the mesh joins and the working yards at their authored
+            // heights. Shape the adjoining meadow and the wooded shoulders.
+            if (x < 156 || x > 420 || z < 183 || z > 423) return 0;
+            var point = new Vector2(x, z);
+            float east = SmoothRange(300, 309, x) * SmoothRange(183, 195, z);
+            float north = SmoothRange(374, 385, z) * (1 - SmoothRange(286, 300, x));
+            float relief = east * (
+                  Knoll(point, new Vector2(318, 202), new Vector2(15, 21), .72f, .22f)
+                + Knoll(point, new Vector2(338, 205), new Vector2(19, 23), .93f, -.16f)
+                + Knoll(point, new Vector2(322, 271), new Vector2(20, 31), .92f, .22f)
+                + Knoll(point, new Vector2(321, 331), new Vector2(14, 24), .62f, -.18f)
+                + Knoll(point, new Vector2(349, 327), new Vector2(25, 28), 1.05f, .20f));
+            relief += north * (
+                  Knoll(point, new Vector2(202, 390), new Vector2(24, 23), 1.05f, -.18f)
+                + Knoll(point, new Vector2(277, 394), new Vector2(23, 18), .91f, .18f));
+            float joineryClearance = DistanceFromLot(point, Rect.MinMaxRect(335, 219, 353, 257));
+            return relief * SmoothRange(2, 7, joineryClearance);
+        }
+
         static float ContextHeight(float x, float z)
         {
             float depth = Mathf.Max(x - 300, z - 364, 30 - z, 0);
@@ -76,7 +137,7 @@ namespace ZeroRise.Editor
             // behind it. This avoids a second exposed edge alongside the track.
             rise *= Mathf.SmoothStep(0, 1, Mathf.InverseLerp(134, 185, x));
             float land = Mathf.PerlinNoise(x * .011f + 19, z * .012f + 7) * 8;
-            return -.055f + rise * (3.5f + land);
+            return -.055f + rise * (3.5f + land) + ContextRelief(x, z);
         }
 
         static void ContinueLandscape()
@@ -113,7 +174,7 @@ namespace ZeroRise.Editor
                 m.SetTriangles(keep, 0); m.RecalculateBounds(); EditorUtility.SetDirty(m); RefreshCollider(f, m);
             }
 
-            GroundPatch("East continued landscape", 300, 600, 30, 600);
+            GroundPatch("East continued landscape", 300, 600, 30, 600, 3);
             GroundPatch("North continued landscape", 134, 300, 364, 600);
             GroundPatch("South continued landscape", 166, 300, 30, 58);
             GroundPatch("South horizon land", 200, 600, -1800, 30, 32);
@@ -178,11 +239,13 @@ namespace ZeroRise.Editor
             float[] Axis(float a, float b, float step)
             { int n = Mathf.CeilToInt((b - a) / step); return Enumerable.Range(0, n + 1).Select(i => Mathf.Lerp(a, b, i / (float)n)).ToArray(); }
             var xs = Axis(x0, x1, spacing); var zs = Axis(z0, z1, spacing);
-            // Distant meshes use the near mesh's exact boundary samples, then
-            // become coarse farther away. There are no mismatching T-junctions.
-            if (id == "Far east horizon land") zs = Axis(-1800, 30, 32).Concat(Axis(30, 600, 5)).Concat(Axis(600, 1800, 32)).Distinct().OrderBy(v => v).ToArray();
-            if (id == "Far north horizon land") xs = Axis(134, 300, 5).Concat(Axis(300, 600, 5)).Distinct().OrderBy(v => v).ToArray();
-            if (id == "South horizon land") xs = Axis(200, 300, 5).Concat(Axis(300, 600, 5)).Distinct().OrderBy(v => v).ToArray();
+            // Higher sampling density in the eastern meadow captures the
+            // landforms. Adjacent meshes share its boundary samples.
+            float[] EastRows() => Axis(30, 364, 3).Concat(Axis(364, 600, 5)).Distinct().OrderBy(v => v).ToArray();
+            if (id == "East continued landscape") zs = EastRows();
+            if (id == "Far east horizon land") zs = Axis(-1800, 30, 32).Concat(EastRows()).Concat(Axis(600, 1800, 32)).Distinct().OrderBy(v => v).ToArray();
+            if (id == "Far north horizon land") xs = Axis(134, 300, 5).Concat(Axis(300, 600, 3)).Distinct().OrderBy(v => v).ToArray();
+            if (id == "South horizon land") xs = Axis(200, 300, 5).Concat(Axis(300, 600, 3)).Distinct().OrderBy(v => v).ToArray();
             int nx = xs.Length - 1, nz = zs.Length - 1;
             var v = new List<Vector3>(); var uv = new List<Vector2>(); var colors = new List<Color>(); var t = new List<int>();
             for (int iz = 0; iz <= nz; iz++) for (int ix = 0; ix <= nx; ix++)

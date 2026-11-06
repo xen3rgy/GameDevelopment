@@ -121,6 +121,8 @@ namespace ZeroRise.Editor
             var xs=new SortedSet<float>{132,134,166,300};var zs=new SortedSet<float>{58,118,364};
             foreach(var r in roads.Concat(walks)){xs.Add(r.xMin);xs.Add(r.xMax);zs.Add(r.yMin);zs.Add(r.yMax);}
             for(float x=132;x<300;x+=4)xs.Add(x);for(float z=58;z<364;z+=4)zs.Add(z);
+            for(float x=254;x<=286;x+=1.5f)xs.Add(x);
+            for(float z=101;z<=170;z+=1.5f)zs.Add(z);
             var xx=xs.ToArray();var zz=zs.ToArray();var cells=new Dictionary<string,List<Rect>>();
             for(int ix=0;ix<xx.Length-1;ix++)for(int iz=0;iz<zz.Length-1;iz++)
             {
@@ -137,27 +139,45 @@ namespace ZeroRise.Editor
                 string type=pair.Key.Split('_')[0];float top=type=="road"?.04f:type=="walk"?.14f:-.055f;
                 var mat=BahnhofDetailKit.Load(type=="road"?"Asphalt":type=="walk"?"Paving":"OverpassGround_LivingEarth");
                 var v=new List<Vector3>();var uv=new List<Vector2>();var uv1=new List<Vector2>();var colors=new List<Color>();var tri=new List<int>();
+                var gradedNormals = new List<(int index, Vector3 normal)>();
+                float SurfaceY(Vector2 p) => type == "earth" ? top + BahnhofLandscapeFinish.GradeSoil(p) : top;
                 foreach(var r in pair.Value)
                 {
                     int a=v.Count;
-                    foreach(var p in new[]{new Vector2(r.xMin,r.yMin),new Vector2(r.xMin,r.yMax),new Vector2(r.xMax,r.yMax),new Vector2(r.xMax,r.yMin)})
-                    {v.Add(new Vector3(p.x,top,p.y));uv.Add(p/3);uv1.Add(p);float grass=Mathf.SmoothStep(0,.85f,Mathf.PerlinNoise(p.x*.09f,p.y*.12f));colors.Add(new Color(grass,.25f*(1-grass),0,1));}
+                    var corners=new[]{new Vector2(r.xMin,r.yMin),new Vector2(r.xMin,r.yMax),new Vector2(r.xMax,r.yMax),new Vector2(r.xMax,r.yMin)};
+                    foreach(var p in corners)
+                    {
+                        if (type == "earth")
+                        {
+                            float dx = SurfaceY(p + Vector2.right * .25f) - SurfaceY(p - Vector2.right * .25f);
+                            float dz = SurfaceY(p + Vector2.up * .25f) - SurfaceY(p - Vector2.up * .25f);
+                            gradedNormals.Add((v.Count, new Vector3(-dx, .5f, -dz).normalized));
+                        }
+                        v.Add(new Vector3(p.x,SurfaceY(p),p.y));uv.Add(p/3);uv1.Add(p);
+                        float grass=Mathf.SmoothStep(0,.85f,Mathf.PerlinNoise(p.x*.09f,p.y*.12f));colors.Add(new Color(grass,.25f*(1-grass),0,1));
+                    }
                     tri.AddRange(new[]{a,a+1,a+2,a,a+2,a+3});
                     // Close the visible step between the disjoint height levels.
                     float Neighbour(Vector2 p)
                     {if(p.x<160&&p.y<118)return -.12f;if(!Development(p)&&!Has(roads,p)&&!Has(walks,p))return -.25f;return Has(roads,p)?.04f:Has(walks,p)?.14f:-.055f;}
-                    var corners=new[]{new Vector2(r.xMin,r.yMin),new Vector2(r.xMin,r.yMax),new Vector2(r.xMax,r.yMax),new Vector2(r.xMax,r.yMin)};
                     for(int edge=0;edge<4;edge++)
                     {
                         var from=corners[edge];var to=corners[(edge+1)%4];var delta=to-from;var outward=new Vector2(-delta.y,delta.x).normalized;
                         float below=Neighbour((from+to)*.5f+outward*.001f);if(top<=below+.001f)continue;
                         int b=v.Count;
-                        foreach(var point in new[]{new Vector3(from.x,top,from.y),new Vector3(to.x,top,to.y),new Vector3(to.x,below,to.y),new Vector3(from.x,below,from.y)})
+                        foreach(var point in new[]{new Vector3(from.x,SurfaceY(from),from.y),new Vector3(to.x,SurfaceY(to),to.y),new Vector3(to.x,below,to.y),new Vector3(from.x,below,from.y)})
                         {v.Add(point);uv.Add(new Vector2(point.x+point.z,point.y)/3);uv1.Add(new Vector2(point.x,point.z));colors.Add(new Color(.2f,.2f,0,1));}
                         tri.AddRange(new[]{b,b+2,b+1,b,b+3,b+2});
                     }
                 }
-                var mesh=new Mesh{indexFormat=IndexFormat.UInt32};mesh.SetVertices(v);mesh.SetUVs(0,uv);mesh.SetUVs(1,uv1);mesh.SetColors(colors);mesh.SetTriangles(tri,0);mesh.RecalculateNormals();mesh.RecalculateTangents();mesh.RecalculateBounds();
+                var mesh=new Mesh{indexFormat=IndexFormat.UInt32};mesh.SetVertices(v);mesh.SetUVs(0,uv);mesh.SetUVs(1,uv1);mesh.SetColors(colors);mesh.SetTriangles(tri,0);mesh.RecalculateNormals();
+                if (gradedNormals.Count > 0)
+                {
+                    var normals = mesh.normals;
+                    foreach (var normal in gradedNormals) normals[normal.index] = normal.normal;
+                    mesh.normals = normals;
+                }
+                mesh.RecalculateTangents();mesh.RecalculateBounds();
                 string path=Generated+"/Meshes/BV2_Surface_"+pair.Key+".asset";SaveMesh(mesh,path,out mesh);
                 var go=Group("BV2_Surface "+pair.Key,surfaces,Vector3.zero);go.isStatic=true;go.AddComponent<MeshFilter>().sharedMesh=mesh;go.AddComponent<MeshRenderer>().sharedMaterial=mat;go.AddComponent<MeshCollider>().sharedMesh=mesh;
             }
@@ -271,6 +291,8 @@ namespace ZeroRise.Editor
             {
                 var p=new Vector2(144+(float)random.NextDouble()*150,100+(float)random.NextDouble()*252);
                 if(Has(roads,p)||Has(walks,p)||!Development(p)||Mathf.PerlinNoise(p.x*.19f,p.y*.19f)<.46f)continue;
+                // The depot meadow has its own cover pass, anchored to the sculpted collider.
+                if(p.x>=254&&p.x<=286&&p.y>=101&&p.y<=170)continue;
                 if(Physics.CheckCapsule(new Vector3(p.x,.35f,p.y),new Vector3(p.x,1.5f,p.y),.20f,1,QueryTriggerInteraction.Ignore))continue;
                 string key=Mathf.FloorToInt(p.x/40)+"_"+Mathf.FloorToInt(p.y/40);if(!batches.TryGetValue(key,out var list))batches[key]=list=new List<Vector3>();if(list.Count<100)list.Add(new Vector3(p.x,-.06f,p.y));
             }

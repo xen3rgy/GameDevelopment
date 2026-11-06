@@ -22,6 +22,15 @@ namespace ZeroRise
             Time.timeScale=1;yield return new WaitForSeconds(6);camera=Camera.main;player=FindAnyObjectByType<ThirdPersonMotor>();
             var clock=WorldWeatherClock.Instance;clock.SuppressSave=true;clock.enabled=false;clock.SetWeather(WeatherKind.Clear);clock.SetSpeed(20);clock.Advance(120);clock.SetSpeed(1);clock.SetHour(15.5f);
             var orbit=camera.GetComponent<OrbitCamera>();if(orbit)orbit.enabled=false;player.enabled=false;
+            if (Environment.GetCommandLineArgs().Contains("-meadow-review"))
+            {
+                foreach (var renderer in player.GetComponentsInChildren<Renderer>()) renderer.enabled = false;
+                yield return MeadowReview();
+                Check("No runtime errors", errors == 0, errors.ToString());
+                File.WriteAllText(Path.Combine(output, "bahnhof-validation.txt"), "Passed: " + passed + "\n" + string.Join("\n", report));
+                Application.Quit(passed ? 0 : 1);
+                yield break;
+            }
             if (Environment.GetCommandLineArgs().Contains("-map-support-views-only"))
             {
                 foreach (var renderer in player.GetComponentsInChildren<Renderer>()) renderer.enabled = false;
@@ -211,6 +220,41 @@ namespace ZeroRise
             var balcony = FindObjectsByType<Transform>().FirstOrDefault(t => t.name == "BV4_Resident balcony garden");
             if (balcony)
                 yield return Shot("whole-balcony-planter-foot", balcony.position - balcony.forward * 2.6f + Vector3.up * .32f, balcony.position + Vector3.up * .13f);
+        }
+        IEnumerator MeadowReview()
+        {
+            bool SoilHeight(float x, float z, out float y)
+            {
+                bool hit = Physics.Raycast(new Vector3(x, 3, z), Vector3.down, out var floor, 5, 1, QueryTriggerInteraction.Ignore);
+                y = hit ? floor.point.y : 0;
+                return hit && (floor.collider.name.StartsWith("BV2_Surface earth") || floor.collider.name.StartsWith("BV3_Ground "));
+            }
+
+            var heights = new List<float>();
+            for (int x = 257; x <= 283; x += 2)
+            for (int z = 105; z <= 165; z += 2)
+                if (SoilHeight(x, z, out float y)) heights.Add(y);
+            float relief = heights.Count > 0 ? heights.Max() - heights.Min() : 0;
+            Check("Meadow has continuous walkable soil and real relief", heights.Count == 434 && relief >= .25f, $"{heights.Count}/434 samples, {relief:F2} m relief");
+            foreach (float z in new[] { 100f, 119f, 210f, 300f, 352f })
+            {
+                bool west = SoilHeight(299.95f, z, out float yWest);
+                bool east = SoilHeight(300.05f, z, out float yEast);
+                Check("Meadow joins east landscape at " + z, west && east && Mathf.Abs(yWest - yEast) < .08f, $"{yWest:F3} / {yEast:F3} m");
+            }
+            SoilHeight(257, 108, out float start);
+            Place(new Vector3(257, start + .08f, 108));
+            foreach (var point in new[] { new Vector2(271, 123), new Vector2(278, 150), new Vector2(265, 166) })
+            {
+                SoilHeight(point.x, point.y, out float y);
+                yield return Traverse("Character traverses meadow " + point, new Vector3(point.x, y + .08f, point.y));
+            }
+            camera.fieldOfView = 58;
+            yield return Shot("meadow-from-flight", new Vector3(249.95f, 15.91f, 87.24f), new Vector3(264, 0, 109.4f));
+            yield return Shot("meadow-at-eye-level", new Vector3(274, 1.85f, 165), new Vector3(263, .15f, 127));
+            yield return Shot("meadow-footpath", new Vector3(258, 1.65f, 122), new Vector3(264, .28f, 154));
+            yield return Shot("meadow-east-join", new Vector3(318, 2.1f, 115), new Vector3(288, .05f, 123));
+            yield return Shot("meadow-north", new Vector3(284, 5, 322), new Vector3(316, .25f, 392));
         }
         IEnumerator OrbitBankSurvey()
         {

@@ -50,15 +50,15 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _BaseColorMap0:
         m_Texture: {fileID: 2800000, guid: 3ab6aca1deb43441a8ae5c8d529cd752, type: 3}
-        m_Scale: {x: 0.32258067, y: 0.32258067}
+        m_Scale: {x: 0.34482756, y: 0.34482756}
         m_Offset: {x: 0, y: 0}
     - _BaseColorMap1:
         m_Texture: {fileID: 2800000, guid: 9d02e6aeba98e40968d39b00f76ca44f, type: 3}
-        m_Scale: {x: 0.5, y: 0.5}
+        m_Scale: {x: 0.44444445, y: 0.44444445}
         m_Offset: {x: 0.38, y: 0.73}
     - _BaseColorMap2:
         m_Texture: {fileID: 2800000, guid: a4137344dd1b5427082f35dbebbf9920, type: 3}
-        m_Scale: {x: 0.37037036, y: 0.37037036}
+        m_Scale: {x: 0.2777778, y: 0.2777778}
         m_Offset: {x: 0.76, y: 1.46}
     - _BaseColorMap3:
         m_Texture: {fileID: 0}
@@ -165,9 +165,9 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _LayerMaskMap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
+        m_Texture: {fileID: 2800000, guid: 73e9e09d373e84982a423a66196b8432, type: 3}
+        m_Scale: {x: 0.0013020834, y: 0.0013020834}
+        m_Offset: {x: 0.25, y: 0.25}
     - _MainTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -491,9 +491,9 @@ Material:
     - _NormalMapSpace2: 0
     - _NormalMapSpace3: 0
     - _NormalScale: 1
-    - _NormalScale0: 0.25
-    - _NormalScale1: 0.25
-    - _NormalScale2: 0.25
+    - _NormalScale0: 0.58
+    - _NormalScale1: 0.36
+    - _NormalScale2: 0.58
     - _NormalScale3: 1
     - _ObjectScaleAffectTile: 0
     - _ObjectSpaceUVMapping: 0
@@ -577,7 +577,7 @@ Material:
     - _UVBase1: 1
     - _UVBase2: 1
     - _UVBase3: 0
-    - _UVBlendMask: 0
+    - _UVBlendMask: 1
     - _UVDetail: 0
     - _UVDetail0: 0
     - _UVDetail1: 0
@@ -596,9 +596,9 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _BaseColor0: {r: 0.72, g: 0.7, b: 0.64, a: 1}
-    - _BaseColor1: {r: 0.57, g: 0.73, b: 0.54, a: 1}
-    - _BaseColor2: {r: 0.62, g: 0.61, b: 0.56, a: 1}
+    - _BaseColor0: {r: 0.72, g: 0.65, b: 0.53, a: 1}
+    - _BaseColor1: {r: 0.59, g: 0.7, b: 0.53, a: 1}
+    - _BaseColor2: {r: 0.51, g: 0.47, b: 0.41, a: 1}
     - _BaseColor3: {r: 1, g: 1, b: 1, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _DiffusionProfileAsset: {r: 0, g: 0, b: 0, a: 0}
@@ -629,7 +629,7 @@ Material:
     - _UVMappingMask1: {r: 0, g: 1, b: 0, a: 0}
     - _UVMappingMask2: {r: 0, g: 1, b: 0, a: 0}
     - _UVMappingMask3: {r: 1, g: 0, b: 0, a: 0}
-    - _UVMappingMaskBlendMask: {r: 1, g: 0, b: 0, a: 0}
+    - _UVMappingMaskBlendMask: {r: 0, g: 1, b: 0, a: 0}
     - _UVMappingMaskEmissive: {r: 1, g: 0, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
