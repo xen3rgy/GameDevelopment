@@ -22,6 +22,22 @@ namespace ZeroRise
             Time.timeScale=1;yield return new WaitForSeconds(6);camera=Camera.main;player=FindAnyObjectByType<ThirdPersonMotor>();
             var clock=WorldWeatherClock.Instance;clock.SuppressSave=true;clock.enabled=false;clock.SetWeather(WeatherKind.Clear);clock.SetSpeed(20);clock.Advance(120);clock.SetSpeed(1);clock.SetHour(15.5f);
             var orbit=camera.GetComponent<OrbitCamera>();if(orbit)orbit.enabled=false;player.enabled=false;
+            if (Environment.GetCommandLineArgs().Contains("-lake-access-review") || Environment.GetCommandLineArgs().Contains("-lake-access-views"))
+            {
+                foreach(var renderer in player.GetComponentsInChildren<Renderer>())renderer.enabled=false;
+                if(Environment.GetCommandLineArgs().Contains("-lake-access-views"))yield return LakeAccessViews();else yield return LakeAccessReview();
+                Check("No runtime errors",errors==0,errors.ToString());
+                File.WriteAllText(Path.Combine(output,"bahnhof-validation.txt"),"Passed: "+passed+"\n"+string.Join("\n",report));
+                Application.Quit(passed?0:1);yield break;
+            }
+            if (Environment.GetCommandLineArgs().Contains("-core-review"))
+            {
+                foreach (var renderer in player.GetComponentsInChildren<Renderer>()) renderer.enabled = false;
+                yield return CoreReview();
+                Check("No runtime errors", errors == 0, errors.ToString());
+                File.WriteAllText(Path.Combine(output, "bahnhof-validation.txt"), "Passed: " + passed + "\n" + string.Join("\n", report));
+                Application.Quit(passed ? 0 : 1); yield break;
+            }
             if (Environment.GetCommandLineArgs().Contains("-landscape-review"))
             {
                 foreach(var renderer in player.GetComponentsInChildren<Renderer>())renderer.enabled=false;
@@ -300,6 +316,102 @@ namespace ZeroRise
             Debug.Log(report[report.Count-1]);
         }
 
+        Vector3 LakeFloor(Vector3 p)
+        {
+            var hits=Physics.RaycastAll(new Vector3(p.x,500,p.z),Vector3.down,600,1,QueryTriggerInteraction.Ignore)
+                .Where(h=>h.collider.name.StartsWith("BV3_Ground ")||h.collider.name.StartsWith("BV8_Continuous")||h.collider.name.StartsWith("BV2_Surface ")||h.collider.name.StartsWith("BV3_Court paving"))
+                .OrderByDescending(h=>h.point.y).ToArray();
+            if(hits.Length==0)throw new Exception("Missing lake ground "+p);
+            return hits[0].point;
+        }
+        IEnumerator DriveLakeRoad()
+        {
+            var car=FindAnyObjectByType<SimpleCar>();Check("Driveable test car present",car);if(!car)yield break;
+            car.enabled=false;var body=car.GetComponent<Rigidbody>();
+            var route=new[]{new Vector3(279,0,176),new Vector3(294,0,176),new Vector3(310,0,176)}.Concat(WestbruchLakeAccess.Road).ToArray();
+            body.position=LakeFloor(route[0])+Vector3.up*.20f;body.rotation=Quaternion.LookRotation(Vector3.right);body.linearVelocity=Vector3.zero;body.angularVelocity=Vector3.zero;
+            Physics.SyncTransforms();yield return new WaitForSeconds(.7f);
+            int nearest=0;float until=Time.unscaledTime+115,maxDeviation=0;bool arrived=false;
+            while(Time.unscaledTime<until)
+            {
+                for(int i=nearest;i<Mathf.Min(route.Length,nearest+16);i++)
+                    if(new Vector2(body.position.x-route[i].x,body.position.z-route[i].z).sqrMagnitude < new Vector2(body.position.x-route[nearest].x,body.position.z-route[nearest].z).sqrMagnitude)nearest=i;
+                int target=Mathf.Min(route.Length-1,nearest+5);var local=car.transform.InverseTransformPoint(LakeFloor(route[target]));
+                float steering=Mathf.Atan2(5.2f*local.x,Mathf.Max(4,local.x*local.x+local.z*local.z))*Mathf.Rad2Deg/29;
+                float speed=body.linearVelocity.magnitude;car.DriveStep(Mathf.Clamp01((6-speed)*.55f),Mathf.Clamp(steering,-1,1),speed>7);
+                if(nearest>3)maxDeviation=Mathf.Max(maxDeviation,WestbruchLakeAccess.Distance(WestbruchLakeAccess.Road,new Vector2(body.position.x,body.position.z),out _));
+                camera.transform.position=body.position-car.transform.forward*7+Vector3.up*3;camera.transform.LookAt(body.position+Vector3.up);
+                if(Vector2.Distance(new Vector2(body.position.x,body.position.z),new Vector2(563,340))<4){arrived=true;break;}
+                if(nearest>3&&maxDeviation>9)break;
+                yield return new WaitForFixedUpdate();
+            }
+            car.DriveStep(0,0,true);
+            Check("Wheel-physics drive from depot to lake parking",arrived&&maxDeviation<4,"Arrived "+arrived+"; max lateral deviation "+maxDeviation+"; final "+body.position);
+            yield return Shot("00-test-car-arrival",body.position+new Vector3(-7,4,-6),body.position+Vector3.up);
+        }
+        IEnumerator LakeAccessReview()
+        {
+            Check("Lake access saved",GameObject.Find("BV8_Waldsee access and arrival"));
+            Check("Shore path follows dry natural bank",WestbruchLakeAccess.ShorePath.All(p=>WestbruchLandscapeProfile.LakeRadius(p.x,p.z)>1.01f));
+            var controller=player.GetComponent<CharacterController>();
+            foreach(var route in new[]{WestbruchLakeAccess.Footpath,WestbruchLakeAccess.ShorePath})
+            {
+                Place(LakeFloor(route[0])+Vector3.up*.1f);int missed=0;float worst=0;
+                for(int i=1;i<route.Length;i+=2)
+                {
+                    var target=LakeFloor(route[i]);float until=Time.unscaledTime+1.5f;
+                    while(Time.unscaledTime<until)
+                    {
+                        var delta=target-player.transform.position;delta.y=0;if(delta.magnitude<.25f)break;
+                        controller.Move((delta.normalized*5+Vector3.down*9)*Time.deltaTime);yield return null;
+                    }
+                    var difference=player.transform.position-target;difference.y=0;worst=Mathf.Max(worst,difference.magnitude);
+                    if(difference.magnitude>.65f){missed++;if(missed>3)break;}
+                }
+                Check("Character traverses "+(route==WestbruchLakeAccess.Footpath?"district to lake":"shore path"),missed==0,"Failed segments "+missed+"; worst error "+worst);
+            }
+            int blocked=0,rough=0;float maxGrade=0;
+            var road=WestbruchLakeAccess.Road;
+            var blockers=new HashSet<string>();
+            for(int i=1;i<road.Length;i++)
+            {
+                var a=LakeFloor(road[i-1]);var b=LakeFloor(road[i]);var delta=b-a;
+                maxGrade=Mathf.Max(maxGrade,Mathf.Abs(delta.y)/new Vector2(delta.x,delta.z).magnitude);
+                var direction=new Vector3(delta.x,0,delta.z).normalized;var across=Vector3.Cross(Vector3.up,direction);
+                foreach(int side in new[]{-1,1})
+                    if(Mathf.Abs(LakeFloor(b+across*1.3f*side).y-b.y)>.22f)rough++;
+                foreach(var c in Physics.OverlapBox(b+Vector3.up*1.1f,new Vector3(1.15f,.75f,2.2f),Quaternion.LookRotation(direction),1,QueryTriggerInteraction.Ignore))
+                {
+                    if(c==controller||c.name.StartsWith("BV3_Ground ")||c.name.StartsWith("BV8_Continuous")||c.name.StartsWith("BV2_Surface ")||c.name.StartsWith("BV3_Court paving"))continue;
+                    blocked++;blockers.Add(c.name+" at "+c.transform.position);
+                }
+            }
+            Check("Vehicle envelope clear along gravel road",blocked==0,string.Join("; ",blockers));
+            Check("Road grade and crossfall suitable for car",maxGrade<.16f&&rough==0,"Maximum grade "+maxGrade+"; crossfall failures "+rough);
+            // Existing street and yard must also provide a clear vehicle entrance.
+            int entryBlockers=0;
+            for(float x=277;x<328;x+=1.5f)
+                foreach(var c in Physics.OverlapBox(new Vector3(x,1.1f,176),new Vector3(2,.7f,1.1f),Quaternion.identity,1,QueryTriggerInteraction.Ignore))
+                    if(c!=controller&&!c.name.Contains("paving")&&!c.name.StartsWith("BV2_Surface")&&!c.name.StartsWith("BV8_Continuous")&&!c.name.StartsWith("BV3_Ground")){entryBlockers++;blockers.Add(c.name+" "+c.transform.position);}
+            Check("Existing depot entrance and new exit clear",entryBlockers==0,string.Join("; ",blockers));
+            yield return DriveLakeRoad();
+            yield return LakeAccessViews();
+        }
+        IEnumerator LakeAccessViews()
+        {
+            yield return Shot("09-depot-exit",new Vector3(313,2,176),new Vector3(344,2,176));
+            yield return Shot("10-parking-wayfinding",LakeFloor(new Vector3(553,0,325))+Vector3.up*1.7f,new Vector3(557,20,332));
+            yield return Shot("01-lake-connection-overview",new Vector3(425,155,110),new Vector3(484,9,320));
+            yield return Shot("02-footpath-leaves-town",LakeFloor(new Vector3(284,0,306))+Vector3.up*1.8f,new Vector3(350,2,315));
+            yield return Shot("03-woodland-road",LakeFloor(new Vector3(456,0,214))+Vector3.up*1.7f,new Vector3(510,15,253));
+            yield return Shot("04-arrival-and-parking",new Vector3(540,39,322),new Vector3(595,15,359));
+            yield return Shot("05-lake-arrival-eye-level",LakeFloor(new Vector3(605,0,354))+Vector3.up*1.75f,new Vector3(797,22,375));
+            yield return Shot("06-old-loading-edge",LakeFloor(new Vector3(588,0,395))+Vector3.up*1.75f,new Vector3(604,17,413));
+            yield return Shot("07-shore-and-woodland",new Vector3(673,64,307),new Vector3(581,16,369));
+            var clock=WorldWeatherClock.Instance;clock.SetWeather(WeatherKind.Rain);clock.Advance(120);clock.SetHour(17);
+            yield return Shot("08-lakeside-rain",LakeFloor(new Vector3(605,0,354))+Vector3.up*1.75f,new Vector3(797,22,375));
+        }
+
         IEnumerator LandscapeReview()
         {
             var region=GameObject.Find("BV6_Regional landscape");Check("Regional landscape saved",region);
@@ -348,6 +460,42 @@ namespace ZeroRise
             var water=lake.GetComponent<UnityEngine.Rendering.HighDefinition.WaterSurface>();Check("Storm increases lake wind",water.largeWindSpeed>15,water.largeWindSpeed.ToString());
         }
 
+        IEnumerator CoreReview()
+        {
+            var core = GameObject.Find("BV7_District ground renewal");
+            Check("Saved playable district renewal present", core);
+            var rails = FindObjectsByType<MeshRenderer>().Where(r => r.name == "Passing loop rail").ToArray();
+            var fences = FindObjectsByType<MeshRenderer>().Where(r => r.name == "Terminated railway safety wire" || r.name == "Grounded rail boundary post" || r.name == "BV7_Outside track safety wire" || r.name == "BV7_Grounded rail perimeter post").ToArray();
+            int conflicts = 0;
+            foreach (var rail in rails)
+            { var b = rail.bounds; b.Expand(new Vector3(.6f, 1.6f, .02f)); conflicts += fences.Count(f => f.bounds.Intersects(b)); }
+            Check("Saved rail corridor clear of fences", rails.Length == 270 && conflicts == 0, conflicts.ToString());
+            var beds = FindObjectsByType<Collider>().Where(c=>c.name=="BV3_Retained tree garden soil").ToArray();
+            Check("Round planter collisions match visible earth",beds.Length==2&&beds.All(c=>c is MeshCollider&&Mathf.Abs(c.bounds.max.y-c.GetComponent<MeshRenderer>().bounds.max.y)<.005f));
+            yield return Shot("00a-tree-bed-ground",new Vector3(181,1.8f,243),new Vector3(171,.9f,242));
+            yield return Shot("00b-square-overhead",new Vector3(148,36,265),new Vector3(184,0,265));
+            yield return Shot("00c-garden-relief",new Vector3(281,16,145),new Vector3(269,0,129));
+            yield return Shot("00d-north-soil-seam",new Vector3(119,24,386),new Vector3(151,0,350));
+            yield return Shot("00e-planting-distribution",new Vector3(131,20,224),new Vector3(151,0,182));
+            yield return Shot("01-arrival-continuity", new Vector3(143, 1.8f, 78), new Vector3(190, 1.4f, 81));
+            yield return Shot("02-road-edge-close", new Vector3(201.7f, .85f, 131), new Vector3(204, .15f, 140));
+            yield return Shot("03-side-street-junction", new Vector3(217, 1.8f, 171), new Vector3(248, .6f, 177));
+            yield return Shot("04-bank-footpath", new Vector3(139, 1.9f, 234), new Vector3(136, 3, 190));
+            yield return Shot("05-bank-eye-level", new Vector3(140, 1.9f, 290), new Vector3(130, 2.5f, 305));
+            yield return Shot("06-station-planting", new Vector3(159.2f, .95f, 254), new Vector3(161, .6f, 259));
+            yield return Shot("07-south-turnout", new Vector3(109, 8.8f, 150), new Vector3(115, 6.5f, 181));
+            yield return Shot("08-north-turnout", new Vector3(110, 8.8f, 410), new Vector3(114, 6.5f, 378));
+            yield return Shot("09-west-platform-boundary", new Vector3(99, 3.5f, 278), new Vector3(111, 7, 300));
+            yield return Shot("10-residential-edge", new Vector3(220, 1.9f, 260), new Vector3(232, 1.1f, 275));
+            yield return Shot("11-station-square", new Vector3(184, 2.2f, 252), new Vector3(140, 4, 265));
+            var clock = WorldWeatherClock.Instance;
+            clock.SetWeather(WeatherKind.Rain); clock.Advance(120); clock.SetHour(15.5f);
+            yield return new WaitForSeconds(4);
+            yield return Shot("12-rain-on-soil-and-stone", new Vector3(139, 1.9f, 234), new Vector3(136, 3, 190));
+            clock.SetWeather(WeatherKind.Clear); clock.Advance(120); clock.SetHour(0);
+            yield return new WaitForSeconds(4);
+            yield return Shot("13-night-station-square", new Vector3(184, 2.2f, 252), new Vector3(140, 4, 265));
+        }
         IEnumerator Shot(string name,Vector3 eye,Vector3 target){camera.transform.position=eye;camera.transform.LookAt(target);yield return new WaitForSeconds(2);ScreenCapture.CaptureScreenshot(Path.Combine(output,name+".png"));yield return new WaitForSeconds(.25f);}
     }
 }

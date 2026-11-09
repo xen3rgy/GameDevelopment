@@ -44,7 +44,7 @@ namespace ZeroRise.Editor
             Horizon("West",-10000,-1800,-1800,10000);
             Horizon("South",-10000,10000,-10000,-1800);
             Physics.SyncTransforms();
-            Lake(); Woodland(); ShoreAndMeadows(); LakesideTrail();
+            Lake(); Woodland(); ShoreAndMeadows(); WestbruchLakeAccessBuilder.Build(root, ground);
             foreach (var camera in UnityEngine.Object.FindObjectsByType<Camera>(FindObjectsSortMode.None)) camera.farClipPlane = Mathf.Max(camera.farClipPlane,8000);
             Debug.Log("BV6 regional landscape complete: continuous relief, basin, four biomes, grounded woodland, shoreline and distant mountain horizon.");
         }
@@ -54,7 +54,7 @@ namespace ZeroRise.Editor
             mat.shader = Shader.Find("HDRP/LayeredLit"); mat.SetFloat("_LayerCount",4); mat.SetFloat("_VertexColorMode",1); mat.SetFloat("_UseHeightBasedBlend",0);
             mat.SetTexture("_LayerMaskMap",Texture2D.whiteTexture);
             var ids = new[]{"forest_ground_04","leafy_grass","rock_face_03","snow_02"};
-            var tints = new[]{new Color(.39f,.40f,.34f),new Color(.32f,.46f,.27f),new Color(.28f,.34f,.38f),new Color(.76f,.81f,.86f)};
+            var tints = new[]{new Color(.72f,.65f,.53f),new Color(.59f,.70f,.53f),new Color(.28f,.34f,.38f),new Color(.76f,.81f,.86f)};
             for(int i=0;i<4;i++)
             {
                 mat.SetColor("_BaseColor"+i,tints[i]);
@@ -63,12 +63,13 @@ namespace ZeroRise.Editor
                 mat.SetTexture("_MaskMap"+i,AssetDatabase.LoadAssetAtPath<Texture2D>(Art+ids[i]+"_mask.png"));
                 // World triplanar coordinates avoid stretched rock on cliff faces.
                 mat.SetFloat("_UVBase"+i,5);mat.SetFloat("_TexWorldScale"+i,1);
-                mat.SetTextureScale("_BaseColorMap"+i,Vector2.one/(i==2?6.5f:i==3?3.1f:2.8f));
-                mat.SetFloat("_NormalScale"+i,i==2?.8f:.42f);mat.SetFloat("_SmoothnessRemapMin"+i,.02f);mat.SetFloat("_SmoothnessRemapMax"+i,i==3?.36f:.19f);
+                mat.SetTextureScale("_BaseColorMap"+i,Vector2.one/(i==2?6.5f:i==3?3.1f:i==0?2.9f:2.25f));
+                mat.SetTextureOffset("_BaseColorMap"+i,new Vector2(i*.38f,i*.73f));
+                mat.SetFloat("_NormalScale"+i,i==2?.8f:i==1?.36f:.58f);mat.SetFloat("_SmoothnessRemapMin"+i,.02f);mat.SetFloat("_SmoothnessRemapMax"+i,i==3?.36f:.19f);
             }
             HDMaterial.ValidateMaterial(mat);mat.shader=Shader.Find("ZeroRise/LandscapeLayeredLit");EditorUtility.SetDirty(mat);return mat;
         }
-        static void Paint(Mesh mesh,Transform transform)
+        internal static void Paint(Mesh mesh,Transform transform)
         {
             var v=mesh.vertices;var normals=mesh.normals;var colors=new Color[v.Length];
             for(int i=0;i<v.Length;i++)
@@ -158,7 +159,7 @@ namespace ZeroRise.Editor
             for(float z=-70;z<1700;z+=12)for(float x=440;x<1750;x+=12)
             {
                 float px=x+R(-5,5),pz=z+R(-5,5),density=Noise(px,pz,.008f,12);
-                if(density<R(.24f,.59f)||!Ground(px,pz,out var hit)||hit.point.y>238||hit.normal.y<.74f||LakeRadius(px,pz)<1.13f)continue;
+                if(WestbruchLakeAccess.Cleared(new Vector2(px,pz),4)||density<R(.24f,.59f)||!Ground(px,pz,out var hit)||hit.point.y>238||hit.normal.y<.74f||LakeRadius(px,pz)<1.13f)continue;
                 bool spruce=hit.point.y>65||R(0,1)<.62f;int variant=count%3;float scale=R(1.05f,1.7f);
                 var go=Group("BV6_Rooted "+(spruce?"spruce ":"broadleaf ")+count++,root,hit.point-Vector3.up*.10f,R(0,360));go.transform.localScale=Vector3.one*scale;
                 var rs=new Renderer[3];
@@ -175,30 +176,6 @@ namespace ZeroRise.Editor
                 var trunk=go.AddComponent<CapsuleCollider>();trunk.radius=.23f;trunk.height=spruce?10:5;trunk.center=Vector3.up*(trunk.height*.5f-.05f);
             }
             Debug.Log("BV6 grounded woodland trees: "+count);
-        }
-        static void LakesideTrail()
-        {
-            var waypoints=new[]{new Vector2(440,200),new Vector2(478,221),new Vector2(511,248),new Vector2(536,270),new Vector2(558,293),new Vector2(578,318),new Vector2(588,347)};
-            var vertices=new List<Vector3>();var uv=new List<Vector2>();var indices=new List<int>();float distance=0;
-            for(int segment=1;segment<waypoints.Length;segment++)
-            {
-                var a=waypoints[segment-1];var b=waypoints[segment];var direction=(b-a).normalized;var across=new Vector2(-direction.y,direction.x);int count=Mathf.CeilToInt(Vector2.Distance(a,b));
-                for(int j=0;j<count;j++)
-                {
-                    var centre=Vector2.Lerp(a,b,j/(float)count);float width=.68f+Noise(centre.x,centre.y,.3f)*.34f;
-                    int n=vertices.Count;
-                    foreach(int sign in new[]{-1,1})
-                    {
-                        var p=centre+across*width*sign;
-                        if(Ground(p.x,p.y,out var h))vertices.Add(h.point+Vector3.up*.018f);else vertices.Add(new Vector3(p.x,0,p.y));
-                        uv.Add(new Vector2(sign==1?1:0,distance*.45f));
-                    }
-                    if(n>0)indices.AddRange(new[]{n-2,n,n-1,n-1,n,n+1});distance+=Vector2.Distance(a,b)/count;
-                }
-            }
-            var mesh=new Mesh();mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetTriangles(indices,0);mesh.RecalculateNormals();mesh.RecalculateTangents();mesh=Store(mesh,"LakeFootpath");
-            var earth=BahnhofStreetscape.Surface("Lake footpath","brown_mud_leaves_01",new Color(.50f,.48f,.42f),.4f);
-            MeshObject("BV6_Winding woodland footpath",root,mesh,new[]{earth},Vector3.zero);
         }
         static Mesh DistantCrown(Mesh source,int variant)
         {
@@ -298,7 +275,7 @@ namespace ZeroRise.Editor
                     float shape=1+.10f*Mathf.Sin(angle*3+.8f)+.055f*Mathf.Sin(angle*7);
                     x=730+Mathf.Cos(angle)*130*shoreRadius*shape;z=360+Mathf.Sin(angle)*96*shoreRadius*shape;
                 }
-                if(!Ground(x,z,out var hit)||hit.normal.y<.82f||hit.point.y<LakeLevel+.18f)continue;
+                if(WestbruchLakeAccess.Cleared(new Vector2(x,z),.5f)||!Ground(x,z,out var hit)||hit.normal.y<.82f||hit.point.y<LakeLevel+.18f)continue;
                 float radius=LakeRadius(x,z),pocket=Noise(x,z,.045f,18);
                 if(radius>1.65f&&pocket<.55f)continue;
                 if(i%13==0&&(radius<1.21f||hit.normal.y<.92f)&&Noise(x,z,.035f,38)>.49f)

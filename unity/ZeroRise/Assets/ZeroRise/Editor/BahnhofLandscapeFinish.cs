@@ -137,7 +137,7 @@ namespace ZeroRise.Editor
             // behind it. This avoids a second exposed edge alongside the track.
             rise *= Mathf.SmoothStep(0, 1, Mathf.InverseLerp(134, 185, x));
             float land = Mathf.PerlinNoise(x * .011f + 19, z * .012f + 7) * 8;
-            return WestbruchLandscapeProfile.Height(x, z, -.055f + rise * (3.5f + land) + ContextRelief(x, z));
+            return WestbruchLakeAccess.Grade(x, z, WestbruchLandscapeProfile.Height(x, z, -.055f + rise * (3.5f + land) + ContextRelief(x, z)));
         }
 
         static void ContinueLandscape()
@@ -241,8 +241,9 @@ namespace ZeroRise.Editor
             var xs = Axis(x0, x1, spacing); var zs = Axis(z0, z1, spacing);
             // Higher sampling density in the eastern meadow captures the
             // landforms. Adjacent meshes share its boundary samples.
-            float[] EastRows() => Axis(30, 364, 3).Concat(Axis(364, 600, 5)).Distinct().OrderBy(v => v).ToArray();
+            float[] EastRows() => Axis(30, 364, 3).Concat(Axis(364, 600, 5)).Concat(Axis(300, 440, 1.5f)).Distinct().OrderBy(v => v).ToArray();
             if (id == "East continued landscape") zs = EastRows();
+            if (id == "Far east horizon land") xs = Axis(600, 680, 1.5f).Concat(Axis(680, 1800, 6)).Distinct().OrderBy(v=>v).ToArray();
             if (id == "Far east horizon land") zs = Axis(-1800, 30, 32).Concat(EastRows()).Concat(Axis(600, 1800, 6)).Distinct().OrderBy(v => v).ToArray();
             if (id == "Far north horizon land") xs = Axis(134, 300, 5).Concat(Axis(300, 600, 3)).Distinct().OrderBy(v => v).ToArray();
             if (id == "South horizon land") xs = Axis(200, 300, 5).Concat(Axis(300, 600, 3)).Distinct().OrderBy(v => v).ToArray();
@@ -482,7 +483,8 @@ namespace ZeroRise.Editor
             Shed("East railway depot", new Vector3(310, floor, 139), 26, 14, 5.0f, 180);
             Shed("Depot caretaker workshop", new Vector3(290.4f, floor, 142), 6.0f, 10, 3.15f, 180);
             Wall(new Vector3(286, -.055f, 130), new Vector3(325, -.055f, 130), 1.85f);
-            Wall(new Vector3(325, -.055f, 130), new Vector3(325, -.055f, 182), 1.85f);
+            Wall(new Vector3(325, -.055f, 130), new Vector3(325, -.055f, 171.5f), 1.85f);
+            Wall(new Vector3(325, -.055f, 180.5f), new Vector3(325, -.055f, 182), 1.85f);
             Wall(new Vector3(286, -.055f, 182), new Vector3(325, -.055f, 182), 1.85f);
             Wall(new Vector3(286, -.055f, 130), new Vector3(286, -.055f, 171.5f), 1.85f);
             Wall(new Vector3(286, -.055f, 180.5f), new Vector3(286, -.055f, 182), 1.85f);
@@ -491,7 +493,7 @@ namespace ZeroRise.Editor
             // Paving is a working space: stacked goods, a rack and a bench give
             // it a purpose without littering the walking route through the gate.
             YardGoods(new Vector3(321, floor, 154), 90);
-            YardGoods(new Vector3(319, floor, 176), 0);
+            YardGoods(new Vector3(319, floor, 159), 0);
             WestbruchProps.Bin(root, new Vector3(290, floor, 152), 0);
             WestbruchProps.Bin(root, new Vector3(291, floor, 152), 0);
             Workbench(new Vector3(292, floor, 165), 90);
@@ -663,6 +665,7 @@ namespace ZeroRise.Editor
 
         static void Tree(float x, float z, float scale)
         {
+            if(WestbruchLakeAccess.Cleared(new Vector2(x,z),3))return;
             if (!treeSource) return;
             Physics.SyncTransforms();
             float y = NewContext(x, z) ? ContextHeight(x, z) : -.055f;
@@ -680,6 +683,7 @@ namespace ZeroRise.Editor
 
         static void Shrub(float x, float z, float scale, float yaw)
         {
+            if(WestbruchLakeAccess.Cleared(new Vector2(x,z),1))return;
             if (!shrubSource || !GroundAt(x, z, out float y, out string support) || support.Contains("walk") || support.Contains("road")) return;
             var go = UnityEngine.Object.Instantiate(shrubSource, root); go.name = "BV3_Rooted yard shrub " + shrubCount++;
             go.transform.SetPositionAndRotation(new Vector3(x, y - .035f, z), Quaternion.Euler(0, yaw, 0)); go.transform.localScale = shrubSource.transform.lossyScale * scale;
@@ -688,7 +692,16 @@ namespace ZeroRise.Editor
         static void Hedge(Vector2 a, Vector2 b, float scale)
         {
             int n = Mathf.Max(1, Mathf.CeilToInt(Vector2.Distance(a, b) / (2.6f * scale)));
-            for (int i = 0; i <= n; i++) { var p = Vector2.Lerp(a, b, i / (float)n); Shrub(p.x, p.y, scale * (1 + Mathf.Sin(i * 5.7f) * .08f), i * 137.5f); }
+            for (int i = 0; i <= n; i++)
+            {
+                var p = Vector2.Lerp(a, b, i / (float)n);
+                if (Mathf.Abs(a.x-145.8f)<.1f)
+                {
+                    if(i%5>=3)continue;
+                    p.x += Mathf.Sin(i*2.71f)*.85f; p.y += Mathf.Sin(i*5.31f)*.65f;
+                }
+                Shrub(p.x,p.y,scale*(1+Mathf.Sin(i*5.7f)*.18f),i*137.5f);
+            }
         }
 
         static void Wall(Vector3 a, Vector3 b, float height, Transform parent = null)

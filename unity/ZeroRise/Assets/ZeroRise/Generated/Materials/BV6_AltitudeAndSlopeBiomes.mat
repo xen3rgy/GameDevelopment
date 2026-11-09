@@ -72,20 +72,20 @@ Material:
         m_Offset: {x: 0, y: 0}
     - _BaseColorMap0:
         m_Texture: {fileID: 2800000, guid: 3ab6aca1deb43441a8ae5c8d529cd752, type: 3}
-        m_Scale: {x: 0.35714287, y: 0.35714287}
+        m_Scale: {x: 0.34482756, y: 0.34482756}
         m_Offset: {x: 0, y: 0}
     - _BaseColorMap1:
         m_Texture: {fileID: 2800000, guid: 9d02e6aeba98e40968d39b00f76ca44f, type: 3}
-        m_Scale: {x: 0.35714287, y: 0.35714287}
-        m_Offset: {x: 0, y: 0}
+        m_Scale: {x: 0.44444445, y: 0.44444445}
+        m_Offset: {x: 0.38, y: 0.73}
     - _BaseColorMap2:
         m_Texture: {fileID: 2800000, guid: c27b0bf1f9f714d62889f9dcd3fb8646, type: 3}
         m_Scale: {x: 0.15384616, y: 0.15384616}
-        m_Offset: {x: 0, y: 0}
+        m_Offset: {x: 0.76, y: 1.46}
     - _BaseColorMap3:
         m_Texture: {fileID: 2800000, guid: e005ae428658a40fcb12e493c74df46c, type: 3}
         m_Scale: {x: 0.32258067, y: 0.32258067}
-        m_Offset: {x: 0, y: 0}
+        m_Offset: {x: 1.14, y: 2.19}
     - _BentNormalMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -513,10 +513,10 @@ Material:
     - _NormalMapSpace2: 0
     - _NormalMapSpace3: 0
     - _NormalScale: 1
-    - _NormalScale0: 0.42
-    - _NormalScale1: 0.42
+    - _NormalScale0: 0.58
+    - _NormalScale1: 0.36
     - _NormalScale2: 0.8
-    - _NormalScale3: 0.42
+    - _NormalScale3: 0.58
     - _ObjectScaleAffectTile: 0
     - _ObjectSpaceUVMapping: 0
     - _ObjectSpaceUVMappingEmissive: 0
@@ -618,8 +618,8 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _BaseColor0: {r: 0.39, g: 0.4, b: 0.34, a: 1}
-    - _BaseColor1: {r: 0.32, g: 0.46, b: 0.27, a: 1}
+    - _BaseColor0: {r: 0.72, g: 0.65, b: 0.53, a: 1}
+    - _BaseColor1: {r: 0.59, g: 0.7, b: 0.53, a: 1}
     - _BaseColor2: {r: 0.28, g: 0.34, b: 0.38, a: 1}
     - _BaseColor3: {r: 0.76, g: 0.81, b: 0.86, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}

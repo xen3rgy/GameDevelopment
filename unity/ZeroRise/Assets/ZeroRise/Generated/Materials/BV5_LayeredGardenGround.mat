@@ -8,11 +8,14 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: BV5_LayeredGardenGround
-  m_Shader: {fileID: 4800000, guid: 81d02e8644315b742b154842a3a2f98c, type: 3}
+  m_Shader: {fileID: 4800000, guid: a7f4103e868254891bc2431d8d334eaf, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _LAYEREDLIT_3_LAYERS
+  - _LAYER_MAPPING_TRIPLANAR0
+  - _LAYER_MAPPING_TRIPLANAR1
+  - _LAYER_MAPPING_TRIPLANAR2
   - _LAYER_MASK_VERTEX_COLOR_MUL
   - _MASKMAP0
   - _MASKMAP1
@@ -573,9 +576,9 @@ Material:
     - _TransparentWritingMotionVec: 0
     - _TransparentZWrite: 0
     - _UVBase: 0
-    - _UVBase0: 1
-    - _UVBase1: 1
-    - _UVBase2: 1
+    - _UVBase0: 5
+    - _UVBase1: 5
+    - _UVBase2: 5
     - _UVBase3: 0
     - _UVBlendMask: 1
     - _UVDetail: 0

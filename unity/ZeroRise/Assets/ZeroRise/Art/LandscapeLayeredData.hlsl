@@ -367,7 +367,8 @@ void GetLayerTexCoord(float2 texCoord0, float2 texCoord1, float2 texCoord2, floa
 {
     float3 absolute=GetAbsolutePositionWS(positionWS);
     float3 warp=float3(ZRLandNoise(absolute*.065),ZRLandNoise(absolute*.069+17),ZRLandNoise(absolute*.071+39))-.5;
-    positionWS += warp*11;
+    // Keep metric texture coordinates undistorted; variation belongs in the blend mask.
+    // The previous 11 m warp visibly sheared the soil texture on shallow slopes.
     layerTexCoord.vertexNormalWS = vertexNormalWS;
     layerTexCoord.triplanarWeights = ComputeTriplanarWeights(vertexNormalWS);
 
@@ -734,6 +735,32 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     GetLayerTexCoord(input, layerTexCoord);
 
     float4 blendMasks = GetBlendMask(layerTexCoord, input.color);
+    float3 groundWorld = GetAbsolutePositionWS(input.positionRWS);
+    float districtDistance = max(max(groundWorld.x-300,-200-groundWorld.x),max(groundWorld.z-364,-240-groundWorld.z));
+    float districtMix = 1-smoothstep(0,160,districtDistance);
+#if defined(ZR_DISTRICT_GROUND)
+    districtMix = 1;
+#endif
+    // Identical per-pixel weights on every soil mesh at the town boundary.
+    // Vertex colours from different generators must not make rectangular seams.
+    float cover = ZRLandNoise(float3(groundWorld.x*.085,17,groundWorld.z*.085))*.65
+                + ZRLandNoise(float3(groundWorld.x*.36,51,groundWorld.z*.36))*.35;
+    float grassCover = lerp(.15,.92,smoothstep(.27,.76,cover));
+#if defined(ZR_LAKE_ACCESS)
+    // Gravel coverage is authored continuously across all access junctions.
+    // Keep the surrounding soil's world-space grass weights and macro shading.
+    float accessCoverage = blendMasks.b;
+    // Reveal the actual terrain through the outer shoulder, rather than
+    // exposing the rectangular tessellation boundary of the thin road mesh.
+    // A world-anchored centimetre pattern is stable as the camera moves and
+    // uses the same coverage in colour, depth and shadow passes.
+    float edgeOpacity = smoothstep(.025, .45, accessCoverage);
+    clip(edgeOpacity - max(.001, ZRLandHash(float3(floor(groundWorld.xz * 80), 19))));
+#endif
+    blendMasks = lerp(blendMasks,float4(grassCover,0,0,1),districtMix);
+#if defined(ZR_LAKE_ACCESS)
+    blendMasks.b = accessCoverage;
+#endif
 #ifndef SHADER_STAGE_RAY_TRACING
     float depthOffset = ApplyPerPixelDisplacement(input, V, layerTexCoord, blendMasks);
     #ifdef _DEPTHOFFSET_ON
@@ -792,7 +819,15 @@ void GetSurfaceAndBuiltinData(FragInputs input, float3 V, inout PositionInputs p
     float edgeDistance=max(max(absoluteLand.x-300,-200-absoluteLand.x),max(absoluteLand.z-364,-240-absoluteLand.z));
     float wilderness=smoothstep(0,160,edgeDistance);
     float3 apronTint=lerp(float3(1.84,1.625,1.56),float3(1.84,1.52,1.96),saturate(input.color.r));
-    surfaceData.baseColor *= lerp(apronTint,lerp(reliefTint,1.0,saturate(input.color.b)*.84),wilderness);
+#if defined(ZR_LAKE_ACCESS)
+    surfaceData.baseColor *= lerp(lerp(.78,1.12,macro),reliefTint,wilderness);
+#elif defined(ZR_DISTRICT_GROUND)
+    // Local material keeps soil hue stable across the railway and town. Small
+    // and large patches vary together, rather than a repeated giant photograph.
+    surfaceData.baseColor *= lerp(.78,1.12,macro);
+#else
+    surfaceData.baseColor *= lerp(lerp(.78,1.12,macro),lerp(reliefTint,1.0,saturate(input.color.b)*.84),wilderness);
+#endif
 
     surfaceData.perceptualSmoothness = SURFACEDATA_BLEND_SCALAR(surfaceData, perceptualSmoothness, weights);
     surfaceData.ambientOcclusion = SURFACEDATA_BLEND_SCALAR(surfaceData, ambientOcclusion, weights);

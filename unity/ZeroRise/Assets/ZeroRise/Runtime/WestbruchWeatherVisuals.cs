@@ -127,7 +127,7 @@ namespace ZeroRise
                         if(!wetClones.TryGetValue(source,out var state))
                         {
                             var clone=new Material(source){name=source.name+" (weather instance)"};ownedMaterials.Add(clone);
-                            bool layered=source.shader.name.Contains("LayeredLit");
+                            bool layered=(source.shader.name.Contains("LayeredLit")||source.shader.name=="ZeroRise/DistrictGround");
                             // Preserve stock shader/keywords to retain the
                             // exact variants already shipped for these assets.
                             bool shaderWet=clone.shader.name=="ZeroRise/UrbanLit"&&clone.IsKeywordEnabled("_ZR_ROAD");
@@ -238,7 +238,7 @@ namespace ZeroRise
                 ||name.StartsWith("OverpassGround_",StringComparison.Ordinal)&&!name.Contains("Distant")
                 ||name.StartsWith("GroundDetail_",StringComparison.Ordinal)||name=="UrbanYard"
                 ||name.StartsWith("BV5_Road_",StringComparison.Ordinal)||name=="BV5_Station_stone_setts"||name=="BV5_LayeredGardenGround"
-                ||name=="BV6_AltitudeAndSlopeBiomes"||name=="BV5_Regional_weathered_rock"
+                ||name=="BV6_AltitudeAndSlopeBiomes"||name=="BV5_Regional_weathered_rock"||name=="BV8_CompactedGravelAndForest"
                 ||name=="BV5_Planted_soil"||name=="BV5_KerbGranite"||name=="BV5_DarkBasalt";
         }
         void CreateNightLighting()

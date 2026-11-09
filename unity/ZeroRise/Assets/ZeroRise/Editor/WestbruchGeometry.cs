@@ -92,6 +92,13 @@ namespace ZeroRise.Editor
             obj.transform.localScale = new Vector3(radius * 2, height * .5f, radius * 2);
             obj.GetComponent<Renderer>().sharedMaterial = mat;
             if (!collider) UnityEngine.Object.DestroyImmediate(obj.GetComponent<Collider>());
+            else if (radius > height * .5f)
+            {
+                // Unity's primitive cylinder uses a capsule: on a flat, wide bed
+                // its radius creates an invisible dome metres above the soil.
+                UnityEngine.Object.DestroyImmediate(obj.GetComponent<Collider>());
+                obj.AddComponent<MeshCollider>().sharedMesh = obj.GetComponent<MeshFilter>().sharedMesh;
+            }
             obj.isStatic = true; return obj;
         }
         public static void Beam(string name, Transform parent, Vector3 a, Vector3 b, float width, Material mat, bool collision = false)

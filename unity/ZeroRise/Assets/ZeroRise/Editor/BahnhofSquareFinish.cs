@@ -45,7 +45,7 @@ namespace ZeroRise.Editor
                 }
             }
             var border=Material("BV3_SquarePavingBands","brick",new Color(.44f,.38f,.29f),.08f);
-            foreach(float z in new[]{254.0f,276})Box("BV3_Inlaid square paving band",root,new Vector3(174,.146f,z),new Vector3(48,.012f,.24f),border,false,1.2f);
+            // Uninterrupted setts: previous inlaid strips cut through unrelated beds and bays.
             // A modest drinking fountain and dog bowl make the waiting area usable.
             var fountain=Group("BV3_Public drinking fountain",root,new Vector3(182,.14f,289)).transform;
             Cylinder("BV3_Fountain buried stone pedestal",fountain,Vector3.up*.42f,.22f,.9f,stone,true);

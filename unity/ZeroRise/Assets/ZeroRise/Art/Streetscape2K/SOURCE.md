@@ -26,3 +26,10 @@ OpenGL normal, roughness; CC0):
 
 Powered by Poly Haven. The regional height field, lake basin, biome weights,
 three spruce variants, eroded boulders and planting layout are authored in-project.
+
+## Waldsee access — Gravelly Sand
+- Author: Dario Barresi / Poly Haven
+- Source: https://polyhaven.com/a/gravelly_sand
+- License: CC0, https://polyhaven.com/license
+- Imported 2026-11-07: 2K JPG diffuse, OpenGL normal, roughness; local names `gravelly_sand_{diff,nor_gl,rough}.jpg`.
+- Physical source width: 2.5 m. HDRP mask packed from roughness by the existing texture importer.

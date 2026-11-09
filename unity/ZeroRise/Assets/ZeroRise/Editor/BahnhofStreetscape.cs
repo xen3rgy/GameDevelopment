@@ -32,7 +32,7 @@ namespace ZeroRise.Editor
             iron=Material("BV5_OxidizedIron",null,new Color(.17f,.19f,.18f),.16f,.65f);
             edge=Material("BV5_DarkBasalt","concrete",new Color(.25f,.27f,.27f),.10f);
             repair=Surface("Road repairs","asphalt_02",new Color(.53f,.56f,.57f),.3f,true);
-            soil=Ground();BuildUnderstory();ReplaceSurfaces();RegroundVegetation();StreetEdges();RoadDetails();SquareBands();TreeGrilles();PlantBeds();GardenMargins();ReplaceTrees();PlantMeadow();BakePlants();
+            soil=Ground();BuildUnderstory();ReplaceSurfaces();RegroundVegetation();StreetEdges();RoadDetails();TreeGrilles();PlantBeds();GardenMargins();ReplaceTrees();PlantMeadow();BakePlants();
             Physics.SyncTransforms();
             Debug.Log("BV5 streetscape complete: PBR roads and setts, chamfered stone kerbs, drainage, tree grilles, layered soil, rooted planting and new tree meshes; plants "+plantRoots.Count);
         }
@@ -73,10 +73,10 @@ namespace ZeroRise.Editor
             {
                 mat.SetColor("_BaseColor"+i,tints[i]);
                 mat.SetTexture("_BaseColorMap"+i,Tex(ids[i],"diff"));mat.SetTextureScale("_BaseColorMap"+i,Vector2.one/tiles[i]);mat.SetTextureOffset("_BaseColorMap"+i,new Vector2(i*.38f,i*.73f));
-                mat.SetFloat("_UVBase"+i,1);mat.SetVector("_UVMappingMask"+i,new Vector4(0,1,0,0));mat.SetTexture("_NormalMap"+i,Tex(ids[i],"nor_gl"));mat.SetFloat("_NormalScale"+i,i==1?.36f:.58f);
+                mat.SetFloat("_UVBase"+i,5);mat.SetFloat("_TexWorldScale"+i,1);mat.SetTexture("_NormalMap"+i,Tex(ids[i],"nor_gl"));mat.SetFloat("_NormalScale"+i,i==1?.36f:.58f);
                 mat.SetTexture("_MaskMap"+i,AssetDatabase.LoadAssetAtPath<Texture2D>(Art+ids[i]+"_mask.png"));mat.SetFloat("_SmoothnessRemapMin"+i,.015f);mat.SetFloat("_SmoothnessRemapMax"+i,.16f);mat.SetFloat("_Metallic"+i,0);
             }
-            HDMaterial.ValidateMaterial(mat);EditorUtility.SetDirty(mat);return mat;
+            HDMaterial.ValidateMaterial(mat);mat.shader=Shader.Find("ZeroRise/DistrictGround");EditorUtility.SetDirty(mat);return mat;
         }
         static void ReplaceSurfaces()
         {
@@ -162,19 +162,28 @@ namespace ZeroRise.Editor
             return mesh;
         }
         static GameObject BoxAt(string name,Vector3 at,Vector3 size,Material mat,bool solid=false,float tile=2)=>Box("BV5_"+name,root,at,size,mat,solid,tile);
-        static void Kerb(Vector3 a,Vector3 b)
+        internal static void Kerb(Vector3 a,Vector3 b)
         {
             float length=Vector3.Distance(a,b);var direction=(b-a).normalized;var right=Vector3.Cross(Vector3.up,direction);int count=Mathf.CeilToInt(length/.99f);float step=length/count;
             // Bevelled top nose, vertical face and buried heel, one metre units.
             // Five millimetres above the retained paving avoids coincident
             // surfaces along the small buried heel overlap.
-            var profile=new[]{new Vector2(-.09f,-.10f),new Vector2(.09f,-.10f),new Vector2(.09f,.145f),new Vector2(-.055f,.145f),new Vector2(-.09f,.105f)};
+            var profile=new[]{new Vector2(-.09f,-.10f),new Vector2(.09f,-.10f),new Vector2(.09f,.151f),new Vector2(-.055f,.151f),new Vector2(-.09f,.113f)};
             for(int n=0;n<count;n++)
             {
                 var v=new List<Vector3>();var t=new List<int>();float start=n*step+.004f,end=(n+1)*step-.004f;
                 foreach(float s in new[]{start,end})foreach(var p in profile)v.Add(a+direction*s+right*p.x+Vector3.up*p.y);
                 for(int i=0;i<5;i++){int j=(i+1)%5;t.AddRange(new[]{i,j,5+i,j,5+j,5+i});}
                 t.AddRange(new[]{0,2,1,0,3,2,0,4,3,5,6,7,5,7,8,5,8,9});
+                // Orient every face outwards. The old extrusion was inside-out,
+                // hiding its top and road-facing nose when backface culled.
+                var center=a+direction*((start+end)*.5f)+Vector3.up*.025f;
+                for(int i=0;i<t.Count;i+=3)
+                {
+                    var normal=Vector3.Cross(v[t[i+1]]-v[t[i]],v[t[i+2]]-v[t[i]]);
+                    var face=(v[t[i]]+v[t[i+1]]+v[t[i+2]])/3;
+                    if(Vector3.Dot(normal,face-center)<0){int swap=t[i+1];t[i+1]=t[i+2];t[i+2]=swap;}
+                }
                 BahnhofDetailKit.Mesh("BV5_Chamfered kerb "+a.x+"_"+a.z+"_"+n,root,v,t,stone,false);
             }
             // Two orderly rows of small dark stones form the real road gutter.
@@ -187,10 +196,59 @@ namespace ZeroRise.Editor
         }
         static void StreetEdges()
         {
-            foreach(float x in new[]{202.98f,213.02f})foreach(var span in new[]{new Vector2(98,146),new Vector2(156,168),new Vector2(184,223),new Vector2(233,258),new Vector2(274,289),new Vector2(299,303)})
-                Kerb(new Vector3(x,0,x<208?span.x:span.y),new Vector3(x,0,x<208?span.y:span.x));
-            foreach(float z in new[]{75.02f,84.98f})Kerb(new Vector3(z<80?168:199,0,z),new Vector3(z<80?199:168,0,z));
-            foreach(float z in new[]{171.52f,180.48f,301.52f,310.48f})Kerb(new Vector3(z%10<5?218:256,0,z),new Vector3(z%10<5?256:218,0,z));
+            // Derive the kerb from the actual disjoint road mesh, including side
+            // streets and junction returns; never run a kerb across a road opening.
+            var edges=new Dictionary<(Vector2Int,Vector2Int),int>();
+            Vector2Int Key(Vector3 v)=>new Vector2Int(Mathf.RoundToInt(v.x*1000),Mathf.RoundToInt(v.z*1000));
+            foreach(var f in district.GetComponentsInChildren<MeshFilter>().Where(f=>f.name.StartsWith("BV2_Surface road")))
+            {
+                var v=f.sharedMesh.vertices;var t=f.sharedMesh.triangles;
+                for(int i=0;i<t.Length;i+=3)
+                {
+                    var a=f.transform.TransformPoint(v[t[i]]);var b=f.transform.TransformPoint(v[t[i+1]]);var c=f.transform.TransformPoint(v[t[i+2]]);
+                    if(Vector3.Cross(b-a,c-a).y<=0)continue;
+                    var corners=new[]{Key(a),Key(b),Key(c)};
+                    for(int j=0;j<3;j++)
+                    {
+                        var aa=corners[j];var bb=corners[(j+1)%3];
+                        if(aa.x>bb.x||aa.x==bb.x&&aa.y>bb.y){var swap=aa;aa=bb;bb=swap;}
+                        var key=(aa,bb);edges.TryGetValue(key,out int count);edges[key]=count+1;
+                    }
+                }
+            }
+            Physics.SyncTransforms();
+            var segments=new List<(bool vertical,float axis,float lo,float hi)>();
+            foreach(var e in edges.Where(e=>e.Value==1))
+            {
+                var aa=e.Key.Item1;var bb=e.Key.Item2;bool vertical=aa.x==bb.x;
+                if(!vertical&&aa.y!=bb.y)continue;
+                var mid=new Vector3((aa.x+bb.x)/2000f,1,(aa.y+bb.y)/2000f);
+                var offset=vertical?Vector3.right*.25f:Vector3.forward*.25f;
+                bool Walk(Vector3 at)=>Physics.Raycast(at,Vector3.down,out var h,2,1)&&h.collider.name.StartsWith("BV2_Surface walk");
+                if(!Walk(mid+offset)&&!Walk(mid-offset))continue;
+                segments.Add((vertical,(vertical?aa.x:aa.y)/1000f,(vertical?aa.y:aa.x)/1000f,(vertical?bb.y:bb.x)/1000f));
+            }
+            foreach(var line in segments.GroupBy(e=>(e.vertical,e.axis)))
+            {
+                var ordered=line.OrderBy(e=>e.lo).ToArray();float lo=ordered[0].lo,hi=ordered[0].hi;
+                void Emit(float from,float to)
+                {
+                    // Keep zebra crossings and their existing pedestrian routes open.
+                    var breaks=new SortedSet<float>{from,to};
+                    if(line.Key.vertical&&Mathf.Abs(line.Key.axis-208)<6)
+                        foreach(float z in new[]{151f,228,294})foreach(float dz in new[]{-1.7f,1.7f})if(z+dz>from&&z+dz<to)breaks.Add(z+dz);
+                    var b=breaks.ToArray();
+                    for(int k=1;k<b.Length;k++)
+                    {
+                        float mid=(b[k-1]+b[k])*.5f;
+                        if(line.Key.vertical&&Mathf.Abs(line.Key.axis-208)<6&&new[]{151f,228,294}.Any(z=>Mathf.Abs(z-mid)<1.7f))continue;
+                        Vector3 P(float v)=>line.Key.vertical?new Vector3(line.Key.axis,0,v):new Vector3(v,0,line.Key.axis);
+                        Kerb(P(b[k-1]),P(b[k]));
+                    }
+                }
+                foreach(var seg in ordered.Skip(1)){if(seg.lo<=hi+.002f)hi=Mathf.Max(hi,seg.hi);else{Emit(lo,hi);lo=seg.lo;hi=seg.hi;}}
+                Emit(lo,hi);
+            }
             foreach(float z in new[]{133f,188,218,248,284})foreach(float x in new[]{203.38f,212.62f})Drain(new Vector3(x,.043f,z));
         }
         static void Drain(Vector3 p)
@@ -258,7 +316,7 @@ namespace ZeroRise.Editor
         static void Plant(float x,float z,float scale,int kind)
         {
             if(!SoilAt(x,z,out float y))return;
-            var mesh=kind==0?assets["tuft"]:kind==5?assets["perennial"]:AssetDatabase.LoadAssetAtPath<Mesh>(Generated+"/Meshes/UrbanFlora_"+kind+"_"+(plantRoots.Count%3)+".asset");if(!mesh)return;
+            var mesh=kind==5?assets["perennial"]:assets["tuft"];if(!mesh)return;
             var pos=new Vector3(x,y-.014f,z);plants.Add(new CombineInstance{mesh=mesh,transform=Matrix4x4.TRS(pos,Quaternion.Euler(0,R(0,360),0),new Vector3(scale,scale,scale))});plantRoots.Add(new Vector2(x,z));plantHeights.Add(new Vector2(pos.y,1));
         }
         static void PlantBeds()
@@ -267,23 +325,33 @@ namespace ZeroRise.Editor
             foreach(var bed in district.GetComponentsInChildren<Transform>().Where(t=>t.name=="BV4_Planting island"||t.name.StartsWith("BV3_Circular station tree garden ")||t.name=="BV2_Raised front planting"))
             {
                 var soilCollider=bed.GetComponentsInChildren<Collider>().FirstOrDefault(c=>c.name.Contains("soil",StringComparison.OrdinalIgnoreCase));if(!soilCollider)continue;var b=soilCollider.bounds;
-                for(float x=b.min.x+.24f;x<b.max.x-.18f;x+=.36f)for(float z=b.min.z+.24f;z<b.max.z-.18f;z+=.39f)
-                {if(bed.name.StartsWith("BV3_Circular")&&Vector2.Distance(new Vector2(x,z),new Vector2(bed.position.x,bed.position.z))<.98f)continue;Plant(x+R(-.07f,.07f),z+R(-.07f,.07f),R(.45f,.80f),rng.NextDouble()<.26?5:0);}
+                for(int sample=0;sample<Mathf.CeilToInt(b.size.x*b.size.z*5);sample++)
+                {float x=R(b.min.x+.24f,b.max.x-.24f),z=R(b.min.z+.24f,b.max.z-.24f);if(bed.name.StartsWith("BV3_Circular")&&Vector2.Distance(new Vector2(x,z),new Vector2(bed.position.x,bed.position.z))<.98f)continue;Plant(x+R(-.07f,.07f),z+R(-.07f,.07f),R(.45f,.80f),rng.NextDouble()<.26?5:0);}
             }
         }
         static void GardenMargins()
         {
-            // Coherent planted ribbons in soil, set back from entrances and crossings.
-            foreach(float z in new[]{116f,147f,202f,233f,275f})
-                for(float dz=-10;dz<=10;dz+=.40f)for(float dx=0;dx<1.4f;dx+=.40f)
-                {if(Mathf.Abs(dz)<2.8f)continue;Plant(228.2f+dx,z+dz,R(.65f,1.05f),rng.NextDouble()<.18?5:0);}
-            foreach(float x in new[]{145.2f,146.0f,297.8f,299.0f})for(float z=125;z<330;z+=.48f)
-                Plant(x+R(-.2f,.2f),z+R(-.2f,.2f),R(.65f,1.1f),rng.NextDouble()<.18?3:0);
+            // Irregular islands of understory with broad gaps, not single-file
+            // ribbons which trace the generator's coordinates along footpaths.
+            foreach (var area in new[] { new Rect(142,125,6,205), new Rect(292,120,8,205),
+                new Rect(227,102,3,185) })
+            for (int cluster=0; cluster<Mathf.CeilToInt(area.height/8); cluster++)
+            {
+                float cx=R(area.xMin+.7f,area.xMax-.7f),cz=R(area.yMin,area.yMax);
+                float radius=R(.6f,1.5f);
+                for(int i=0;i<35;i++)
+                {
+                    float angle=R(0,Mathf.PI*2),distance=Mathf.Sqrt(R(0,1))*radius;
+                    float x=cx+Mathf.Cos(angle)*distance,z=cz+Mathf.Sin(angle)*distance;
+                    if(!BahnhofCoreRenewal.Soil(x,z,1,out var hit))continue;
+                    Plant(x,z,R(.55f,1.05f),rng.NextDouble()<.14?5:0);
+                }
+            }
             foreach(int side in new[]{-1,1})for(int h=0;h<4;h++)
             {
                 float x=-82+h*53;
-                for(float dx=-15;dx<16;dx+=.55f)for(float dz=0;dz<1.6f;dz+=.5f)
-                {if(Mathf.Abs(dx)<2.2f)continue;Plant(x+dx,side*(160+dz),R(.55f,.85f),rng.NextDouble()<.28?5:0);}
+                for(int i=0;i<100;i++)
+                {float dx=R(-15,16),dz=R(0,1.6f);if(Mathf.Abs(dx)<2.2f)continue;Plant(x+dx,side*(160+dz),R(.55f,.85f),rng.NextDouble()<.28?5:0);}
             }
         }
         static void PlantMeadow()
@@ -455,9 +523,9 @@ namespace ZeroRise.Editor
                 {int s=v.Count;v.AddRange(new[]{a,b,c});uv.AddRange(new[]{Vector2.zero,Vector2.up,Vector2.one});colors.AddRange(new[]{color*.70f,color,color});t.AddRange(new[]{s,s+1,s+2});}
                 for(int i=0;i<(kind==0?60:36);i++)
                 {
-                    float a=i*2.39996f,height=Rand(.22f,.52f);var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));var side=Vector3.Cross(Vector3.up,dir);
+                    float a=i*2.39996f,height=Rand(.16f,.39f);var dir=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));var side=Vector3.Cross(Vector3.up,dir);
                     var start=dir*Rand(.01f,.05f);var middle=start+Vector3.up*height*.60f+dir*.06f;
-                    var bend=start+Vector3.up*height*.95f+dir*.17f;var tip=start+Vector3.up*height*.83f+dir*Rand(.25f,.32f);float width=Rand(.009f,.018f);
+                    var bend=start+Vector3.up*height*.95f+dir*.17f;var tip=start+Vector3.up*height*.83f+dir*Rand(.25f,.32f);float width=Rand(.004f,.009f);
                     var color=new Color(Rand(.24f,.36f),Rand(.36f,.49f),Rand(.14f,.23f)).linear;
                     Triangle(start,middle-side*width,middle+side*width,color);
                     Triangle(middle-side*width,bend-side*width*.55f,bend+side*width*.55f,color);
@@ -477,7 +545,7 @@ namespace ZeroRise.Editor
                 var mesh=new Mesh();mesh.SetVertices(v);mesh.SetUVs(0,uv);mesh.SetColors(colors);mesh.SetTriangles(t,0);mesh.RecalculateNormals();mesh.RecalculateTangents();mesh.RecalculateBounds();assets[kind==0?"tuft":"perennial"]=Store(mesh,kind==0?"OrnamentalTuft":"FloweringPerennial");
             }
         }
-        static Mesh BuildMeadowGrass(int variant)
+        internal static Mesh BuildMeadowGrass(int variant)
         {
             var random = new System.Random(5182 + variant * 131);
             var vertices = new List<Vector3>(); var uv = new List<Vector2>();

@@ -28,9 +28,9 @@ namespace ZeroRise.Editor
                 root=GameObject.Find(BahnhofsviertelBuilder.RootName).transform;
                 UnpackSources();RemoveConflictingBackdrop();ClearLegacySigns();ContinuousSurfaces();
                 BahnhofResidentialArchitecture.Rebuild(root);BahnhofStationArchitecture.Rebuild(root);
-                DressStreet();BahnhofLandscapeFinish.Apply(root);BahnhofSquareFinish.Apply(root);WestbruchAuditCompletion.Apply(root);BahnhofStreetscape.Apply(root);WestbruchRegionalLandscape.Apply(root);WestbruchSupportAudit.Repair(root);FixVehicles();RefreshNavigation();Physics.SyncTransforms();
+                DressStreet();BahnhofLandscapeFinish.Apply(root);BahnhofSquareFinish.Apply(root);WestbruchAuditCompletion.Apply(root);BahnhofStreetscape.Apply(root);WestbruchRegionalLandscape.Apply(root);BahnhofCoreRenewal.Apply(root);WestbruchSupportAudit.Repair(root);FixVehicles();RefreshNavigation();Physics.SyncTransforms();
                 foreach(var fitted in root.GetComponentsInChildren<FittedWorldSign>())fitted.Refit();
-                BahnhofVisualQualityQA.Validate(root,Record);BahnhofPlacementQA.Validate(root,Record);if(!passed)throw new Exception("Visual authoring checks failed: QA/bahnhof-rework-authoring.txt");
+                BahnhofVisualQualityQA.Validate(root,Record);BahnhofPlacementQA.Validate(root,Record);BahnhofCoreRenewal.Validate(Record);if(!passed)throw new Exception("Visual authoring checks failed: QA/bahnhof-rework-authoring.txt");
                 Bake();EditorSceneManager.MarkSceneDirty(EditorSceneManager.GetActiveScene());EditorSceneManager.SaveScene(EditorSceneManager.GetActiveScene());AssetDatabase.SaveAssets();
                 File.WriteAllText("QA/bahnhof-rework-authoring.txt","Passed: "+passed+"\n"+string.Join("\n",checks));
                 Debug.Log("Bahnhof rework saved: individual architecture, supported lettering and continuous street surfaces");
@@ -88,7 +88,7 @@ namespace ZeroRise.Editor
             foreach(var t in root.GetComponentsInChildren<Transform>().Where(t=>t.name.StartsWith("Bahnhof render chunk ")||t.name.StartsWith("BV2_Render chunk ")).ToArray())if(t)UnityEngine.Object.DestroyImmediate(t.gameObject);
             foreach(var f in root.GetComponentsInChildren<MeshFilter>())
                 if(f.GetComponent<MeshRenderer>()&&!f.GetComponentInParent<LODGroup>()&&!f.GetComponentInParent<PedestrianAgent>()&&!f.GetComponentInParent<SimpleCar>())f.GetComponent<MeshRenderer>().enabled=true;
-            foreach(var r in root.GetComponentsInChildren<MeshRenderer>().Where(r=>r.name=="Rear property fence collision"))r.enabled=false;
+            foreach(var r in root.GetComponentsInChildren<MeshRenderer>().Where(r=>r.name=="Rear property fence collision"||r.name=="BV7_Rail perimeter collision"))r.enabled=false;
             DestroyNamed("BV2_Street life","BV2_Continuous surfaces","BV2_Surface markings","BV2_Street plants");
         }
         static void ClearLegacySigns()
@@ -347,7 +347,7 @@ namespace ZeroRise.Editor
         {
             // Parked vehicles already own baked panels. Never combine them with their retained raw sources.
             bool Vehicle(Transform t)=>t.GetComponentsInParent<Transform>().Any(p=>p.name.StartsWith("BV2_Parked ")||p.name=="Regional train – parked at platform one");
-            var sources=root.GetComponentsInChildren<MeshFilter>().Where(f=>f.gameObject.isStatic&&f.sharedMesh&&f.sharedMesh.isReadable&&f.GetComponent<MeshRenderer>()&&f.GetComponent<MeshRenderer>().enabled&&!f.GetComponent<TextMesh>()&&!f.GetComponentInParent<LODGroup>()&&!f.name.StartsWith("BV3_Ground ")&&!f.transform.GetComponentsInParent<Transform>().Any(t=>t.name=="BV6_Regional landscape")&&!f.GetComponentInParent<PedestrianAgent>()&&!f.GetComponentInParent<StationClockHands>()&&!f.GetComponentInParent<SimpleCar>()&&!Vehicle(f.transform)&&!f.transform.GetComponentsInParent<Transform>().Any(t=>t.name=="BV2_Continuous surfaces")).ToArray();
+            var sources=root.GetComponentsInChildren<MeshFilter>().Where(f=>f.gameObject.isStatic&&f.sharedMesh&&f.sharedMesh.isReadable&&f.GetComponent<MeshRenderer>()&&f.GetComponent<MeshRenderer>().enabled&&!f.GetComponent<TextMesh>()&&!f.GetComponentInParent<LODGroup>()&&!f.name.StartsWith("BV3_Ground ")&&f.name!="Passing loop earth formation"&&!f.transform.GetComponentsInParent<Transform>().Any(t=>t.name=="BV6_Regional landscape")&&!f.GetComponentInParent<PedestrianAgent>()&&!f.GetComponentInParent<StationClockHands>()&&!f.GetComponentInParent<SimpleCar>()&&!Vehicle(f.transform)&&!f.transform.GetComponentsInParent<Transform>().Any(t=>t.name=="BV2_Continuous surfaces")).ToArray();
             foreach(var group in sources.GroupBy(f=>new{mat=f.GetComponent<MeshRenderer>().sharedMaterial,x=Mathf.FloorToInt(f.transform.position.x/40),z=Mathf.FloorToInt(f.transform.position.z/40),shadow=f.GetComponent<MeshRenderer>().shadowCastingMode}))
             {
                 var list=group.ToArray();var mesh=new Mesh{indexFormat=IndexFormat.UInt32};mesh.CombineMeshes(list.Select(f=>new CombineInstance{mesh=f.sharedMesh,transform=root.worldToLocalMatrix*f.transform.localToWorldMatrix}).ToArray(),true,true);
